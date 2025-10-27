@@ -28,20 +28,14 @@ export default function Navigation() {
                         className="flex items-center cursor-pointer"
                         onClick={() => navigate('/')}
                     >
-                        <div 
-                            className="w-12 h-12 rounded-full flex items-center justify-center"
+                        <img 
+                            src="https://static.wixstatic.com/media/0c204d_5f310ee2b2a848ceac8e68b25c0c39eb~mv2.png"
+                            alt="SOMOS.tech Logo"
+                            className="w-12 h-12 rounded-full"
                             style={{ 
-                                backgroundColor: '#00FF91',
                                 boxShadow: '0 0 10px rgba(0, 255, 145, 0.5)'
                             }}
-                        >
-                            <span 
-                                className="text-2xl font-bold"
-                                style={{ color: '#051323' }}
-                            >
-                                ST
-                            </span>
-                        </div>
+                        />
                         <span 
                             className="ml-3 text-lg font-semibold tracking-tight hidden md:block"
                             style={{ color: '#FFFFFF' }}
