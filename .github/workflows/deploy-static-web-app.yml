@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'apps/web/**'
-      - '.github/workflows/deploy-static-web-app.yml'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
