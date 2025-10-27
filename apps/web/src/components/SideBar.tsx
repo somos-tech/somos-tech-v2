@@ -18,7 +18,7 @@ export default function Sidebar() {
 
     return (
         <aside className="hidden lg:flex lg:flex-col w-64 shrink-0 border-r border-slate-200 p-4 bg-white">
-            <div className="text-lg font-semibold tracking-tight mb-4">Somos.tech</div>
+            <div className="text-lg font-semibold tracking-tight mb-4">SOMOS.tech</div>
 
             {/* Regular nav items */}
             <div className="space-y-1">
