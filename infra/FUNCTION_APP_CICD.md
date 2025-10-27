@@ -151,7 +151,6 @@ on:
   push:
     branches:
       - main
-      - staging
       - develop
 
 jobs:

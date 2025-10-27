@@ -1,10 +1,9 @@
 @description('The Azure region where resources will be deployed')
 param location string = resourceGroup().location
 
-@description('The environment name (e.g., dev, staging, prod)')
+@description('The environment name (e.g., dev, prod)')
 @allowed([
   'dev'
-  'staging'
   'prod'
 ])
 param environmentName string = 'dev'

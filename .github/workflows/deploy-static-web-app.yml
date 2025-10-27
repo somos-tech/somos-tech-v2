@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/deploy-static-web-app.yml'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
@@ -11,15 +14,26 @@ on:
     paths:
       - 'apps/web/**'
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+        default: 'dev'
 
 env:
   NODE_VERSION: '20'
 
 jobs:
-  build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+  # Deploy to dev automatically on push to main
+  deploy-dev:
+    if: (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')) && github.event.action != 'closed'
     runs-on: ubuntu-latest
-    name: Build and Deploy
+    environment: dev
+    name: Deploy to Dev
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,10 +56,91 @@ jobs:
         working-directory: apps/web
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
-          VITE_ENVIRONMENT: ${{ vars.VITE_ENVIRONMENT || 'production' }}
+          VITE_ENVIRONMENT: dev
 
-      - name: Deploy to Azure Static Web Apps
-        id: builddeploy
+      - name: Deploy to Azure Static Web Apps (Dev)
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: 'upload'
+          app_location: 'apps/web/dist'
+          api_location: ''
+          output_location: '.'
+          skip_app_build: true
+
+  # Deploy to production (manual approval required via environment protection rules)
+  deploy-prod:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
+    runs-on: ubuntu-latest
+    environment: prod
+    name: Deploy to Production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: apps/web
+
+      - name: Build application
+        run: npm run build
+        working-directory: apps/web
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_ENVIRONMENT: prod
+
+      - name: Deploy to Azure Static Web Apps (Production)
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: 'upload'
+          app_location: 'apps/web/dist'
+          api_location: ''
+          output_location: '.'
+          skip_app_build: true
+
+  # Handle PR preview deployments (uses dev environment)
+  deploy-preview:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    environment: dev
+    name: Deploy PR Preview
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: apps/web
+
+      - name: Build application
+        run: npm run build
+        working-directory: apps/web
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_ENVIRONMENT: preview
+
+      - name: Deploy PR Preview
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
@@ -59,11 +154,12 @@ jobs:
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
+    environment: dev
     name: Close Pull Request
     steps:
       - name: Close Pull Request
-        id: closepullrequest
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           action: 'close'
+          app_location: 'apps/web/dist'
