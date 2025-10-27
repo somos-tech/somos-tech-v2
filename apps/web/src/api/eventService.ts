@@ -7,7 +7,7 @@ class ApiEventService {
     private baseUrl: string;
 
     constructor() {
-        this.baseUrl = `${API_BASE_URL}/events`;
+        this.baseUrl = `${API_BASE_URL}/api/events`;
     }
 
     async getEvents(): Promise<Event[]> {
