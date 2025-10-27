@@ -137,9 +137,10 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
     siteConfig: {
       cors: {
         allowedOrigins: [
-          'https://${staticWebAppName}.azurestaticapps.net'
-          'https://*.azurestaticapps.net'
+          'https://${staticWebApp.properties.defaultHostname}'
+          'https://portal.azure.com'
         ]
+        supportCredentials: false
       }
       appSettings: [
         {
@@ -228,16 +229,6 @@ resource staticWebApp 'Microsoft.Web/staticSites@2023-01-01' = {
     allowConfigFileUpdates: true
     provider: 'GitHub'
     enterpriseGradeCdnStatus: 'Disabled'
-  }
-}
-
-// Link Static Web App to Function App as backend
-resource staticWebAppBackend 'Microsoft.Web/staticSites/linkedBackends@2023-01-01' = {
-  parent: staticWebApp
-  name: 'backend'
-  properties: {
-    backendResourceId: functionApp.id
-    region: location
   }
 }
 

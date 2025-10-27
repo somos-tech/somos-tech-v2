@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_NAME: 'func-somos-tech-dev'  # Update after deployment
+  AZURE_FUNCTIONAPP_NAME: 'func-somos-tech-dev-64qb73pzvgekw'  # Update after deployment
   AZURE_FUNCTIONAPP_PACKAGE_PATH: 'apps/api'
   NODE_VERSION: '20'
 

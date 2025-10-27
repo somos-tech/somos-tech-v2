@@ -6,7 +6,7 @@
 set -e
 
 # Configuration
-RESOURCE_GROUP="rg-somos-tech-dev2"
+RESOURCE_GROUP="rg-somos-tech-dev"
 LOCATION="westus2"
 ENVIRONMENT="dev"
 TEMPLATE_FILE="main.bicep"
