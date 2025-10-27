@@ -11,10 +11,17 @@ import type { Event } from "@shared/types";
 import eventService from "@/api/eventService";
 
 const STATUS_COLOR: Record<string, string> = {
-    "draft": "bg-amber-100 text-amber-800",
-    "published": "bg-emerald-100 text-emerald-800",
-    "cancelled": "bg-rose-100 text-rose-800",
-    "completed": "bg-slate-100 text-slate-700"
+    "draft": "text-amber-400",
+    "published": "text-emerald-400",
+    "cancelled": "text-rose-400",
+    "completed": "text-slate-400"
+};
+
+const STATUS_BG: Record<string, string> = {
+    "draft": "rgba(251, 191, 36, 0.1)",
+    "published": "rgba(52, 211, 153, 0.1)",
+    "cancelled": "rgba(251, 113, 133, 0.1)",
+    "completed": "rgba(148, 163, 184, 0.1)"
 };
 
 interface EventTableProps {
@@ -79,7 +86,7 @@ export default function EventTable({ data, loading, error, onOpen, onNew, onDele
     if (loading) {
         return (
             <div className="flex items-center justify-center p-12">
-                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+                <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00FF91' }} />
             </div>
         );
     }
@@ -87,9 +94,9 @@ export default function EventTable({ data, loading, error, onOpen, onNew, onDele
     if (error) {
         return (
             <div className="flex flex-col items-center justify-center p-12 space-y-3">
-                <AlertCircle className="h-8 w-8 text-rose-500" />
-                <div className="text-sm text-slate-600">{error}</div>
-                <Button onClick={() => window.location.reload()} variant="outline" className="rounded-xl">
+                <AlertCircle className="h-8 w-8" style={{ color: '#00FF91' }} />
+                <div className="text-sm" style={{ color: '#8394A7' }}>{error}</div>
+                <Button onClick={() => window.location.reload()} variant="outline" className="rounded-xl" style={{ borderColor: '#00FF91', color: '#00FF91' }}>
                     Retry
                 </Button>
             </div>
@@ -101,29 +108,29 @@ export default function EventTable({ data, loading, error, onOpen, onNew, onDele
             <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
                 <div className="flex-1 flex items-center gap-2">
                     <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search events, owners…" className="pl-9 rounded-xl" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#8394A7' }} />
+                        <Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search events, owners…" className="pl-9 rounded-xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)', color: '#FFFFFF' }} />
                     </div>
                     <Select onValueChange={(v) => setStatus(v)}>
-                        <SelectTrigger className="w-40 rounded-xl">
+                        <SelectTrigger className="w-40 rounded-xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)', color: '#FFFFFF' }}>
                             <SelectValue placeholder="All statuses" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl">
+                        <SelectContent className="rounded-xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
                             {["draft", "published", "cancelled", "completed"].map(s => (
-                                <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>
+                                <SelectItem key={s} value={s} style={{ color: '#FFFFFF' }}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" className="rounded-xl"><Upload className="mr-2 h-4 w-4" />Import</Button>
-                    <Button onClick={onNew} className="rounded-xl bg-black text-white hover:bg-black/90"><Plus className="mr-2 h-4 w-4" />New event</Button>
+                    <Button variant="outline" className="rounded-xl" style={{ borderColor: '#00FF91', color: '#00FF91' }}><Upload className="mr-2 h-4 w-4" />Import</Button>
+                    <Button onClick={onNew} className="rounded-xl" style={{ backgroundColor: '#00FF91', color: '#051323' }}><Plus className="mr-2 h-4 w-4" />New event</Button>
                 </div>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+            <div className="overflow-x-auto rounded-2xl" style={{ border: '1px solid rgba(0, 255, 145, 0.2)', backgroundColor: '#051323' }}>
                 <table className="min-w-full text-sm">
-                    <thead className="bg-slate-50 text-slate-600">
+                    <thead style={{ backgroundColor: 'rgba(0, 255, 145, 0.05)', color: '#8394A7' }}>
                         <tr>
                             <th className="p-4 text-left w-10">
                                 <Checkbox checked={selected.length === filtered.length && filtered.length > 0} onCheckedChange={(c) => toggleAll(Boolean(c))} />
@@ -140,26 +147,26 @@ export default function EventTable({ data, loading, error, onOpen, onNew, onDele
                     <tbody>
                         {filtered.length === 0 && (
                             <tr>
-                                <td colSpan={8} className="p-8 text-center text-slate-500">
+                                <td colSpan={8} className="p-8 text-center" style={{ color: '#8394A7' }}>
                                     No events found
                                 </td>
                             </tr>
                         )}
                         {filtered.map((e) => (
-                            <tr key={e.id} className="border-t border-slate-100 hover:bg-slate-50/60 cursor-pointer" onClick={() => onOpen(e.id)}>
+                            <tr key={e.id} className="cursor-pointer" style={{ borderTop: '1px solid rgba(0, 255, 145, 0.1)' }} onMouseEnter={(ev) => ev.currentTarget.style.backgroundColor = 'rgba(0, 255, 145, 0.05)'} onMouseLeave={(ev) => ev.currentTarget.style.backgroundColor = 'transparent'} onClick={() => onOpen(e.id)}>
                                 <td className="p-4" onClick={(ev) => ev.stopPropagation()}>
                                     <Checkbox checked={selected.includes(e.id)} onCheckedChange={(c) => toggleOne(e.id, Boolean(c))} />
                                 </td>
-                                <td className="p-4 font-medium">{e.name}</td>
-                                <td className="p-4 text-slate-600">{format(new Date(e.date), "EEE, MMM d • h:mma")}</td>
+                                <td className="p-4 font-medium" style={{ color: '#FFFFFF' }}>{e.name}</td>
+                                <td className="p-4" style={{ color: '#8394A7' }}>{format(new Date(e.date), "EEE, MMM d • h:mma")}</td>
                                 <td className="p-4">
-                                    <Badge className={`rounded-lg ${STATUS_COLOR[e.status] || 'bg-slate-100 text-slate-700'}`}>
+                                    <Badge className={`rounded-lg ${STATUS_COLOR[e.status] || 'text-slate-400'}`} style={{ backgroundColor: STATUS_BG[e.status] || 'rgba(148, 163, 184, 0.1)' }}>
                                         {e.status.charAt(0).toUpperCase() + e.status.slice(1)}
                                     </Badge>
                                 </td>
-                                <td className="p-4 text-slate-600">{e.location}</td>
-                                <td className="p-4 text-slate-600">{e.capacity || '—'}</td>
-                                <td className="p-4 text-slate-600">{e.attendees || 0}</td>
+                                <td className="p-4" style={{ color: '#8394A7' }}>{e.location}</td>
+                                <td className="p-4" style={{ color: '#8394A7' }}>{e.capacity || '—'}</td>
+                                <td className="p-4" style={{ color: '#8394A7' }}>{e.attendees || 0}</td>
                                 <td className="p-4 text-right" onClick={(ev) => ev.stopPropagation()}>
                                     <RowActions
                                         onEdit={() => { }}
@@ -174,12 +181,12 @@ export default function EventTable({ data, loading, error, onOpen, onNew, onDele
             </div>
 
             {selected.length > 0 && (
-                <div className="flex items-center justify-between bg-white border border-slate-200 rounded-xl p-3">
-                    <div className="text-sm text-slate-600">{selected.length} selected</div>
+                <div className="flex items-center justify-between rounded-xl p-3" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
+                    <div className="text-sm" style={{ color: '#8394A7' }}>{selected.length} selected</div>
                     <div className="flex gap-2">
-                        <Button variant="outline" className="rounded-xl"><CalendarDays className="mr-2 h-4 w-4" />Schedule</Button>
-                        <Button variant="outline" className="rounded-xl"><Sparkles className="mr-2 h-4 w-4" />Run AI agent</Button>
-                        <Button variant="destructive" className="rounded-xl" onClick={handleBulkDelete}>Delete</Button>
+                        <Button variant="outline" className="rounded-xl" style={{ borderColor: '#00FF91', color: '#00FF91' }}><CalendarDays className="mr-2 h-4 w-4" />Schedule</Button>
+                        <Button variant="outline" className="rounded-xl" style={{ borderColor: '#00FF91', color: '#00FF91' }}><Sparkles className="mr-2 h-4 w-4" />Run AI agent</Button>
+                        <Button variant="destructive" className="rounded-xl" style={{ backgroundColor: '#ef4444', color: '#FFFFFF' }} onClick={handleBulkDelete}>Delete</Button>
                     </div>
                 </div>
             )}

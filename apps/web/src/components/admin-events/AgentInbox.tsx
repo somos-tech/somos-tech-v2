@@ -38,19 +38,19 @@ export default function AgentInbox({ eventId }: { eventId?: string }) {
     return (
         <div className="space-y-2">
             {items.map((it) => (
-                <Card key={it.id} className="rounded-2xl border-slate-200">
+                <Card key={it.id} className="rounded-2xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
                     <CardContent className="p-3">
                         <div className="flex items-start gap-3">
-                            <div className="mt-0.5"><Wand2 className="h-4 w-4" /></div>
+                            <div className="mt-0.5"><Wand2 className="h-4 w-4" style={{ color: '#00FF91' }} /></div>
                             <div className="flex-1">
                                 <div className="flex items-center justify-between">
-                                    <div className="text-sm font-medium">{it.type}</div>
-                                    <Badge className="rounded-lg bg-slate-100 text-slate-700">{it.status}</Badge>
+                                    <div className="text-sm font-medium" style={{ color: '#FFFFFF' }}>{it.type}</div>
+                                    <Badge className="rounded-lg" style={{ backgroundColor: 'rgba(148, 163, 184, 0.1)', color: '#8394A7' }}>{it.status}</Badge>
                                 </div>
-                                <div className="text-sm text-slate-600 mt-1">{it.preview}</div>
-                                <div className="text-xs text-slate-400 mt-2">Updated {it.updated}</div>
+                                <div className="text-sm mt-1" style={{ color: '#8394A7' }}>{it.preview}</div>
+                                <div className="text-xs mt-2" style={{ color: '#58687B' }}>Updated {it.updated}</div>
                             </div>
-                            <Button variant="ghost" size="icon" className="h-8 w-8"><ChevronRight className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" style={{ color: '#00FF91' }}><ChevronRight className="h-4 w-4" /></Button>
                         </div>
                     </CardContent>
                 </Card>

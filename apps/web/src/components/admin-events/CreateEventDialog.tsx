@@ -87,10 +87,10 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogContent className="sm:max-w-2xl rounded-2xl">
+            <DialogContent className="sm:max-w-2xl rounded-2xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)', color: '#FFFFFF' }}>
                 <DialogHeader>
-                    <DialogTitle>Create new event</DialogTitle>
-                    <DialogDescription>Step {step} of 3</DialogDescription>
+                    <DialogTitle style={{ color: '#FFFFFF' }}>Create new event</DialogTitle>
+                    <DialogDescription style={{ color: '#8394A7' }}>Step {step} of 3</DialogDescription>
                 </DialogHeader>
 
                 {step === 1 && (
@@ -308,9 +308,10 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
                     <div className="flex w-full justify-between">
                         <Button variant="ghost" onClick={prev} className="rounded-xl" disabled={step === 1}>Back</Button>
                         <div className="flex gap-2">
-                            <Button variant="outline" className="rounded-xl" onClick={() => setOpen(false)}>Cancel</Button>
+                            <Button variant="outline" className="rounded-xl" onClick={() => setOpen(false)} style={{ borderColor: '#00FF91', color: '#00FF91' }}>Cancel</Button>
                             <Button
-                                className="rounded-xl bg-black text-white hover:bg-black/90"
+                                className="rounded-xl"
+                                style={{ backgroundColor: '#00FF91', color: '#051323' }}
                                 onClick={next}
                                 disabled={busy}
                             >

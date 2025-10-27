@@ -24,12 +24,12 @@ const EVENT_AGENTS: Record<string, { inbox: Array<{ id: string; type: string; st
 
 export default function RecentActivity({ eventId }: { eventId?: string }) {
     const lines = eventId && EVENT_AGENTS[eventId]?.activity ? EVENT_AGENTS[eventId].activity : [
-        "Priya scheduled ‘Fundraising Gala’ for Nov 12",
-        "Jordan created event idea ‘Women in Tech Panel’",
-        "Social copy ready for ‘Coding Night’",
+        "Priya scheduled 'Fundraising Gala' for Nov 12",
+        "Jordan created event idea 'Women in Tech Panel'",
+        "Social copy ready for 'Coding Night'",
     ];
     return (
-        <div className="space-y-2 text-sm text-slate-600">
+        <div className="space-y-2 text-sm" style={{ color: '#8394A7' }}>
             {lines.map((l, i) => (<div key={i}>• {l}</div>))}
         </div>
     );

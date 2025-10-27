@@ -11,10 +11,17 @@ import eventService from "@/api/eventService";
 import type { Event } from "@shared/types";
 
 const STATUS_COLOR: Record<string, string> = {
-    "draft": "bg-amber-100 text-amber-800",
-    "published": "bg-emerald-100 text-emerald-800",
-    "cancelled": "bg-rose-100 text-rose-800",
-    "completed": "bg-slate-100 text-slate-700"
+    "draft": "text-amber-400",
+    "published": "text-emerald-400",
+    "cancelled": "text-rose-400",
+    "completed": "text-slate-400"
+};
+
+const STATUS_BG: Record<string, string> = {
+    "draft": "rgba(251, 191, 36, 0.1)",
+    "published": "rgba(52, 211, 153, 0.1)",
+    "cancelled": "rgba(251, 113, 133, 0.1)",
+    "completed": "rgba(148, 163, 184, 0.1)"
 };
 
 export default function EventDetails({ eventId, onClose }: { eventId: string; onClose: () => void }) {
@@ -43,7 +50,7 @@ export default function EventDetails({ eventId, onClose }: { eventId: string; on
     if (loading) {
         return (
             <div className="flex items-center justify-center p-12">
-                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+                <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#00FF91' }} />
             </div>
         );
     }
@@ -51,9 +58,9 @@ export default function EventDetails({ eventId, onClose }: { eventId: string; on
     if (error || !event) {
         return (
             <div className="flex flex-col items-center justify-center p-12 space-y-3">
-                <AlertCircle className="h-8 w-8 text-rose-500" />
-                <div className="text-sm text-slate-600">{error || 'Event not found'}</div>
-                <Button onClick={onClose} variant="outline" className="rounded-xl">
+                <AlertCircle className="h-8 w-8" style={{ color: '#00FF91' }} />
+                <div className="text-sm" style={{ color: '#8394A7' }}>{error || 'Event not found'}</div>
+                <Button onClick={onClose} variant="outline" className="rounded-xl" style={{ borderColor: '#00FF91', color: '#00FF91' }}>
                     Close
                 </Button>
             </div>
@@ -65,19 +72,19 @@ export default function EventDetails({ eventId, onClose }: { eventId: string; on
             <div className="flex items-start justify-between">
                 <div>
                     <div className="flex items-center gap-2">
-                        <div className="text-xl font-semibold tracking-tight">{event.name}</div>
-                        <Badge className={`rounded-lg ${STATUS_COLOR[event.status] || 'bg-slate-100 text-slate-700'}`}>
+                        <div className="text-xl font-semibold tracking-tight" style={{ color: '#FFFFFF' }}>{event.name}</div>
+                        <Badge className={`rounded-lg ${STATUS_COLOR[event.status] || 'text-slate-400'}`} style={{ backgroundColor: STATUS_BG[event.status] || 'rgba(148, 163, 184, 0.1)' }}>
                             {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
                         </Badge>
                     </div>
-                    <div className="text-sm text-slate-600 mt-1">
+                    <div className="text-sm mt-1" style={{ color: '#8394A7' }}>
                         {format(new Date(event.date), "EEE, MMM d • h:mma")} · {event.location}
                     </div>
-                    <div className="text-sm text-slate-600">
+                    <div className="text-sm" style={{ color: '#8394A7' }}>
                         {event.capacity && `Capacity: ${event.capacity}`}
                         {event.attendees && ` · ${event.attendees} attendees`}
                     </div>
-                    <div className="text-sm text-slate-500 mt-2 max-w-prose">{event.description || 'No description'}</div>
+                    <div className="text-sm mt-2 max-w-prose" style={{ color: '#8394A7' }}>{event.description || 'No description'}</div>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" onClick={onClose} className="rounded-xl"><X className="h-5 w-5" /></Button>
@@ -85,10 +92,10 @@ export default function EventDetails({ eventId, onClose }: { eventId: string; on
             </div>
 
             <Tabs defaultValue="inbox" className="w-full">
-                <TabsList className="rounded-2xl">
-                    <TabsTrigger value="inbox">Agent Inbox</TabsTrigger>
-                    <TabsTrigger value="activity">Activity</TabsTrigger>
-                    <TabsTrigger value="assets">Assets</TabsTrigger>
+                <TabsList className="rounded-2xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
+                    <TabsTrigger value="inbox" style={{ color: '#FFFFFF' }}>Agent Inbox</TabsTrigger>
+                    <TabsTrigger value="activity" style={{ color: '#FFFFFF' }}>Activity</TabsTrigger>
+                    <TabsTrigger value="assets" style={{ color: '#FFFFFF' }}>Assets</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="inbox" className="mt-4">
