@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Source files (only deploy dist/)
+src/
+public/
+
+# Config files
+tsconfig.json
+vite.config.ts
+eslint.config.js
+.env*
+!.env.example
+
+# Development files
+*.log
+.DS_Store
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+*.md
