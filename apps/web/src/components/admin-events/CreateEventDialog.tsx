@@ -112,7 +112,7 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
                                 />
                             </div>
                             <div>
-                                <Label style={{ color: '#FFFFFF' }} style={{ color: '#FFFFFF' }}>Status</Label>
+                                <Label style={{ color: '#FFFFFF' }}>Status</Label>
                                 <Select
                                     value={formData.status}
                                     onValueChange={(v) => handleInputChange('status', v)}
