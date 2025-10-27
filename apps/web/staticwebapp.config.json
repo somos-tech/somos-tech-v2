@@ -10,15 +10,10 @@
     "navigationFallback": {
         "rewrite": "/index.html",
         "exclude": [
-            "/images/*",
-            "/assets/*"
+            "/images/*.{png,jpg,jpeg,gif,svg,webp}",
+            "/assets/*.{js,css,png,jpg,jpeg,gif,svg,webp,woff,woff2,ttf,eot}",
+            "/*.{ico,txt,json}"
         ]
-    },
-    "responseOverrides": {
-        "404": {
-            "rewrite": "/index.html",
-            "statusCode": 200
-        }
     },
     "globalHeaders": {
         "X-Content-Type-Options": "nosniff",
