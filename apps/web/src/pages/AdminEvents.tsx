@@ -51,7 +51,7 @@ export default function AdminEvents() {
     };
 
     return (
-        <main className="flex-1 p-4 lg:p-8 space-y-6">
+        <main className="flex-1 space-y-6" style={{ backgroundColor: '#0a1f35' }}>
             <HeaderBar onNew={() => setOpenCreate(true)} />
 
             {/* KPI row */}
@@ -66,12 +66,12 @@ export default function AdminEvents() {
                 <div className="xl:col-span-2 space-y-4">
                     <Tabs defaultValue="list" className="w-full">
                         <div className="flex items-center justify-between">
-                            <TabsList className="rounded-2xl">
-                                <TabsTrigger value="list">List</TabsTrigger>
-                                <TabsTrigger value="calendar">Calendar</TabsTrigger>
-                                <TabsTrigger value="drafts">Drafts</TabsTrigger>
+                            <TabsList className="rounded-2xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
+                                <TabsTrigger value="list" style={{ color: '#FFFFFF' }}>List</TabsTrigger>
+                                <TabsTrigger value="calendar" style={{ color: '#FFFFFF' }}>Calendar</TabsTrigger>
+                                <TabsTrigger value="drafts" style={{ color: '#FFFFFF' }}>Drafts</TabsTrigger>
                             </TabsList>
-                            <div className="text-xs text-slate-500 hidden md:block">Tip: Click a row to open its details and see linked Agent Inbox + Activity.</div>
+                            <div className="text-xs hidden md:block" style={{ color: '#8394A7' }}>Tip: Click a row to open its details and see linked Agent Inbox + Activity.</div>
                         </div>
 
                         <TabsContent value="list" className="mt-4">
@@ -86,8 +86,8 @@ export default function AdminEvents() {
                         </TabsContent>
 
                         <TabsContent value="calendar" className="mt-4">
-                            <Card className="rounded-2xl border-slate-200 h-[480px]">
-                                <CardContent className="p-6 h-full flex items-center justify-center text-slate-500">
+                            <Card className="rounded-2xl h-[480px]" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
+                                <CardContent className="p-6 h-full flex items-center justify-center" style={{ color: '#8394A7' }}>
                                     <div className="flex flex-col items-center gap-2">
                                         <CalendarDays className="h-6 w-6" />
                                         <div className="text-sm">(Calendar view placeholder)</div>
@@ -97,8 +97,8 @@ export default function AdminEvents() {
                         </TabsContent>
 
                         <TabsContent value="drafts" className="mt-4">
-                            <Card className="rounded-2xl border-slate-200">
-                                <CardContent className="p-6 text-sm text-slate-600">No drafts yet.</CardContent>
+                            <Card className="rounded-2xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
+                                <CardContent className="p-6 text-sm" style={{ color: '#8394A7' }}>No drafts yet.</CardContent>
                             </Card>
                         </TabsContent>
                     </Tabs>
@@ -107,18 +107,18 @@ export default function AdminEvents() {
                 {/* Right: Event details (if open) otherwise global AI inbox/activity */}
                 <div className="space-y-4">
                     {openEventId ? (
-                        <Card className="rounded-2xl border-slate-200">
+                        <Card className="rounded-2xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
                             <CardContent className="p-5">
                                 <EventDetails eventId={openEventId} onClose={() => setOpenEventId(undefined)} />
                             </CardContent>
                         </Card>
                     ) : (
                         <>
-                            <Card className="rounded-2xl border-slate-200">
+                            <Card className="rounded-2xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
                                 <CardContent className="p-5">
                                     <div className="flex items-center justify-between">
-                                        <div className="font-medium flex items-center gap-2"><Sparkles className="h-4 w-4" /> Agent Inbox</div>
-                                        <Button variant="outline" size="sm" className="rounded-xl"><Wand2 className="mr-2 h-4 w-4" />Run all</Button>
+                                        <div className="font-medium flex items-center gap-2" style={{ color: '#00FF91' }}><Sparkles className="h-4 w-4" /> Agent Inbox</div>
+                                        <Button variant="outline" size="sm" className="rounded-xl" style={{ borderColor: '#00FF91', color: '#00FF91' }}><Wand2 className="mr-2 h-4 w-4" />Run all</Button>
                                     </div>
                                     <div className="mt-4">
                                         <AgentInbox />
@@ -126,9 +126,9 @@ export default function AdminEvents() {
                                 </CardContent>
                             </Card>
 
-                            <Card className="rounded-2xl border-slate-200">
+                            <Card className="rounded-2xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
                                 <CardContent className="p-5 space-y-3">
-                                    <div className="font-medium flex items-center gap-2"><Clock className="h-4 w-4" /> Recent activity</div>
+                                    <div className="font-medium flex items-center gap-2" style={{ color: '#02DBFF' }}><Clock className="h-4 w-4" /> Recent activity</div>
                                     <RecentActivity />
                                 </CardContent>
                             </Card>

@@ -2,17 +2,17 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from "react-route
 
 import Home from './pages/Home'
 import AdminEvents from './pages/AdminEvents'
-import Sidebar from './components/SideBar'
+import Navigation from './components/Navigation'
 import './index.css'
 
 function AppContent() {
   const location = useLocation();
-  const isHomePage = location.pathname === '/';
+  const isAdminPage = location.pathname.startsWith('/admin');
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: isHomePage ? '#051323' : '#f8fafc' }}>
-      {!isHomePage && <Sidebar />}
-      <main className={isHomePage ? "flex-1" : "flex-1 p-4 lg:p-8 space-y-6"}>
+    <div className="min-h-screen" style={{ backgroundColor: isAdminPage ? '#0a1f35' : '#051323' }}>
+      <Navigation />
+      <main className={isAdminPage ? "p-4 lg:p-8" : ""}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/admin/events" element={<AdminEvents />} />
