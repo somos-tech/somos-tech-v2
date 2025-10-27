@@ -1,6 +1,6 @@
 using './main.bicep'
 
-param location = 'eastus'
+param location = 'westus2'
 param environmentName = 'dev'
 param appName = 'somos-tech'
 param nodeVersion = '20'

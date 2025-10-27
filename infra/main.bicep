@@ -39,6 +39,7 @@ var functionAppName = 'func-${resourceSuffix}'
 var appServicePlanName = 'asp-${resourceSuffix}'
 var appInsightsName = 'appi-${resourceSuffix}'
 var logAnalyticsName = 'log-${resourceSuffix}'
+var staticWebAppName = 'swa-${resourceSuffix}'
 
 // Log Analytics Workspace for Application Insights
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
@@ -136,7 +137,8 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
     siteConfig: {
       cors: {
         allowedOrigins: [
-          '*'
+          'https://${staticWebAppName}.azurestaticapps.net'
+          'https://*.azurestaticapps.net'
         ]
       }
       appSettings: [
@@ -204,6 +206,51 @@ resource deploymentContainer 'Microsoft.Storage/storageAccounts/blobServices/con
   }
 }
 
+// Azure Static Web App
+resource staticWebApp 'Microsoft.Web/staticSites@2023-01-01' = {
+  name: staticWebAppName
+  location: location
+  tags: tags
+  sku: {
+    name: 'Standard'
+    tier: 'Standard'
+  }
+  properties: {
+    repositoryUrl: 'https://github.com/somos-tech/somos-tech-v2'
+    branch: 'main'
+    buildProperties: {
+      appLocation: '/apps/web'
+      apiLocation: ''
+      outputLocation: 'dist'
+      appBuildCommand: 'npm run build'
+    }
+    stagingEnvironmentPolicy: 'Enabled'
+    allowConfigFileUpdates: true
+    provider: 'GitHub'
+    enterpriseGradeCdnStatus: 'Disabled'
+  }
+}
+
+// Link Static Web App to Function App as backend
+resource staticWebAppBackend 'Microsoft.Web/staticSites/linkedBackends@2023-01-01' = {
+  parent: staticWebApp
+  name: 'backend'
+  properties: {
+    backendResourceId: functionApp.id
+    region: location
+  }
+}
+
+// Configure environment variables for Static Web App
+resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2023-01-01' = {
+  parent: staticWebApp
+  name: 'appsettings'
+  properties: {
+    VITE_API_URL: 'https://${functionApp.properties.defaultHostName}'
+    VITE_ENVIRONMENT: environmentName
+  }
+}
+
 // Outputs
 output functionAppName string = functionApp.name
 output functionAppHostName string = functionApp.properties.defaultHostName
@@ -212,3 +259,5 @@ output storageAccountName string = storageAccount.name
 output appInsightsInstrumentationKey string = appInsights.properties.InstrumentationKey
 output appInsightsConnectionString string = appInsights.properties.ConnectionString
 output functionAppPrincipalId string = functionApp.identity.principalId
+output staticWebAppName string = staticWebApp.name
+output staticWebAppUrl string = 'https://${staticWebApp.properties.defaultHostname}'
