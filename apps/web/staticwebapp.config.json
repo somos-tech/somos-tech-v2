@@ -1,11 +1,4 @@
 {
-    "navigationFallback": {
-        "rewrite": "/index.html",
-        "exclude": [
-            "/images/*",
-            "/assets/*"
-        ]
-    },
     "routes": [
         {
             "route": "/api/*",
@@ -14,6 +7,13 @@
             ]
         }
     ],
+    "navigationFallback": {
+        "rewrite": "/index.html",
+        "exclude": [
+            "/images/*",
+            "/assets/*"
+        ]
+    },
     "responseOverrides": {
         "404": {
             "rewrite": "/index.html",
@@ -28,11 +28,20 @@
     },
     "mimeTypes": {
         ".json": "application/json",
-        ".js": "text/javascript",
+        ".js": "application/javascript",
+        ".mjs": "application/javascript",
+        ".jsx": "application/javascript",
         ".css": "text/css",
-        ".html": "text/html"
+        ".html": "text/html",
+        ".svg": "image/svg+xml",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".wasm": "application/wasm"
     },
     "platform": {
-        "apiRuntime": "node:20"
-    }
+        "apiRuntime": "node:20",
+        "apiLocation": ""
+    },
+    "outputLocation": "dist"
 }
