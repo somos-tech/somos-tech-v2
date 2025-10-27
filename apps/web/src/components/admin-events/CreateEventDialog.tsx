@@ -132,6 +132,7 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
                                     style={{ backgroundColor: '#0a1f35', border: '1px solid rgba(0, 255, 145, 0.2)', color: '#FFFFFF', colorScheme: 'dark' }}
                                     value={formData.date}
                                     onChange={(e) => handleInputChange('date', e.target.value)}
+                                    onClick={(e) => e.currentTarget.showPicker?.()}
                                 />
                             </div>
                             <div>
