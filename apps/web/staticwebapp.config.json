@@ -5,15 +5,26 @@
             "allowedRoles": [
                 "anonymous"
             ]
+        },
+        {
+            "route": "/*",
+            "rewrite": "/index.html"
         }
     ],
     "navigationFallback": {
         "rewrite": "/index.html",
         "exclude": [
-            "/images/*.{png,jpg,jpeg,gif,svg,webp}",
-            "/assets/*.{js,css,png,jpg,jpeg,gif,svg,webp,woff,woff2,ttf,eot}",
-            "/*.{ico,txt,json}"
+            "/api/*",
+            "/images/*",
+            "/assets/*",
+            "/*.{ico,txt,json,png,jpg,jpeg,gif,svg,webp,js,css,woff,woff2,ttf,eot}"
         ]
+    },
+    "responseOverrides": {
+        "404": {
+            "rewrite": "/index.html",
+            "statusCode": 200
+        }
     },
     "globalHeaders": {
         "X-Content-Type-Options": "nosniff",
@@ -33,10 +44,5 @@
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
         ".wasm": "application/wasm"
-    },
-    "platform": {
-        "apiRuntime": "node:20",
-        "apiLocation": ""
-    },
-    "outputLocation": "dist"
+    }
 }
