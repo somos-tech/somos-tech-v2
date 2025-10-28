@@ -30,6 +30,12 @@ param tags object = {
   environment: environmentName
 }
 
+@description('Azure AD Tenant ID for authentication')
+param azureAdTenantId string
+
+@description('Allowed admin email domain (e.g., somos.tech)')
+param allowedAdminDomain string = 'somos.tech'
+
 // Variables for resource naming
 var resourceSuffix = '${appName}-${environmentName}-${uniqueString(resourceGroup().id)}'
 var uniqueSuffix = uniqueString(resourceGroup().id)
@@ -39,6 +45,26 @@ var appServicePlanName = 'asp-${resourceSuffix}'
 var appInsightsName = 'appi-${resourceSuffix}'
 var logAnalyticsName = 'log-${resourceSuffix}'
 var staticWebAppName = 'swa-${resourceSuffix}'
+var cosmosDbAccountName = 'cosmos-${resourceSuffix}'
+var cosmosDbDatabaseName = 'somostech'
+
+// Storage Blob Data Owner role definition ID
+var storageBlobDataOwnerRoleId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
+)
+
+// Storage Table Data Contributor role definition ID
+var storageTableDataContributorRoleId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
+)
+
+// Cosmos DB Data Contributor role definition ID
+var cosmosDbDataContributorRoleId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '00000000-0000-0000-0000-000000000002'
+)
 
 // Log Analytics Workspace for Application Insights
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
@@ -64,6 +90,154 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
     WorkspaceResourceId: logAnalytics.id
     publicNetworkAccessForIngestion: 'Enabled'
     publicNetworkAccessForQuery: 'Enabled'
+  }
+}
+
+// Cosmos DB Account
+resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
+  name: cosmosDbAccountName
+  location: location
+  tags: tags
+  kind: 'GlobalDocumentDB'
+  properties: {
+    databaseAccountOfferType: 'Standard'
+    enableAutomaticFailover: false
+    enableMultipleWriteLocations: false
+    consistencyPolicy: {
+      defaultConsistencyLevel: 'Session'
+    }
+    locations: [
+      {
+        locationName: location
+        failoverPriority: 0
+        isZoneRedundant: false
+      }
+    ]
+    backupPolicy: {
+      type: 'Periodic'
+      periodicModeProperties: {
+        backupIntervalInMinutes: 240
+        backupRetentionIntervalInHours: 8
+        backupStorageRedundancy: 'Local'
+      }
+    }
+    capabilities: [
+      {
+        name: 'EnableServerless'
+      }
+    ]
+  }
+}
+
+// Cosmos DB Database
+resource cosmosDatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15' = {
+  parent: cosmosDbAccount
+  name: cosmosDbDatabaseName
+  properties: {
+    resource: {
+      id: cosmosDbDatabaseName
+    }
+  }
+}
+
+// Cosmos DB Container for Members
+resource memberContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15' = {
+  parent: cosmosDatabase
+  name: 'members'
+  properties: {
+    resource: {
+      id: 'members'
+      partitionKey: {
+        paths: [
+          '/email'
+        ]
+        kind: 'Hash'
+      }
+      indexingPolicy: {
+        indexingMode: 'consistent'
+        automatic: true
+        includedPaths: [
+          {
+            path: '/*'
+          }
+        ]
+        excludedPaths: [
+          {
+            path: '/"_etag"/?'
+          }
+        ]
+      }
+      uniqueKeyPolicy: {
+        uniqueKeys: [
+          {
+            paths: [
+              '/email'
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
+
+// Cosmos DB Container for Events
+resource eventContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15' = {
+  parent: cosmosDatabase
+  name: 'events'
+  properties: {
+    resource: {
+      id: 'events'
+      partitionKey: {
+        paths: [
+          '/id'
+        ]
+        kind: 'Hash'
+      }
+      indexingPolicy: {
+        indexingMode: 'consistent'
+        automatic: true
+        includedPaths: [
+          {
+            path: '/*'
+          }
+        ]
+      }
+    }
+  }
+}
+
+// Cosmos DB Container for Admin Users
+resource adminUserContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15' = {
+  parent: cosmosDatabase
+  name: 'admin-users'
+  properties: {
+    resource: {
+      id: 'admin-users'
+      partitionKey: {
+        paths: [
+          '/email'
+        ]
+        kind: 'Hash'
+      }
+      indexingPolicy: {
+        indexingMode: 'consistent'
+        automatic: true
+        includedPaths: [
+          {
+            path: '/*'
+          }
+        ]
+      }
+      uniqueKeyPolicy: {
+        uniqueKeys: [
+          {
+            paths: [
+              '/email'
+            ]
+          }
+        ]
+      }
+    }
   }
 }
 
@@ -158,6 +332,22 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'AZURE_STORAGE_ACCOUNT_NAME'
           value: storageAccount.name
         }
+        {
+          name: 'COSMOS_ENDPOINT'
+          value: cosmosDbAccount.properties.documentEndpoint
+        }
+        {
+          name: 'COSMOS_DATABASE_NAME'
+          value: cosmosDbDatabaseName
+        }
+        {
+          name: 'AZURE_TENANT_ID'
+          value: azureAdTenantId
+        }
+        {
+          name: 'ALLOWED_ADMIN_DOMAIN'
+          value: allowedAdminDomain
+        }
       ]
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
@@ -165,19 +355,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   }
 }
 
-// Storage Blob Data Owner role definition ID
-var storageBlobDataOwnerRoleId = subscriptionResourceId(
-  'Microsoft.Authorization/roleDefinitions',
-  'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
-)
-
-// Storage Table Data Contributor role definition ID
-var storageTableDataContributorRoleId = subscriptionResourceId(
-  'Microsoft.Authorization/roleDefinitions',
-  '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
-)
-
-// Role assignment for Function App to access Storage Account
+// Role assignment for Function App to access Storage Account (Blob)
 resource functionAppStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(storageAccount.id, functionApp.id, storageBlobDataOwnerRoleId)
   scope: storageAccount
@@ -195,6 +373,17 @@ resource functionAppTableRoleAssignment 'Microsoft.Authorization/roleAssignments
     roleDefinitionId: storageTableDataContributorRoleId
     principalId: functionApp.identity.principalId
     principalType: 'ServicePrincipal'
+  }
+}
+
+// Role assignment for Function App to access Cosmos DB
+resource functionAppCosmosDbRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-05-15' = {
+  parent: cosmosDbAccount
+  name: guid(cosmosDbAccount.id, functionApp.id, cosmosDbDataContributorRoleId)
+  properties: {
+    roleDefinitionId: '${cosmosDbAccount.id}/sqlRoleDefinitions/${cosmosDbDataContributorRoleId}'
+    principalId: functionApp.identity.principalId
+    scope: cosmosDbAccount.id
   }
 }
 
@@ -238,6 +427,10 @@ resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2023-01-01' = {
   properties: {
     VITE_API_URL: 'https://${functionApp.properties.defaultHostName}'
     VITE_ENVIRONMENT: environmentName
+    COSMOS_ENDPOINT: cosmosDbAccount.properties.documentEndpoint
+    COSMOS_DATABASE_NAME: cosmosDbDatabaseName
+    AZURE_TENANT_ID: azureAdTenantId
+    ALLOWED_ADMIN_DOMAIN: allowedAdminDomain
   }
 }
 
@@ -251,3 +444,8 @@ output appInsightsConnectionString string = appInsights.properties.ConnectionStr
 output functionAppPrincipalId string = functionApp.identity.principalId
 output staticWebAppName string = staticWebApp.name
 output staticWebAppUrl string = 'https://${staticWebApp.properties.defaultHostname}'
+output cosmosDbAccountName string = cosmosDbAccount.name
+output cosmosDbEndpoint string = cosmosDbAccount.properties.documentEndpoint
+output cosmosDbDatabaseName string = cosmosDbDatabaseName
+output azureTenantId string = azureAdTenantId
+output allowedAdminDomain string = allowedAdminDomain

@@ -1,10 +1,24 @@
 {
     "routes": [
         {
+            "route": "/login",
+            "allowedRoles": ["anonymous"]
+        },
+        {
+            "route": "/register",
+            "allowedRoles": ["anonymous"]
+        },
+        {
+            "route": "/admin/*",
+            "allowedRoles": ["admin", "administrator"]
+        },
+        {
+            "route": "/api/register",
+            "allowedRoles": ["anonymous"]
+        },
+        {
             "route": "/api/*",
-            "allowedRoles": [
-                "anonymous"
-            ]
+            "allowedRoles": ["authenticated"]
         }
     ],
     "navigationFallback": {
@@ -17,10 +31,30 @@
         ]
     },
     "responseOverrides": {
+        "401": {
+            "redirect": "/login",
+            "statusCode": 302
+        },
         "404": {
             "rewrite": "/index.html",
             "statusCode": 200
         }
+    },
+    "auth": {
+        "identityProviders": {
+            "azureActiveDirectory": {
+                "registration": {
+                    "openIdIssuer": "https://login.microsoftonline.com/<YOUR_TENANT_ID>/v2.0",
+                    "clientIdSettingName": "AZURE_CLIENT_ID",
+                    "clientSecretSettingName": "AZURE_CLIENT_SECRET"
+                },
+                "login": {
+                    "loginParameters": ["scope=openid profile email"]
+                },
+                "userDetailsClaim": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
+            }
+        },
+        "rolesSource": "/api/GetUserRoles"
     },
     "globalHeaders": {
         "X-SWA-Debug": "config-active",
