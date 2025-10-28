@@ -34,7 +34,26 @@ export default function Home() {
     }, []);
 
     return (
-        <div className="min-h-screen" style={{ backgroundColor: '#051323', position: 'relative' }}>
+        <div className="min-h-screen" style={{ backgroundColor: '#051323', position: 'relative', cursor: 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTYgMkwxOCA4TDE2IDE0TDE0IDhMMTYgMlpNMTYgMTRMMjIgMTZMMTYgMThMMTAgMTZMMTYgMTRaTTggMTBMMTIgMTJMOCAxNEw0IDEyTDggMTBaTTI0IDEwTDI4IDEyTDI0IDE0TDIwIDEyTDI0IDEwWiIgZmlsbD0iIzAyREJGRiIvPjxwYXRoIGQ9Ik0xNiAxOEwxOCAyMkwxNiAyNkwxNCAyMkwxNiAxOFoiIGZpbGw9IiNGQ0ZFMjAiLz48L3N2Zz4=") 16 16, auto' }}>
+            {/* Starfield Background */}
+            <div className="fixed inset-0 z-0" style={{ overflow: 'hidden' }}>
+                {[...Array(50)].map((_, i) => (
+                    <div
+                        key={i}
+                        className="absolute rounded-full"
+                        style={{
+                            width: Math.random() * 3 + 'px',
+                            height: Math.random() * 3 + 'px',
+                            backgroundColor: '#FFFFFF',
+                            top: Math.random() * 100 + '%',
+                            left: Math.random() * 100 + '%',
+                            opacity: Math.random() * 0.7 + 0.3,
+                            animation: `twinkle ${Math.random() * 3 + 2}s ease-in-out infinite ${Math.random() * 2}s`
+                        }}
+                    />
+                ))}
+            </div>
+
             {/* Video Background */}
             <div className="fixed inset-0 z-0" style={{ overflow: 'hidden' }}>
                 <video
@@ -50,6 +69,41 @@ export default function Home() {
                 <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(5, 19, 35, 0.7), rgba(5, 19, 35, 0.9))' }}></div>
             </div>
 
+            {/* Floating Planets */}
+            <div className="fixed top-20 right-10 w-16 h-16 rounded-full z-0" 
+                 style={{ 
+                     background: 'radial-gradient(circle at 30% 30%, #02DBFF, #051323)',
+                     boxShadow: '0 0 40px rgba(2, 219, 255, 0.6)',
+                     animation: 'float 6s ease-in-out infinite'
+                 }} />
+            <div className="fixed bottom-32 left-20 w-24 h-24 rounded-full z-0" 
+                 style={{ 
+                     background: 'radial-gradient(circle at 30% 30%, #00FF91, #051323)',
+                     boxShadow: '0 0 60px rgba(0, 255, 145, 0.5)',
+                     animation: 'float 8s ease-in-out infinite 1s'
+                 }} />
+            <div className="fixed top-1/3 left-10 w-12 h-12 rounded-full z-0" 
+                 style={{ 
+                     background: 'radial-gradient(circle at 30% 30%, #FCFE20, #051323)',
+                     boxShadow: '0 0 30px rgba(252, 254, 32, 0.4)',
+                     animation: 'float 7s ease-in-out infinite 2s'
+                 }} />
+
+            {/* Shooting Stars */}
+            {[...Array(3)].map((_, i) => (
+                <div
+                    key={`star-${i}`}
+                    className="fixed w-1 h-1 rounded-full z-0"
+                    style={{
+                        backgroundColor: '#FFFFFF',
+                        top: `${Math.random() * 50}%`,
+                        right: `${Math.random() * 50}%`,
+                        boxShadow: '0 0 4px 2px rgba(255, 255, 255, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.5)',
+                        animation: `shooting-star ${3 + i}s linear infinite ${i * 4}s`
+                    }}
+                />
+            ))}
+
             {/* Hero Section */}
             <section className="relative overflow-hidden z-10">
                 <div className="container mx-auto px-4 py-16 md:py-24">
@@ -60,16 +114,30 @@ export default function Home() {
                                 color: '#02DBFF',
                                 fontFamily: '"Press Start 2P", "Courier New", monospace',
                                 letterSpacing: '0.1em',
-                                textTransform: 'lowercase'
+                                textTransform: 'lowercase',
+                                textShadow: '0 0 20px rgba(2, 219, 255, 0.8), 0 0 40px rgba(2, 219, 255, 0.4), 0 0 60px rgba(2, 219, 255, 0.2)',
+                                animation: 'float 4s ease-in-out infinite'
                             }}>
-                            Beyond the clouds 🚀
+                            {'>'} init: innovation_
                         </h1>
                         
-                        <div className="my-12">
+                        <div className="my-12 relative">
+                            {/* Cosmic ring around astronaut */}
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-80 h-80 rounded-full border-2 opacity-30" 
+                                     style={{ 
+                                         borderColor: '#00FF91',
+                                         animation: 'orbit 20s linear infinite'
+                                     }} />
+                            </div>
                             <img 
                                 src="https://static.wixstatic.com/media/0c204d_614c9617b93145e5a73a6b447aa10950~mv2.gif" 
                                 alt="Astronaut animation"
-                                className="mx-auto max-w-md w-full"
+                                className="mx-auto max-w-md w-full relative z-10"
+                                style={{
+                                    filter: 'drop-shadow(0 0 30px rgba(0, 255, 145, 0.3))',
+                                    animation: 'float 5s ease-in-out infinite 1s'
+                                }}
                             />
                         </div>
 
