@@ -34,25 +34,33 @@ export default function Home() {
     }, []);
 
     return (
-        <div className="min-h-screen" style={{ backgroundColor: '#051323' }}>
-            {/* Hero Section */}
-            <section className="relative overflow-hidden">
-                <div className="container mx-auto px-4 py-16 md:py-24">
-                    {/* Animated Background */}
-                    <div className="absolute inset-0 opacity-20">
-                        <div className="absolute top-20 right-10 w-64 h-64 rounded-full blur-3xl" 
-                             style={{ backgroundColor: '#00FF91' }}></div>
-                        <div className="absolute bottom-20 left-10 w-96 h-96 rounded-full blur-3xl" 
-                             style={{ backgroundColor: '#02DBFF' }}></div>
-                    </div>
+        <div className="min-h-screen" style={{ backgroundColor: '#051323', position: 'relative' }}>
+            {/* Video Background */}
+            <div className="fixed inset-0 z-0" style={{ overflow: 'hidden' }}>
+                <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                    style={{ opacity: 0.3 }}
+                >
+                    <source src="https://video.wixstatic.com/video/0c204d_f18e1753e78c449a86c6556562755fc6/1080p/mp4/file.mp4" type="video/mp4" />
+                </video>
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(5, 19, 35, 0.7), rgba(5, 19, 35, 0.9))' }}></div>
+            </div>
 
+            {/* Hero Section */}
+            <section className="relative overflow-hidden z-10">
+                <div className="container mx-auto px-4 py-16 md:py-24">
                     {/* Hero Content */}
                     <div className="relative z-10 text-center max-w-5xl mx-auto">
-                        <h1 className="text-5xl md:text-7xl font-bold mb-8 tracking-tight"
+                        <h1 className="text-5xl md:text-7xl font-bold mb-8"
                             style={{ 
-                                color: '#00FF91',
-                                fontFamily: 'monospace',
-                                letterSpacing: '0.05em'
+                                color: '#02DBFF',
+                                fontFamily: '"Press Start 2P", "Courier New", monospace',
+                                letterSpacing: '0.1em',
+                                textTransform: 'lowercase'
                             }}>
                             Beyond the clouds 🚀
                         </h1>
@@ -65,9 +73,9 @@ export default function Home() {
                             />
                         </div>
 
-                        <p className="text-xl md:text-2xl mb-8 leading-relaxed" style={{ color: '#FFFFFF' }}>
-                            Uniting <span style={{ color: '#00FF91' }}>Hispanic, Latinx,</span> and{' '}
-                            <span style={{ color: '#02DBFF' }}>allied</span> professionals with aspiring innovators in an inclusive community to thrive in tech.
+                        <p className="text-xl md:text-2xl mb-8 leading-relaxed" style={{ color: '#FFFFFF', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                            Uniting <span style={{ color: '#FFFFFF', fontWeight: 'bold' }}>Hispanic, Latinx,</span> and{' '}
+                            <span style={{ color: '#FFFFFF', fontWeight: 'bold' }}>allied</span> professionals with aspiring innovators in an inclusive community to thrive in tech.
                         </p>
 
                         <Button 
@@ -85,10 +93,10 @@ export default function Home() {
             </section>
 
             {/* Community Categories */}
-            <section className="py-12" style={{ backgroundColor: '#0a1f35' }}>
+            <section className="relative py-12 z-10" style={{ backgroundColor: 'rgba(10, 31, 53, 0.9)' }}>
                 <div className="container mx-auto px-4">
                     <h2 className="text-center text-3xl md:text-4xl font-bold mb-12" 
-                        style={{ color: '#FFFFFF' }}>
+                        style={{ color: '#FFFFFF', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                         Uniting and helping each other
                     </h2>
                     
@@ -133,22 +141,22 @@ export default function Home() {
             </section>
 
             {/* Welcome Section */}
-            <section className="py-16" style={{ backgroundColor: '#051323' }}>
+            <section className="relative py-16 z-10" style={{ backgroundColor: 'rgba(5, 19, 35, 0.8)' }}>
                 <div className="container mx-auto px-4 max-w-4xl text-center">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-6" style={{ color: '#00FF91' }}>
+                    <h2 className="text-3xl md:text-4xl font-bold mb-6" style={{ color: '#00FF91', fontFamily: '"Courier New", monospace' }}>
                         welcome_
                     </h2>
-                    <p className="text-lg md:text-xl leading-relaxed" style={{ color: '#8394A7' }}>
+                    <p className="text-lg md:text-xl leading-relaxed" style={{ color: '#8394A7', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                         SOMOS.tech is a 100% volunteer‑run 501(c)(3) nonprofit creating an inclusive space for Hispanic and Latinx technologists with our allies by offering free workshops, mentorship, networking and AI‑powered career tools
                     </p>
                 </div>
             </section>
 
             {/* Community Stats */}
-            <section className="py-16" style={{ backgroundColor: '#0a1f35' }}>
+            <section className="relative py-16 z-10" style={{ backgroundColor: 'rgba(10, 31, 53, 0.9)' }}>
                 <div className="container mx-auto px-4">
                     <h2 className="text-center text-3xl md:text-4xl font-bold mb-12" 
-                        style={{ color: '#FFFFFF' }}>
+                        style={{ color: '#FFFFFF', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                         Join your community of:
                     </h2>
                     
@@ -237,19 +245,19 @@ export default function Home() {
             </section>
 
             {/* Power of Community */}
-            <section className="py-16" style={{ backgroundColor: '#051323' }}>
+            <section className="relative py-16 z-10" style={{ backgroundColor: 'rgba(5, 19, 35, 0.8)' }}>
                 <div className="container mx-auto px-4 max-w-4xl text-center">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-6" style={{ color: '#00FF91' }}>
+                    <h2 className="text-3xl md:text-4xl font-bold mb-6" style={{ color: '#00FF91', fontFamily: '"Courier New", monospace' }}>
                         powerOfCommunity_
                     </h2>
-                    <p className="text-lg md:text-xl leading-relaxed mb-8" style={{ color: '#8394A7' }}>
+                    <p className="text-lg md:text-xl leading-relaxed mb-8" style={{ color: '#8394A7', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                         We believe in the power of community to bring tech pros and aspiring innovators together, building professional networks, sharing knowledge, and inspiring the next generation of tech leaders.
                     </p>
                 </div>
             </section>
 
             {/* Programs Section */}
-            <section className="py-16" style={{ backgroundColor: '#0a1f35' }}>
+            <section className="relative py-16 z-10" style={{ backgroundColor: 'rgba(10, 31, 53, 0.9)' }}>
                 <div className="container mx-auto px-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
                         {/* AI Powered Programs */}
@@ -340,12 +348,12 @@ export default function Home() {
             </section>
 
             {/* Footer CTA */}
-            <section className="py-16" style={{ backgroundColor: '#051323' }}>
+            <section className="relative py-16 z-10" style={{ backgroundColor: 'rgba(5, 19, 35, 0.8)' }}>
                 <div className="container mx-auto px-4 text-center">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-6" style={{ color: '#FFFFFF' }}>
+                    <h2 className="text-3xl md:text-4xl font-bold mb-6" style={{ color: '#FFFFFF', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                         Build your community
                     </h2>
-                    <p className="text-lg mb-8" style={{ color: '#8394A7' }}>
+                    <p className="text-lg mb-8" style={{ color: '#8394A7', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                         Come connect and grow your community and give back.
                     </p>
                     <Button 
