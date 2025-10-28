@@ -11,7 +11,9 @@ function AppContent() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: isAdminPage ? '#0a1f35' : '#051323' }}>
-      <Navigation />
+      <div style={{ position: 'relative', zIndex: 50 }}>
+        <Navigation />
+      </div>
       <main className={isAdminPage ? "p-4 lg:p-8" : ""}>
         <Routes>
           <Route path="/" element={<Home />} />
