@@ -84,6 +84,21 @@ class ApiEventService {
             throw new Error(result.error || 'Failed to delete event');
         }
     }
+
+    async regenerateSocialMediaPosts(id: string): Promise<void> {
+        const response = await fetch(`${this.baseUrl}/${id}/regenerate-social-media-posts`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        const result: ApiResponse<null> = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to regenerate social media posts');
+        }
+    }
 }
 
 export default new ApiEventService();

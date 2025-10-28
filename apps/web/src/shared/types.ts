@@ -1,5 +1,30 @@
 // Common types shared between client and server
 
+export interface SocialMediaPost {
+    platform: 'x' | 'instagram' | 'linkedin';
+    variant: 'A' | 'B';
+    copy: string;
+    altText: string;
+    suggestedMedia: string[];
+    suggestedHashtags: string[];
+    suggestedMentions: string[];
+    suggestedTime: string;
+    utmLink: string;
+    notes?: string;
+}
+
+export interface SocialMediaPosts {
+    summary: string;
+    recommendedWindow: string[];
+    posts: SocialMediaPost[];
+    complianceChecklist: {
+        no_deceptive_claims: boolean;
+        no_personal_data: boolean;
+        alt_text_present: boolean;
+        length_ok: boolean;
+    };
+}
+
 export interface Event {
     id: string;
     name: string;
@@ -11,6 +36,7 @@ export interface Event {
     description?: string;
     venueId?: string;
     sponsorIds?: string[];
+    socialMediaPosts?: SocialMediaPosts;
     createdAt: string;
     updatedAt: string;
 }
