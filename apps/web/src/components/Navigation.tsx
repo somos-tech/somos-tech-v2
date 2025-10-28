@@ -20,7 +20,7 @@ export default function Navigation() {
     const isActive = (path: string) => location.pathname === path;
 
     return (
-        <nav className="w-full" style={{ backgroundColor: '#051323', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <nav className="w-full sticky top-0" style={{ backgroundColor: '#051323', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', zIndex: 100 }}>
             <div className="container mx-auto px-4">
                 <div className="flex items-center justify-between h-20">
                     {/* Logo */}
