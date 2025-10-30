@@ -18,13 +18,14 @@ Write-Host "Deploying to Azure..." -ForegroundColor Yellow
 az functionapp deployment source config-zip `
     --resource-group $ResourceGroup `
     --name $FunctionAppName `
-    --src $zipFile
+    --src $zipFile `
+    --build-remote
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Deployment successful!" -ForegroundColor Green
     Remove-Item $zipFile -Force
     Write-Host ""
-    Write-Host "Test API: https://$FunctionAppName.azurewebsites.net/api/groups" -ForegroundColor Cyan
+    Write-Host "Test API: https://$FunctionAppName.azurewebsites.net/api/events" -ForegroundColor Cyan
 } else {
     Write-Host "Deployment failed" -ForegroundColor Red
 }
