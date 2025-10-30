@@ -10,7 +10,7 @@
         },
         {
             "route": "/admin/*",
-            "allowedRoles": ["admin", "administrator"]
+            "allowedRoles": ["authenticated"]
         },
         {
             "route": "/api/register",
