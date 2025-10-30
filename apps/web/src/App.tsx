@@ -30,7 +30,7 @@ function AppContent() {
           <Route 
             path="/admin/events" 
             element={
-              <ProtectedRoute requireAdmin={true}>
+              <ProtectedRoute>
                 <AdminEvents />
               </ProtectedRoute>
             } 
