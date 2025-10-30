@@ -36,6 +36,21 @@ param azureAdTenantId string
 @description('Allowed admin email domain (e.g., somos.tech)')
 param allowedAdminDomain string = 'somos.tech'
 
+@description('Azure OpenAI endpoint URL')
+param azureOpenAiEndpoint string
+
+@description('Azure OpenAI API version')
+param azureOpenAiApiVersion string = '2025-05-15-preview'
+
+@description('Azure OpenAI Agent ID')
+param azureOpenAiAgentId string
+
+@description('Azure OpenAI deployment/model name')
+param azureOpenAiDeploymentName string = 'gpt-5'
+
+@description('Social Media Agent ID (defaults to main agent ID if not specified)')
+param socialMediaAgentId string = ''
+
 // Variables for resource naming
 var resourceSuffix = '${appName}-${environmentName}-${uniqueString(resourceGroup().id)}'
 var uniqueSuffix = uniqueString(resourceGroup().id)
@@ -247,7 +262,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   properties: {
     supportsHttpsTrafficOnly: true
     minimumTlsVersion: 'TLS1_2'
-    allowBlobPublicAccess: false // Allow public access for site images container
+    allowBlobPublicAccess: true
     networkAcls: {
       bypass: 'AzureServices'
       defaultAction: 'Allow'
@@ -342,6 +357,26 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'ALLOWED_ADMIN_DOMAIN'
           value: allowedAdminDomain
         }
+        {
+          name: 'AZURE_OPENAI_ENDPOINT'
+          value: azureOpenAiEndpoint
+        }
+        {
+          name: 'AZURE_OPENAI_API_VERSION'
+          value: azureOpenAiApiVersion
+        }
+        {
+          name: 'AZURE_OPENAI_AGENT_ID'
+          value: azureOpenAiAgentId
+        }
+        {
+          name: 'AZURE_OPENAI_DEPLOYMENT_NAME'
+          value: azureOpenAiDeploymentName
+        }
+        {
+          name: 'SOCIAL_MEDIA_AGENT_ID'
+          value: !empty(socialMediaAgentId) ? socialMediaAgentId : azureOpenAiAgentId
+        }
       ]
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
@@ -392,9 +427,6 @@ resource deploymentContainer 'Microsoft.Storage/storageAccounts/blobServices/con
 // Create public container for site images (group covers, event images, etc.)
 resource siteImagesContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
   name: '${storageAccount.name}/default/site-images'
-  properties: {
-    publicAccess: 'Blob' // Allow anonymous read access to blobs
-  }
 }
 
 // Azure Static Web App
