@@ -34,21 +34,21 @@ export default function Home() {
     }, []);
 
     return (
-        <div className="min-h-screen" style={{ backgroundColor: '#051323', position: 'relative', cursor: 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTYgMkwxOCA4TDE2IDE0TDE0IDhMMTYgMlpNMTYgMTRMMjIgMTZMMTYgMThMMTAgMTZMMTYgMTRaTTggMTBMMTIgMTJMOCAxNEw0IDEyTDggMTBaTTI0IDEwTDI4IDEyTDI0IDE0TDIwIDEyTDI0IDEwWiIgZmlsbD0iIzAyREJGRiIvPjxwYXRoIGQ9Ik0xNiAxOEwxOCAyMkwxNiAyNkwxNCAyMkwxNiAxOFoiIGZpbGw9IiNGQ0ZFMjAiLz48L3N2Zz4=") 16 16, auto' }}>
-            {/* Starfield Background */}
+        <div className="min-h-screen" style={{ backgroundColor: '#051323', position: 'relative' }}>
+            {/* Subtle Background Elements */}
             <div className="fixed inset-0 z-0" style={{ overflow: 'hidden' }}>
-                {[...Array(50)].map((_, i) => (
+                {/* Static stars - no animation */}
+                {[...Array(30)].map((_, i) => (
                     <div
                         key={i}
                         className="absolute rounded-full"
                         style={{
-                            width: Math.random() * 3 + 'px',
-                            height: Math.random() * 3 + 'px',
+                            width: Math.random() * 2 + 1 + 'px',
+                            height: Math.random() * 2 + 1 + 'px',
                             backgroundColor: '#FFFFFF',
                             top: Math.random() * 100 + '%',
                             left: Math.random() * 100 + '%',
-                            opacity: Math.random() * 0.7 + 0.3,
-                            animation: `twinkle ${Math.random() * 3 + 2}s ease-in-out infinite ${Math.random() * 2}s`
+                            opacity: Math.random() * 0.5 + 0.2,
                         }}
                     />
                 ))}
@@ -62,47 +62,26 @@ export default function Home() {
                     muted
                     playsInline
                     className="w-full h-full object-cover"
-                    style={{ opacity: 0.3 }}
+                    style={{ opacity: 0.2 }}
                 >
                     <source src="https://video.wixstatic.com/video/0c204d_f18e1753e78c449a86c6556562755fc6/1080p/mp4/file.mp4" type="video/mp4" />
                 </video>
-                <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(5, 19, 35, 0.7), rgba(5, 19, 35, 0.9))' }}></div>
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(5, 19, 35, 0.8), rgba(5, 19, 35, 0.95))' }}></div>
             </div>
 
-            {/* Floating Planets */}
-            <div className="fixed top-20 right-10 w-16 h-16 rounded-full z-0" 
+            {/* Subtle Gradient Accents - No floating animation */}
+            <div className="fixed top-20 right-10 w-32 h-32 rounded-full z-0 blur-3xl" 
                  style={{ 
-                     background: 'radial-gradient(circle at 30% 30%, #02DBFF, #051323)',
-                     boxShadow: '0 0 40px rgba(2, 219, 255, 0.6)',
-                     animation: 'float 6s ease-in-out infinite'
+                     background: 'radial-gradient(circle, rgba(2, 219, 255, 0.15), transparent)',
                  }} />
-            <div className="fixed bottom-32 left-20 w-24 h-24 rounded-full z-0" 
+            <div className="fixed bottom-32 left-20 w-40 h-40 rounded-full z-0 blur-3xl" 
                  style={{ 
-                     background: 'radial-gradient(circle at 30% 30%, #00FF91, #051323)',
-                     boxShadow: '0 0 60px rgba(0, 255, 145, 0.5)',
-                     animation: 'float 8s ease-in-out infinite 1s'
+                     background: 'radial-gradient(circle, rgba(0, 255, 145, 0.15), transparent)',
                  }} />
-            <div className="fixed top-1/3 left-10 w-12 h-12 rounded-full z-0" 
+            <div className="fixed top-1/3 left-10 w-24 h-24 rounded-full z-0 blur-3xl" 
                  style={{ 
-                     background: 'radial-gradient(circle at 30% 30%, #FCFE20, #051323)',
-                     boxShadow: '0 0 30px rgba(252, 254, 32, 0.4)',
-                     animation: 'float 7s ease-in-out infinite 2s'
+                     background: 'radial-gradient(circle, rgba(252, 254, 32, 0.1), transparent)',
                  }} />
-
-            {/* Shooting Stars */}
-            {[...Array(3)].map((_, i) => (
-                <div
-                    key={`star-${i}`}
-                    className="fixed w-1 h-1 rounded-full z-0"
-                    style={{
-                        backgroundColor: '#FFFFFF',
-                        top: `${Math.random() * 50}%`,
-                        right: `${Math.random() * 50}%`,
-                        boxShadow: '0 0 4px 2px rgba(255, 255, 255, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.5)',
-                        animation: `shooting-star ${3 + i}s linear infinite ${i * 4}s`
-                    }}
-                />
-            ))}
 
             {/* Hero Section */}
             <section className="relative overflow-hidden z-10">
@@ -115,28 +94,18 @@ export default function Home() {
                                 fontFamily: '"Press Start 2P", "Courier New", monospace',
                                 letterSpacing: '0.1em',
                                 textTransform: 'lowercase',
-                                textShadow: '0 0 20px rgba(2, 219, 255, 0.8), 0 0 40px rgba(2, 219, 255, 0.4), 0 0 60px rgba(2, 219, 255, 0.2)',
-                                animation: 'float 4s ease-in-out infinite'
+                                textShadow: '0 0 20px rgba(2, 219, 255, 0.5)',
                             }}>
                             {'>'} init: innovation_
                         </h1>
                         
                         <div className="my-12 relative">
-                            {/* Cosmic ring around astronaut */}
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-80 h-80 rounded-full border-2 opacity-30" 
-                                     style={{ 
-                                         borderColor: '#00FF91',
-                                         animation: 'orbit 20s linear infinite'
-                                     }} />
-                            </div>
                             <img 
                                 src="https://static.wixstatic.com/media/0c204d_614c9617b93145e5a73a6b447aa10950~mv2.gif" 
                                 alt="Astronaut animation"
                                 className="mx-auto max-w-md w-full relative z-10"
                                 style={{
-                                    filter: 'drop-shadow(0 0 30px rgba(0, 255, 145, 0.3))',
-                                    animation: 'float 5s ease-in-out infinite 1s'
+                                    filter: 'drop-shadow(0 0 20px rgba(0, 255, 145, 0.2))',
                                 }}
                             />
                         </div>
@@ -148,7 +117,7 @@ export default function Home() {
 
                         <Button 
                             size="lg"
-                            className="text-lg px-8 py-6 rounded-full font-semibold transition-all hover:scale-105"
+                            className="text-lg px-8 py-6 rounded-full font-semibold transition-all duration-300 hover:shadow-lg"
                             style={{ 
                                 backgroundColor: '#00FF91',
                                 color: '#051323'
@@ -169,7 +138,7 @@ export default function Home() {
                     </h2>
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-                        <div className="text-center p-6 rounded-lg transition-transform hover:scale-105" 
+                        <div className="text-center p-6 rounded-lg transition-all duration-300 hover:shadow-xl" 
                              style={{ backgroundColor: 'rgba(0, 255, 145, 0.1)', border: '2px solid #00FF91' }}>
                             <img 
                                 src="https://static.wixstatic.com/media/0c204d_791834f5f35d4e6cb30fca9f44c966ab~mv2.jpg/v1/crop/x_891,y_0,w_4581,h_3648/fill/w_123,h_98,al_c,q_80,usm_0.66_1.00_0.01,blur_2,enc_avif,quality_auto/6P1A6005_JPG.jpg"
@@ -181,7 +150,7 @@ export default function Home() {
                             </h3>
                         </div>
 
-                        <div className="text-center p-6 rounded-lg transition-transform hover:scale-105" 
+                        <div className="text-center p-6 rounded-lg transition-all duration-300 hover:shadow-xl" 
                              style={{ backgroundColor: 'rgba(2, 219, 255, 0.1)', border: '2px solid #02DBFF' }}>
                             <img 
                                 src="https://static.wixstatic.com/media/0c204d_d5bbdfa900e9471b8bbc74e76624c1de~mv2.jpeg/v1/crop/x_380,y_511,w_1251,h_996/fill/w_138,h_110,al_c,q_80,usm_0.66_1.00_0.01,blur_2,enc_avif,quality_auto/IMG_3960_JPEG.jpeg"
@@ -193,7 +162,7 @@ export default function Home() {
                             </h3>
                         </div>
 
-                        <div className="text-center p-6 rounded-lg transition-transform hover:scale-105" 
+                        <div className="text-center p-6 rounded-lg transition-all duration-300 hover:shadow-xl" 
                              style={{ backgroundColor: 'rgba(252, 254, 32, 0.1)', border: '2px solid #FCFE20' }}>
                             <img 
                                 src="https://static.wixstatic.com/media/0c204d_8b064006d81e45fdb2db171ef3645e84~mv2.jpg/v1/fill/w_147,h_98,al_c,q_80,usm_0.66_1.00_0.01,blur_2,enc_avif,quality_auto/6P1A5468_JPG.jpg"
@@ -329,7 +298,7 @@ export default function Home() {
                 <div className="container mx-auto px-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
                         {/* AI Powered Programs */}
-                        <div className="rounded-lg overflow-hidden transition-transform hover:scale-105" 
+                        <div className="rounded-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:translate-y-[-4px]" 
                              style={{ backgroundColor: '#051323', border: '1px solid #00FF91' }}>
                             <img 
                                 src="https://static.wixstatic.com/media/0c204d_c1aca7116ed34c7bad8462baf5bdde0e~mv2.webp"
@@ -345,7 +314,7 @@ export default function Home() {
                                 </p>
                                 <Button 
                                     size="sm"
-                                    className="rounded-full w-full"
+                                    className="rounded-full w-full transition-all duration-300"
                                     style={{ 
                                         backgroundColor: '#00FF91',
                                         color: '#051323'
@@ -357,7 +326,7 @@ export default function Home() {
                         </div>
 
                         {/* Mentorship */}
-                        <div className="rounded-lg overflow-hidden transition-transform hover:scale-105" 
+                        <div className="rounded-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:translate-y-[-4px]" 
                              style={{ backgroundColor: '#051323', border: '1px solid #02DBFF' }}>
                             <img 
                                 src="https://static.wixstatic.com/media/0c204d_c30e645c29c5404eb9d968fefbdaf528~mv2.jpg"
@@ -373,7 +342,7 @@ export default function Home() {
                                 </p>
                                 <Button 
                                     size="sm"
-                                    className="rounded-full w-full"
+                                    className="rounded-full w-full transition-all duration-300"
                                     style={{ 
                                         backgroundColor: '#02DBFF',
                                         color: '#051323'
@@ -385,7 +354,7 @@ export default function Home() {
                         </div>
 
                         {/* Meet Your Community */}
-                        <div className="rounded-lg overflow-hidden transition-transform hover:scale-105" 
+                        <div className="rounded-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:translate-y-[-4px]" 
                              style={{ backgroundColor: '#051323', border: '1px solid #FCFE20' }}>
                             <img 
                                 src="https://static.wixstatic.com/media/0c204d_d5bbdfa900e9471b8bbc74e76624c1de~mv2.jpeg"
@@ -401,7 +370,7 @@ export default function Home() {
                                 </p>
                                 <Button 
                                     size="sm"
-                                    className="rounded-full w-full"
+                                    className="rounded-full w-full transition-all duration-300"
                                     style={{ 
                                         backgroundColor: '#FCFE20',
                                         color: '#051323'
@@ -426,7 +395,7 @@ export default function Home() {
                     </p>
                     <Button 
                         size="lg"
-                        className="text-lg px-8 py-6 rounded-full font-semibold transition-all hover:scale-105"
+                        className="text-lg px-8 py-6 rounded-full font-semibold transition-all duration-300 hover:shadow-lg"
                         style={{ 
                             backgroundColor: '#00FF91',
                             color: '#051323'

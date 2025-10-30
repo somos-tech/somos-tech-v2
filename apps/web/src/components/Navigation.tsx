@@ -1,14 +1,23 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Settings } from 'lucide-react';
+import { Menu, X, Settings, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function Navigation() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    // Extract first name from email or use full email
+    const getDisplayName = () => {
+        if (!user?.userDetails) return 'User';
+        const email = user.userDetails;
+        const name = email.split('@')[0];
+        // Capitalize first letter
+        return name.charAt(0).toUpperCase() + name.slice(1);
+    };
 
     const menuItems = [
         { label: 'Home', path: '/' },
@@ -58,8 +67,32 @@ export default function Navigation() {
                         ))}
                     </div>
 
-                    {/* Right Section: Donate Button + Admin + Mobile Menu Toggle */}
+                    {/* Right Section: Welcome/Signup + Donate + Admin + Mobile Menu Toggle */}
                     <div className="flex items-center gap-4">
+                        {isAuthenticated ? (
+                            <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full" style={{
+                                backgroundColor: 'rgba(0, 255, 145, 0.1)',
+                                border: '1px solid rgba(0, 255, 145, 0.3)',
+                            }}>
+                                <User size={16} style={{ color: '#00FF91' }} />
+                                <span style={{ color: '#FFFFFF', fontSize: '14px' }}>
+                                    Welcome, <span style={{ color: '#00FF91', fontWeight: '600' }}>{getDisplayName()}</span>
+                                </span>
+                            </div>
+                        ) : (
+                            <Button
+                                className="hidden md:flex items-center gap-2 rounded-full px-6 transition-all hover:scale-105"
+                                style={{
+                                    backgroundColor: 'transparent',
+                                    color: '#00FF91',
+                                    border: '2px solid #00FF91',
+                                }}
+                                onClick={() => navigate('/register')}
+                            >
+                                <User size={16} />
+                                Sign Up
+                            </Button>
+                        )}
                         {isAuthenticated && (
                             <Button
                                 className="hidden md:flex items-center gap-2 rounded-full px-6 transition-all hover:scale-105"
@@ -102,6 +135,35 @@ export default function Navigation() {
                         style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}
                     >
                         <div className="flex flex-col space-y-2">
+                            {isAuthenticated ? (
+                                <div className="px-4 py-3 rounded-lg mb-2" style={{
+                                    backgroundColor: 'rgba(0, 255, 145, 0.1)',
+                                    border: '1px solid rgba(0, 255, 145, 0.3)',
+                                }}>
+                                    <div className="flex items-center gap-2">
+                                        <User size={16} style={{ color: '#00FF91' }} />
+                                        <span style={{ color: '#FFFFFF', fontSize: '14px' }}>
+                                            Welcome, <span style={{ color: '#00FF91', fontWeight: '600' }}>{getDisplayName()}</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <Button
+                                    className="w-full rounded-full flex items-center justify-center gap-2 mb-2"
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        color: '#00FF91',
+                                        border: '2px solid #00FF91',
+                                    }}
+                                    onClick={() => {
+                                        navigate('/register');
+                                        setIsMobileMenuOpen(false);
+                                    }}
+                                >
+                                    <User size={16} />
+                                    Sign Up
+                                </Button>
+                            )}
                             {menuItems.map((item) => (
                                 <button
                                     key={item.path}
