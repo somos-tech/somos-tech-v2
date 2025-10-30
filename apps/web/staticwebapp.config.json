@@ -53,12 +53,7 @@
                     "clientSecretSettingName": "AZURE_CLIENT_SECRET"
                 },
                 "login": {
-                    "loginParameters": [
-                        "scope=openid profile email",
-                        "response_type=code",
-                        "response_mode=form_post",
-                        "prompt=select_account"
-                    ]
+                    "loginParameters": ["scope=openid profile email"]
                 }
             }
         },
