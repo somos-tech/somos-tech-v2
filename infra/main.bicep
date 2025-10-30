@@ -253,7 +253,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   properties: {
     supportsHttpsTrafficOnly: true
     minimumTlsVersion: 'TLS1_2'
-    allowBlobPublicAccess: false
+    allowBlobPublicAccess: true // Allow public access for site images container
     networkAcls: {
       bypass: 'AzureServices'
       defaultAction: 'Allow'
@@ -395,6 +395,14 @@ resource deploymentContainer 'Microsoft.Storage/storageAccounts/blobServices/con
   }
 }
 
+// Create public container for site images (group covers, event images, etc.)
+resource siteImagesContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
+  name: '${storageAccount.name}/default/site-images'
+  properties: {
+    publicAccess: 'Blob' // Allow anonymous read access to blobs
+  }
+}
+
 // Azure Static Web App
 resource staticWebApp 'Microsoft.Web/staticSites@2023-01-01' = {
   name: staticWebAppName
@@ -449,3 +457,4 @@ output cosmosDbEndpoint string = cosmosDbAccount.properties.documentEndpoint
 output cosmosDbDatabaseName string = cosmosDbDatabaseName
 output azureTenantId string = azureAdTenantId
 output allowedAdminDomain string = allowedAdminDomain
+output siteImagesContainerUrl string = '${storageAccount.properties.primaryEndpoints.blob}site-images/'
