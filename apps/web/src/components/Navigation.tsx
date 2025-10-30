@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Settings } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Navigation() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { isAuthenticated } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const menuItems = [
@@ -62,8 +64,21 @@ export default function Navigation() {
                         ))}
                     </div>
 
-                    {/* Right Section: Donate Button + Mobile Menu Toggle */}
+                    {/* Right Section: Donate Button + Admin + Mobile Menu Toggle */}
                     <div className="flex items-center gap-4">
+                        {isAuthenticated && (
+                            <Button
+                                className="hidden md:flex items-center gap-2 rounded-full px-6 transition-all hover:scale-105"
+                                style={{
+                                    backgroundColor: '#00D4FF',
+                                    color: '#051323',
+                                }}
+                                onClick={() => navigate('/admin')}
+                            >
+                                <Settings size={16} />
+                                Admin
+                            </Button>
+                        )}
                         <Button
                             className="hidden md:flex rounded-full px-6 transition-all hover:scale-105"
                             style={{
@@ -110,6 +125,22 @@ export default function Navigation() {
                                     {item.label}
                                 </button>
                             ))}
+                            {isAuthenticated && (
+                                <Button
+                                    className="w-full rounded-full flex items-center justify-center gap-2"
+                                    style={{
+                                        backgroundColor: '#00D4FF',
+                                        color: '#051323',
+                                    }}
+                                    onClick={() => {
+                                        navigate('/admin');
+                                        setIsMobileMenuOpen(false);
+                                    }}
+                                >
+                                    <Settings size={16} />
+                                    Admin
+                                </Button>
+                            )}
                             <Button
                                 className="w-full rounded-full mt-4"
                                 style={{

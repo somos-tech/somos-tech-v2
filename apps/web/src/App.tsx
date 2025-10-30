@@ -1,7 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 
 import Home from './pages/Home'
+import AdminDashboard from './pages/AdminDashboard'
 import AdminEvents from './pages/AdminEvents'
+import AdminGroups from './pages/AdminGroups'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Unauthorized from './pages/Unauthorized'
@@ -28,10 +30,26 @@ function AppContent() {
           <Route path="/register" element={<Register />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
             path="/admin/events" 
             element={
               <ProtectedRoute>
                 <AdminEvents />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/groups" 
+            element={
+              <ProtectedRoute>
+                <AdminGroups />
               </ProtectedRoute>
             } 
           />

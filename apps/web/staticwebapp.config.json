@@ -32,7 +32,11 @@
     },
     "responseOverrides": {
         "401": {
-            "redirect": "/login",
+            "redirect": "/.auth/login/aad?post_login_redirect_uri=/admin",
+            "statusCode": 302
+        },
+        "403": {
+            "redirect": "/unauthorized",
             "statusCode": 302
         },
         "404": {
