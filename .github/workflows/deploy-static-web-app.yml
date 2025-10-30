@@ -28,46 +28,8 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  # Deploy infrastructure first
-  deploy-infrastructure-dev:
-    if: (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')) && github.event.action != 'closed'
-    runs-on: ubuntu-latest
-    environment: dev
-    name: Deploy Infrastructure (Dev)
-    outputs:
-      staticWebAppName: ${{ steps.deploy.outputs.staticWebAppName }}
-      staticWebAppUrl: ${{ steps.deploy.outputs.staticWebAppUrl }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy Infrastructure
-        id: deploy
-        run: |
-          DEPLOYMENT_OUTPUT=$(az deployment group create \
-            --name "infra-$(date +%Y%m%d-%H%M%S)" \
-            --resource-group rg-somos-tech-dev \
-            --template-file ./infra/main.bicep \
-            --parameters ./infra/main.dev.bicepparam \
-            --parameters azureAdClientSecret="${{ secrets.AZURE_AD_CLIENT_SECRET }}" \
-            --query properties.outputs \
-            --output json)
-
-          echo "staticWebAppName=$(echo $DEPLOYMENT_OUTPUT | jq -r '.staticWebAppName.value')" >> $GITHUB_OUTPUT
-          echo "staticWebAppUrl=$(echo $DEPLOYMENT_OUTPUT | jq -r '.staticWebAppUrl.value')" >> $GITHUB_OUTPUT
-          echo "Infrastructure deployed successfully!"
-
-      - name: Azure logout
-        run: az logout
-        if: always()
-
   # Deploy to dev automatically on push to main
   deploy-dev:
-    needs: deploy-infrastructure-dev
     if: (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')) && github.event.action != 'closed'
     runs-on: ubuntu-latest
     environment: dev
@@ -107,46 +69,8 @@ jobs:
           output_location: '.'
           skip_app_build: true
 
-  # Deploy infrastructure for production
-  deploy-infrastructure-prod:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
-    runs-on: ubuntu-latest
-    environment: prod
-    name: Deploy Infrastructure (Production)
-    outputs:
-      staticWebAppName: ${{ steps.deploy.outputs.staticWebAppName }}
-      staticWebAppUrl: ${{ steps.deploy.outputs.staticWebAppUrl }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy Infrastructure
-        id: deploy
-        run: |
-          DEPLOYMENT_OUTPUT=$(az deployment group create \
-            --name "infra-$(date +%Y%m%d-%H%M%S)" \
-            --resource-group rg-somos-tech-prod \
-            --template-file ./infra/main.bicep \
-            --parameters ./infra/main.prod.bicepparam \
-            --parameters azureAdClientSecret="${{ secrets.AZURE_AD_CLIENT_SECRET }}" \
-            --query properties.outputs \
-            --output json)
-
-          echo "staticWebAppName=$(echo $DEPLOYMENT_OUTPUT | jq -r '.staticWebAppName.value')" >> $GITHUB_OUTPUT
-          echo "staticWebAppUrl=$(echo $DEPLOYMENT_OUTPUT | jq -r '.staticWebAppUrl.value')" >> $GITHUB_OUTPUT
-          echo "Infrastructure deployed successfully!"
-
-      - name: Azure logout
-        run: az logout
-        if: always()
-
   # Deploy to production (manual approval required via environment protection rules)
   deploy-prod:
-    needs: deploy-infrastructure-prod
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
     runs-on: ubuntu-latest
     environment: prod
