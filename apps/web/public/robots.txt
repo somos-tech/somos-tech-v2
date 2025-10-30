@@ -1,0 +1,20 @@
+# robots.txt for SOMOS.tech
+# Prevent crawling of admin pages and other sensitive areas
+
+User-agent: *
+
+# Block all admin pages
+Disallow: /admin/
+Disallow: /admin
+
+# Block authentication pages
+Disallow: /.auth/
+Disallow: /login
+Disallow: /register
+Disallow: /unauthorized
+
+# Allow everything else
+Allow: /
+
+# Sitemap (optional - add when available)
+# Sitemap: https://happy-stone-070acff1e.3.azurestaticapps.net/sitemap.xml
