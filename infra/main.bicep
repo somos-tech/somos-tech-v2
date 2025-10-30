@@ -60,12 +60,6 @@ var storageTableDataContributorRoleId = subscriptionResourceId(
   '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
 )
 
-// Cosmos DB Data Contributor role definition ID
-var cosmosDbDataContributorRoleId = subscriptionResourceId(
-  'Microsoft.Authorization/roleDefinitions',
-  '00000000-0000-0000-0000-000000000002'
-)
-
 // Log Analytics Workspace for Application Insights
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   name: logAnalyticsName
@@ -253,7 +247,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   properties: {
     supportsHttpsTrafficOnly: true
     minimumTlsVersion: 'TLS1_2'
-    allowBlobPublicAccess: true // Allow public access for site images container
+    allowBlobPublicAccess: false // Allow public access for site images container
     networkAcls: {
       bypass: 'AzureServices'
       defaultAction: 'Allow'
@@ -379,9 +373,9 @@ resource functionAppTableRoleAssignment 'Microsoft.Authorization/roleAssignments
 // Role assignment for Function App to access Cosmos DB
 resource functionAppCosmosDbRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-05-15' = {
   parent: cosmosDbAccount
-  name: guid(cosmosDbAccount.id, functionApp.id, cosmosDbDataContributorRoleId)
+  name: guid(cosmosDbAccount.id, functionApp.id, '00000000-0000-0000-0000-000000000002')
   properties: {
-    roleDefinitionId: '${cosmosDbAccount.id}/sqlRoleDefinitions/${cosmosDbDataContributorRoleId}'
+    roleDefinitionId: '${cosmosDbAccount.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
     principalId: functionApp.identity.principalId
     scope: cosmosDbAccount.id
   }

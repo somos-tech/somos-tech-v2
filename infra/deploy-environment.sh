@@ -89,8 +89,11 @@ print_info "Creating resource group '$RESOURCE_GROUP' in '$LOCATION'..."
 az group create --name "$RESOURCE_GROUP" --location "$LOCATION" --output none
 
 # Deploy infrastructure
-print_info "Deploying infrastructure..."
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+DEPLOYMENT_NAME="main-${TIMESTAMP}"
+print_info "Deploying infrastructure (deployment: $DEPLOYMENT_NAME)..."
 DEPLOYMENT_OUTPUT=$(az deployment group create \
+    --name "$DEPLOYMENT_NAME" \
     --resource-group "$RESOURCE_GROUP" \
     --template-file "$TEMPLATE_FILE" \
     --parameters "$PARAMETERS_FILE" \

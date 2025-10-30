@@ -1,5 +1,5 @@
-const { app } = require('@azure/functions');
-const { CosmosClient } = require('@azure/cosmos');
+import { app } from '@azure/functions';
+import { CosmosClient } from '@azure/cosmos';
 
 // Initialize Cosmos DB client using managed identity
 const endpoint = process.env.COSMOS_ENDPOINT;
@@ -46,16 +46,16 @@ app.http('GetUserRoles', {
 
             // Check if user email is from allowed domain
             const roles = [];
-            
+
             if (userEmail.endsWith(`@${allowedDomain}`)) {
                 // User is from somos.tech domain
                 roles.push('authenticated');
-                
+
                 // Check if user is in admin-users container
                 try {
                     const database = client.database(databaseId);
                     const container = database.container(containerId);
-                    
+
                     // Query for the user
                     const querySpec = {
                         query: 'SELECT * FROM c WHERE c.email = @email',
@@ -73,7 +73,7 @@ app.http('GetUserRoles', {
 
                     if (adminUsers.length > 0) {
                         const adminUser = adminUsers[0];
-                        
+
                         // Add roles from database
                         if (adminUser.roles && Array.isArray(adminUser.roles)) {
                             roles.push(...adminUser.roles);
@@ -100,7 +100,7 @@ app.http('GetUserRoles', {
 
                         await container.items.create(newAdminUser);
                         roles.push('admin');
-                        
+
                         context.log(`Auto-registered admin user: ${userEmail}`);
                     }
                 } catch (dbError) {

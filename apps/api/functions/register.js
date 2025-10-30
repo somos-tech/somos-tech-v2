@@ -1,5 +1,5 @@
-const { app } = require('@azure/functions');
-const { CosmosClient } = require('@azure/cosmos');
+import { app } from '@azure/functions';
+import { CosmosClient } from '@azure/cosmos';
 
 // Initialize Cosmos DB client (you'll need to add these to your app settings)
 const endpoint = process.env.COSMOS_ENDPOINT;

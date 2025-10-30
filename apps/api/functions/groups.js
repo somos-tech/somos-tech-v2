@@ -1,5 +1,5 @@
-const { app } = require('@azure/functions');
-const { CosmosClient } = require('@azure/cosmos');
+import { app } from '@azure/functions';
+import { CosmosClient } from '@azure/cosmos';
 
 // Initialize Cosmos DB client using managed identity
 const endpoint = process.env.COSMOS_ENDPOINT;
@@ -69,7 +69,7 @@ app.http('groups', {
             // POST - Create new group
             if (method === 'POST') {
                 const body = await request.json();
-                
+
                 // Validate required fields
                 if (!body.city || !body.state || !body.imageUrl) {
                     return {
@@ -114,7 +114,7 @@ app.http('groups', {
                 try {
                     // Get existing group
                     const { resource: existingGroup } = await container.item(groupId, groupId).read();
-                    
+
                     if (!existingGroup) {
                         return {
                             status: 404,
