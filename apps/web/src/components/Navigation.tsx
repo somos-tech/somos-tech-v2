@@ -38,12 +38,6 @@ export default function Navigation() {
                                 boxShadow: '0 0 10px rgba(0, 255, 145, 0.5)'
                             }}
                         />
-                        <span 
-                            className="ml-3 text-lg font-semibold tracking-tight hidden md:block"
-                            style={{ color: '#FFFFFF' }}
-                        >
-                            SOMOS.tech
-                        </span>
                     </div>
 
                     {/* Desktop Menu */}
