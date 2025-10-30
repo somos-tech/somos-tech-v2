@@ -5,7 +5,12 @@
         "AzureWebJobsStorage": "UseDevelopmentStorage=true",
         "NODE_ENV": "development",
         "AZURE_STORAGE_ACCOUNT_NAME": "",
-        "AZURE_STORAGE_CONNECTION_STRING": "UseDevelopmentStorage=true"
+        "AZURE_STORAGE_CONNECTION_STRING": "UseDevelopmentStorage=true",
+        "AZURE_OPENAI_ENDPOINT": "https://jcruz-meaqqqm1-eastus2.services.ai.azure.com/api/projects/jcruz-meaqqqm1-eastus2-project",
+        "AZURE_OPENAI_API_VERSION": "2025-05-15-preview",
+        "AZURE_OPENAI_AGENT_ID": "asst_1mvpvMraOeK1QXtdJ8SqP1xr",
+        "AZURE_OPENAI_DEPLOYMENT_NAME": "gpt-5",
+        "SOCIAL_MEDIA_AGENT_ID": "asst_1mvpvMraOeK1QXtdJ8SqP1xr"
     },
     "Host": {
         "CORS": "*"

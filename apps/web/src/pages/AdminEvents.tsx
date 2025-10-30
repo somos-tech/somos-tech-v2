@@ -104,15 +104,9 @@ export default function AdminEvents() {
                     </Tabs>
                 </div>
 
-                {/* Right: Event details (if open) otherwise global AI inbox/activity */}
-                <div className="space-y-4">
-                    {openEventId ? (
-                        <Card className="rounded-2xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
-                            <CardContent className="p-5">
-                                <EventDetails eventId={openEventId} onClose={() => setOpenEventId(undefined)} />
-                            </CardContent>
-                        </Card>
-                    ) : (
+                {/* Right: Global AI inbox/activity (only show when no event is open) */}
+                <div className="space-y-4 hidden xl:block">
+                    {!openEventId && (
                         <>
                             <Card className="rounded-2xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
                                 <CardContent className="p-5">
@@ -136,6 +130,44 @@ export default function AdminEvents() {
                     )}
                 </div>
             </div>
+
+            {/* Full-screen Event Details Drawer */}
+            {openEventId && (
+                <div
+                    className="fixed inset-0 z-50 flex items-start justify-end"
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
+                    onClick={() => setOpenEventId(undefined)}
+                >
+                    <div
+                        className="w-full h-full md:w-[90vw] md:max-w-5xl overflow-y-auto"
+                        style={{ backgroundColor: '#0a1f35' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Sticky Header */}
+                        <div
+                            className="sticky top-0 z-10 px-4 md:px-8 py-4 border-b flex items-center justify-between"
+                            style={{ backgroundColor: '#051323', borderColor: 'rgba(0, 255, 145, 0.2)' }}
+                        >
+                            <div className="text-lg font-semibold" style={{ color: '#FFFFFF' }}>
+                                Event Details
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setOpenEventId(undefined)}
+                                className="rounded-xl"
+                            >
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+
+                        {/* Scrollable Content */}
+                        <div className="px-4 md:px-8 py-6">
+                            <EventDetails eventId={openEventId} onClose={() => setOpenEventId(undefined)} />
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

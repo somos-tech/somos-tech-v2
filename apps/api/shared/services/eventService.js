@@ -38,7 +38,7 @@ class EventService {
 
     _toTableEntity(event) {
         // Azure Table Storage requires partitionKey and rowKey
-        return {
+        const entity = {
             partitionKey: 'EVENT', // All events in same partition for simplicity
             rowKey: event.id,
             name: event.name || '',
@@ -51,10 +51,31 @@ class EventService {
             createdAt: event.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
+
+        // Store socialMediaPosts as JSON string if present
+        if (event.socialMediaPosts) {
+            entity.socialMediaPosts = JSON.stringify(event.socialMediaPosts);
+        }
+
+        // Store social media agent status fields
+        if (event.socialMediaPostsStatus) {
+            entity.socialMediaPostsStatus = event.socialMediaPostsStatus;
+        }
+        if (event.socialMediaAgentThreadId) {
+            entity.socialMediaAgentThreadId = event.socialMediaAgentThreadId;
+        }
+        if (event.socialMediaAgentRunId) {
+            entity.socialMediaAgentRunId = event.socialMediaAgentRunId;
+        }
+        if (event.socialMediaAgentError) {
+            entity.socialMediaAgentError = event.socialMediaAgentError;
+        }
+
+        return entity;
     }
 
     _fromTableEntity(entity) {
-        return {
+        const event = {
             id: entity.rowKey,
             name: entity.name,
             date: entity.date,
@@ -66,6 +87,31 @@ class EventService {
             createdAt: entity.createdAt,
             updatedAt: entity.updatedAt
         };
+
+        // Parse socialMediaPosts from JSON string if present
+        if (entity.socialMediaPosts) {
+            try {
+                event.socialMediaPosts = JSON.parse(entity.socialMediaPosts);
+            } catch (error) {
+                console.warn('Failed to parse socialMediaPosts:', error);
+            }
+        }
+
+        // Add social media agent status fields
+        if (entity.socialMediaPostsStatus) {
+            event.socialMediaPostsStatus = entity.socialMediaPostsStatus;
+        }
+        if (entity.socialMediaAgentThreadId) {
+            event.socialMediaAgentThreadId = entity.socialMediaAgentThreadId;
+        }
+        if (entity.socialMediaAgentRunId) {
+            event.socialMediaAgentRunId = entity.socialMediaAgentRunId;
+        }
+        if (entity.socialMediaAgentError) {
+            event.socialMediaAgentError = entity.socialMediaAgentError;
+        }
+
+        return event;
     }
 
     async getEvents() {
