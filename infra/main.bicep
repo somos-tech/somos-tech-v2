@@ -33,6 +33,20 @@ param tags object = {
 @description('Azure AD Tenant ID for authentication')
 param azureAdTenantId string
 
+@description('Azure AD Application (Client) ID for Static Web App authentication')
+param azureAdClientId string
+
+@description('Azure AD Client Secret for Static Web App authentication')
+@secure()
+param azureAdClientSecret string
+
+@description('GitHub OAuth Client ID (optional)')
+param githubClientId string = ''
+
+@description('GitHub OAuth Client Secret (optional)')
+@secure()
+param githubClientSecret string = ''
+
 @description('Allowed admin email domain (e.g., somos.tech)')
 param allowedAdminDomain string = 'somos.tech'
 
@@ -458,14 +472,23 @@ resource staticWebApp 'Microsoft.Web/staticSites@2023-01-01' = {
 resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2023-01-01' = {
   parent: staticWebApp
   name: 'appsettings'
-  properties: {
-    VITE_API_URL: 'https://${functionApp.properties.defaultHostName}'
-    VITE_ENVIRONMENT: environmentName
-    COSMOS_ENDPOINT: cosmosDbAccount.properties.documentEndpoint
-    COSMOS_DATABASE_NAME: cosmosDbDatabaseName
-    AZURE_TENANT_ID: azureAdTenantId
-    ALLOWED_ADMIN_DOMAIN: allowedAdminDomain
-  }
+  properties: union(
+    {
+      VITE_API_URL: 'https://${functionApp.properties.defaultHostName}'
+      VITE_ENVIRONMENT: environmentName
+      AZURE_CLIENT_ID: azureAdClientId
+      AZURE_CLIENT_SECRET: azureAdClientSecret
+      AZURE_TENANT_ID: azureAdTenantId
+      COSMOS_ENDPOINT: cosmosDbAccount.properties.documentEndpoint
+      COSMOS_DATABASE_NAME: cosmosDbDatabaseName
+    },
+    !empty(githubClientId)
+      ? {
+          GITHUB_CLIENT_ID: githubClientId
+          GITHUB_CLIENT_SECRET: githubClientSecret
+        }
+      : {}
+  )
 }
 
 // Outputs
