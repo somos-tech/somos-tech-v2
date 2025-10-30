@@ -10,7 +10,10 @@
         "AZURE_OPENAI_API_VERSION": "2025-05-15-preview",
         "AZURE_OPENAI_AGENT_ID": "asst_1mvpvMraOeK1QXtdJ8SqP1xr",
         "AZURE_OPENAI_DEPLOYMENT_NAME": "gpt-5",
-        "SOCIAL_MEDIA_AGENT_ID": "asst_1mvpvMraOeK1QXtdJ8SqP1xr"
+        "SOCIAL_MEDIA_AGENT_ID": "asst_1mvpvMraOeK1QXtdJ8SqP1xr",
+        "COSMOS_ENDPOINT": "https://cosmos-somos-tech-dev-64qb73pzvgekw.documents.azure.com:443/",
+        "COSMOS_DATABASE_NAME": "somostech",
+        "ALLOWED_ADMIN_DOMAIN": "somos.tech"
     },
     "Host": {
         "CORS": "*"

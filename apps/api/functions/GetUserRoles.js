@@ -1,9 +1,17 @@
 import { app } from '@azure/functions';
 import { CosmosClient } from '@azure/cosmos';
+import { DefaultAzureCredential } from '@azure/identity';
 
-// Initialize Cosmos DB client using managed identity
+// Initialize Cosmos DB client
+// Uses DefaultAzureCredential which works both locally (Azure CLI) and in Azure (Managed Identity)
 const endpoint = process.env.COSMOS_ENDPOINT;
-const client = new CosmosClient({ endpoint, aadCredentials: { type: 'ManagedIdentity' } });
+
+if (!endpoint) {
+    throw new Error('COSMOS_ENDPOINT must be configured');
+}
+
+const credential = new DefaultAzureCredential();
+const client = new CosmosClient({ endpoint, aadCredentials: credential });
 
 const databaseId = process.env.COSMOS_DATABASE_NAME || 'somostech';
 const containerId = 'admin-users';
