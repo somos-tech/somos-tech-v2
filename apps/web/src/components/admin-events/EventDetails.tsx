@@ -30,6 +30,7 @@ export default function EventDetails({ eventId, onClose }: { eventId: string; on
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [workflowExpanded, setWorkflowExpanded] = useState(false);
+    const [activeTab, setActiveTab] = useState("overview");
 
     useEffect(() => {
         loadEvent();
@@ -52,12 +53,17 @@ export default function EventDetails({ eventId, onClose }: { eventId: string; on
     const handleRegenerateSocialMedia = async () => {
         try {
             await eventService.regenerateSocialMediaPosts(eventId);
-            // Optionally show a success message
-            alert('Social media posts regeneration started. Please refresh in a moment.');
+            // Reload the event to get the updated status
+            await loadEvent();
         } catch (err) {
             console.error('Failed to regenerate social media posts:', err);
             alert('Failed to regenerate social media posts');
         }
+    };
+
+    const handleSocialMediaStatusUpdate = async () => {
+        // Reload the event when the social media status changes
+        await loadEvent();
     };
 
     if (loading) {
@@ -104,7 +110,7 @@ export default function EventDetails({ eventId, onClose }: { eventId: string; on
                 )}
             </div>
 
-            <Tabs defaultValue="overview" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="rounded-2xl w-full overflow-x-auto flex-nowrap justify-start" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
                     <TabsTrigger value="overview" className="text-xs md:text-sm" style={{ color: '#FFFFFF' }}>Overview</TabsTrigger>
                     <TabsTrigger value="social" className="text-xs md:text-sm" style={{ color: '#FFFFFF' }}>Social</TabsTrigger>
@@ -121,15 +127,45 @@ export default function EventDetails({ eventId, onClose }: { eventId: string; on
                             <CardContent className="p-3 md:p-4">
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="text-xs font-medium" style={{ color: '#8394A7' }}>Social Media</div>
-                                    <Badge className="rounded-lg text-xs" style={{ backgroundColor: event.socialMediaPosts ? 'rgba(0, 255, 145, 0.1)' : 'rgba(251, 191, 36, 0.1)', color: event.socialMediaPosts ? '#00FF91' : '#FBB924' }}>
-                                        {event.socialMediaPosts ? 'Ready' : 'In Progress'}
+                                    <Badge
+                                        className="rounded-lg text-xs"
+                                        style={{
+                                            backgroundColor: event.socialMediaPostsStatus === 'completed'
+                                                ? 'rgba(0, 255, 145, 0.1)'
+                                                : event.socialMediaPostsStatus === 'in-progress'
+                                                    ? 'rgba(251, 191, 36, 0.1)'
+                                                    : event.socialMediaPostsStatus === 'failed'
+                                                        ? 'rgba(239, 68, 68, 0.1)'
+                                                        : 'rgba(148, 163, 184, 0.1)',
+                                            color: event.socialMediaPostsStatus === 'completed'
+                                                ? '#00FF91'
+                                                : event.socialMediaPostsStatus === 'in-progress'
+                                                    ? '#FBB924'
+                                                    : event.socialMediaPostsStatus === 'failed'
+                                                        ? '#ef4444'
+                                                        : '#8394A7'
+                                        }}
+                                    >
+                                        {event.socialMediaPostsStatus === 'completed'
+                                            ? 'Ready'
+                                            : event.socialMediaPostsStatus === 'in-progress'
+                                                ? 'Generating'
+                                                : event.socialMediaPostsStatus === 'failed'
+                                                    ? 'Failed'
+                                                    : 'Pending'}
                                     </Badge>
                                 </div>
                                 <div className="text-xl md:text-2xl font-semibold mb-1" style={{ color: '#FFFFFF' }}>
                                     {event.socialMediaPosts?.posts?.length || 0} Posts
                                 </div>
                                 <div className="text-xs" style={{ color: '#8394A7' }}>
-                                    {event.socialMediaPosts ? 'Initial templates' : 'Generating...'}
+                                    {event.socialMediaPostsStatus === 'completed'
+                                        ? 'Initial templates'
+                                        : event.socialMediaPostsStatus === 'in-progress'
+                                            ? 'Generating posts...'
+                                            : event.socialMediaPostsStatus === 'failed'
+                                                ? 'Generation failed'
+                                                : 'Not started'}
                                 </div>
                             </CardContent>
                         </Card>
@@ -256,7 +292,10 @@ export default function EventDetails({ eventId, onClose }: { eventId: string; on
                     <SocialMediaPosts
                         eventId={eventId}
                         socialMediaPosts={event.socialMediaPosts}
+                        socialMediaPostsStatus={event.socialMediaPostsStatus}
+                        socialMediaAgentError={event.socialMediaAgentError}
                         onRegenerate={handleRegenerateSocialMedia}
+                        onStatusUpdate={handleSocialMediaStatusUpdate}
                     />
                 </TabsContent>
 

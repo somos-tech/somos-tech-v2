@@ -4,7 +4,9 @@ export interface SocialMediaPost {
     platform: 'x' | 'instagram' | 'linkedin';
     variant: 'A' | 'B';
     copy: string;
+    text: string;
     altText: string;
+    imageAltText: string;
     suggestedMedia: string[];
     suggestedHashtags: string[];
     suggestedMentions: string[];
@@ -37,6 +39,10 @@ export interface Event {
     venueId?: string;
     sponsorIds?: string[];
     socialMediaPosts?: SocialMediaPosts;
+    socialMediaPostsStatus?: 'idle' | 'in-progress' | 'completed' | 'failed';
+    socialMediaAgentThreadId?: string;
+    socialMediaAgentRunId?: string;
+    socialMediaAgentError?: string;
     createdAt: string;
     updatedAt: string;
 }

@@ -160,3 +160,46 @@ app.http('RegenerateSocialMediaPosts', {
         }
     }
 });
+
+app.http('CheckSocialMediaPostsStatus', {
+    methods: ['GET'],
+    authLevel: 'anonymous',
+    route: 'events/{id}/social-media-posts-status',
+    handler: async (request, context) => {
+        try {
+            const id = request.params.id;
+            context.log(`Checking social media posts status for event: ${id}`);
+
+            const event = await eventService.getEventById(id);
+
+            if (!event) {
+                return notFoundResponse('Event not found');
+            }
+
+            // If status is in-progress and we have agent run details, check the actual status
+            if (event.socialMediaPostsStatus === 'in-progress' && event.socialMediaAgentThreadId && event.socialMediaAgentRunId) {
+                const result = await socialMediaService.checkAgentRunStatus(event, eventService);
+
+                // Fetch the updated event to return the latest data
+                const updatedEvent = await eventService.getEventById(id);
+
+                return successResponse({
+                    status: updatedEvent.socialMediaPostsStatus,
+                    posts: updatedEvent.socialMediaPosts,
+                    error: updatedEvent.socialMediaAgentError,
+                    agentRunStatus: result.status
+                });
+            }
+
+            // Otherwise just return the current status
+            return successResponse({
+                status: event.socialMediaPostsStatus || 'idle',
+                posts: event.socialMediaPosts,
+                error: event.socialMediaAgentError
+            });
+        } catch (error) {
+            context.error('Error checking social media posts status:', error);
+            return errorResponse(error);
+        }
+    }
+});

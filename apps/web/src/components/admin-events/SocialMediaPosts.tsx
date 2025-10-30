@@ -1,22 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Check, RefreshCw, Twitter, Instagram, Linkedin, Facebook, Clock, Tag, ExternalLink, AlertCircle } from "lucide-react";
+import { Copy, Check, RefreshCw, Twitter, Instagram, Linkedin, Facebook, Clock, Tag, ExternalLink, AlertCircle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import type { SocialMediaPosts, SocialMediaPost } from "@shared/types";
+import eventService from "@/api/eventService";
 
 interface SocialMediaPostsProps {
     eventId: string;
     socialMediaPosts?: SocialMediaPosts;
+    socialMediaPostsStatus?: 'idle' | 'in-progress' | 'completed' | 'failed';
+    socialMediaAgentError?: string;
     onRegenerate?: () => void;
+    onStatusUpdate?: () => void;
 }
 
 const PLATFORM_CONFIG = {
     x: {
         name: 'X (Twitter)',
         icon: Twitter,
-        color: '#000000',
+        color: '#1DA1F2',
         bgColor: 'rgba(0, 0, 0, 0.1)'
     },
     instagram: {
@@ -42,7 +46,7 @@ const PLATFORM_CONFIG = {
 function PostCard({ post }: { post: SocialMediaPost }) {
     const [copied, setCopied] = useState(false);
     const [copiedLink, setCopiedLink] = useState(false);
-    const platformConfig = PLATFORM_CONFIG[post?.platform] ?? PLATFORM_CONFIG['x'];
+    const platformConfig = PLATFORM_CONFIG[post?.platform?.toLowerCase()] ?? PLATFORM_CONFIG['x'];
     const Icon = platformConfig.icon;
 
     const copyToClipboard = async (text: string, type: 'copy' | 'link') => {
@@ -81,7 +85,7 @@ function PostCard({ post }: { post: SocialMediaPost }) {
                     <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => copyToClipboard(post.copy, 'copy')}
+                        onClick={() => copyToClipboard(post.text ?? post.copy, 'copy')}
                         className="rounded-xl"
                         style={{ borderColor: platformConfig.color, color: platformConfig.color }}
                     >
@@ -95,14 +99,14 @@ function PostCard({ post }: { post: SocialMediaPost }) {
                     className="p-4 rounded-xl text-sm whitespace-pre-wrap font-mono"
                     style={{ backgroundColor: '#051323', color: '#FFFFFF', border: '1px solid rgba(131, 148, 167, 0.2)' }}
                 >
-                    {post.copy.en}
+                    {post.text ?? post.copy}
                 </div>
 
                 {/* Alt Text */}
                 <div className="space-y-1">
                     <div className="text-xs font-medium" style={{ color: '#8394A7' }}>Alt Text</div>
                     <div className="text-sm p-3 rounded-lg" style={{ backgroundColor: '#051323', color: '#FFFFFF' }}>
-                        {post.altText}
+                        {post.altText ?? post.imageAltText}
                     </div>
                 </div>
 
@@ -189,8 +193,121 @@ function PostCard({ post }: { post: SocialMediaPost }) {
     );
 }
 
-export default function SocialMediaPosts({ eventId, socialMediaPosts, onRegenerate }: SocialMediaPostsProps) {
+export default function SocialMediaPosts({
+    eventId,
+    socialMediaPosts,
+    socialMediaPostsStatus = 'idle',
+    socialMediaAgentError,
+    onRegenerate,
+    onStatusUpdate
+}: SocialMediaPostsProps) {
     const [selectedPlatform, setSelectedPlatform] = useState<'all' | 'x' | 'instagram' | 'linkedin'>('all');
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    // Automatic polling when status is in-progress
+    useEffect(() => {
+        if (socialMediaPostsStatus === 'in-progress') {
+            const pollInterval = setInterval(async () => {
+                try {
+                    await checkStatus();
+                } catch (error) {
+                    console.error('Error polling status:', error);
+                }
+            }, 5000); // Poll every 5 seconds
+
+            return () => clearInterval(pollInterval);
+        }
+    }, [socialMediaPostsStatus, eventId]);
+
+    const checkStatus = async () => {
+        try {
+            const statusData = await eventService.checkSocialMediaPostsStatus(eventId);
+
+            // If status changed or posts are available, notify parent to reload event
+            if (statusData.status !== socialMediaPostsStatus || (statusData.posts && !socialMediaPosts)) {
+                onStatusUpdate?.();
+            }
+        } catch (error) {
+            console.error('Failed to check status:', error);
+        }
+    };
+
+    const handleManualRefresh = async () => {
+        setIsRefreshing(true);
+        try {
+            await checkStatus();
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
+    // Show loading state when in progress
+    if (socialMediaPostsStatus === 'in-progress') {
+        return (
+            <Card className="rounded-2xl border-slate-200">
+                <CardContent className="p-8 flex flex-col items-center justify-center space-y-4">
+                    <Loader2 className="h-12 w-12 animate-spin" style={{ color: '#00FF91' }} />
+                    <div className="text-center space-y-2">
+                        <div className="font-medium text-lg" style={{ color: '#FFFFFF' }}>Generating Social Media Posts</div>
+                        <div className="text-sm" style={{ color: '#8394A7' }}>
+                            The AI agent is creating customized posts for your event. This usually takes 30-60 seconds.
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button
+                            onClick={handleManualRefresh}
+                            disabled={isRefreshing}
+                            variant="outline"
+                            className="rounded-xl"
+                            style={{ borderColor: '#00FF91', color: '#00FF91' }}
+                        >
+                            {isRefreshing ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Checking...
+                                </>
+                            ) : (
+                                <>
+                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                    Check Status
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                    <div className="text-xs" style={{ color: '#8394A7' }}>
+                        💡 Status updates automatically every 5 seconds
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    // Show error state if failed
+    if (socialMediaPostsStatus === 'failed') {
+        return (
+            <Card className="rounded-2xl" style={{ borderColor: 'rgba(239, 68, 68, 0.5)' }}>
+                <CardContent className="p-8 flex flex-col items-center justify-center space-y-3">
+                    <AlertCircle className="h-8 w-8" style={{ color: '#ef4444' }} />
+                    <div className="text-center space-y-2">
+                        <div className="font-medium" style={{ color: '#FFFFFF' }}>Failed to Generate Posts</div>
+                        <div className="text-sm" style={{ color: '#8394A7' }}>
+                            {socialMediaAgentError || 'An error occurred while generating social media posts.'}
+                        </div>
+                    </div>
+                    {onRegenerate && (
+                        <Button
+                            onClick={onRegenerate}
+                            className="rounded-xl mt-2"
+                            style={{ backgroundColor: '#00FF91', color: '#000000' }}
+                        >
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Try Again
+                        </Button>
+                    )}
+                </CardContent>
+            </Card>
+        );
+    }
 
     if (!socialMediaPosts) {
         return (
@@ -290,28 +407,45 @@ export default function SocialMediaPosts({ eventId, socialMediaPosts, onRegenera
                     })}
                 </div>
 
-                {onRegenerate && (
+                <div className="flex gap-2">
                     <Button
                         size="sm"
                         variant="outline"
-                        onClick={onRegenerate}
+                        onClick={handleManualRefresh}
+                        disabled={isRefreshing}
                         className="rounded-xl"
-                        style={{ borderColor: '#00FF91', color: '#00FF91' }}
+                        style={{ borderColor: '#8394A7', color: '#8394A7' }}
                     >
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Regenerate
+                        {isRefreshing ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                        )}
+                        Refresh
                     </Button>
-                )}
+                    {onRegenerate && (
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={onRegenerate}
+                            className="rounded-xl"
+                            style={{ borderColor: '#00FF91', color: '#00FF91' }}
+                        >
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Regenerate
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {/* Posts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {filteredPosts.map((post, idx) => (
+                {filteredPosts?.map((post, idx) => (
                     <PostCard key={idx} post={post} />
                 ))}
             </div>
 
-            {filteredPosts.length === 0 && (
+            {filteredPosts?.length === 0 && (
                 <Card className="rounded-2xl border-slate-200">
                     <CardContent className="p-8 text-center text-sm" style={{ color: '#8394A7' }}>
                         No posts available for the selected platform.

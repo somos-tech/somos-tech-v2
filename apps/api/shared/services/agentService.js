@@ -145,7 +145,7 @@ class AgentService {
         }
     }
 
-    async waitForRunCompletion(threadId, runId, maxWaitTime = 60000, pollInterval = 1000) {
+    async waitForRunCompletion(threadId, runId, maxWaitTime = 300000, pollInterval = 1000) {
         const startTime = Date.now();
 
         while (Date.now() - startTime < maxWaitTime) {
@@ -215,6 +215,27 @@ class AgentService {
         }
     }
 
+    /**
+     * Attempts to extract and parse JSON from agent response text
+     * @param {string} text - The raw text response from the agent
+     * @returns {object} - Parsed JSON object
+     */
+    extractJsonFromResponse(text) {
+        // Try to find JSON in markdown code blocks
+        const codeBlockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+        if (codeBlockMatch) {
+            return JSON.parse(codeBlockMatch[1]);
+        }
+
+        // Try to find raw JSON
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+        }
+
+        throw new Error('No valid JSON found in agent response');
+    }
+
     async invokeAgent({ message, threadId = null, instructions = null }) {
         try {
             // Create a new thread if not provided
@@ -238,11 +259,25 @@ class AgentService {
 
             // Get the assistant's response (first message with role 'assistant')
             const assistantMessage = messages.find(msg => msg.role === 'assistant');
+            const rawResponse = assistantMessage?.content?.[0]?.text?.value || 'No response';
+
+            // Try to extract and validate JSON if the response looks like it contains structured data
+            let parsedData = null;
+            let validationError = null;
+
+            try {
+                parsedData = this.extractJsonFromResponse(rawResponse);
+            } catch (error) {
+                validationError = error.message;
+                console.warn('Failed to parse/validate agent response as SocialMediaPosts:', error.message);
+            }
 
             const response = {
                 threadId: threadId,
                 runId: run.id,
-                message: assistantMessage?.content?.[0]?.text?.value || 'No response',
+                message: rawResponse,
+                parsedData: parsedData,
+                validationError: validationError,
                 allMessages: messages
             };
 

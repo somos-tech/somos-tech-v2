@@ -99,6 +99,22 @@ class ApiEventService {
             throw new Error(result.error || 'Failed to regenerate social media posts');
         }
     }
+
+    async checkSocialMediaPostsStatus(id: string): Promise<{
+        status: 'idle' | 'in-progress' | 'completed' | 'failed';
+        posts?: any;
+        error?: string;
+        agentRunStatus?: string;
+    }> {
+        const response = await fetch(`${this.baseUrl}/${id}/social-media-posts-status`);
+        const result: ApiResponse<any> = await response.json();
+
+        if (!result.success || !result.data) {
+            throw new Error(result.error || 'Failed to check social media posts status');
+        }
+
+        return result.data;
+    }
 }
 
 export default new ApiEventService();

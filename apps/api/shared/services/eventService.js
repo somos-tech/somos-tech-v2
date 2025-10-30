@@ -57,6 +57,20 @@ class EventService {
             entity.socialMediaPosts = JSON.stringify(event.socialMediaPosts);
         }
 
+        // Store social media agent status fields
+        if (event.socialMediaPostsStatus) {
+            entity.socialMediaPostsStatus = event.socialMediaPostsStatus;
+        }
+        if (event.socialMediaAgentThreadId) {
+            entity.socialMediaAgentThreadId = event.socialMediaAgentThreadId;
+        }
+        if (event.socialMediaAgentRunId) {
+            entity.socialMediaAgentRunId = event.socialMediaAgentRunId;
+        }
+        if (event.socialMediaAgentError) {
+            entity.socialMediaAgentError = event.socialMediaAgentError;
+        }
+
         return entity;
     }
 
@@ -81,6 +95,20 @@ class EventService {
             } catch (error) {
                 console.warn('Failed to parse socialMediaPosts:', error);
             }
+        }
+
+        // Add social media agent status fields
+        if (entity.socialMediaPostsStatus) {
+            event.socialMediaPostsStatus = entity.socialMediaPostsStatus;
+        }
+        if (entity.socialMediaAgentThreadId) {
+            event.socialMediaAgentThreadId = entity.socialMediaAgentThreadId;
+        }
+        if (entity.socialMediaAgentRunId) {
+            event.socialMediaAgentRunId = entity.socialMediaAgentRunId;
+        }
+        if (entity.socialMediaAgentError) {
+            event.socialMediaAgentError = entity.socialMediaAgentError;
         }
 
         return event;
