@@ -35,30 +35,23 @@ The `azureAdClientSecret` is a secure parameter that needs to be added to GitHub
 
 **Note:** The deployment workflows are already configured to use this secret. Once you add it, the next deployment will automatically include the authentication configuration.
 
-## Step 3: Deploy or Trigger Workflow
+## Step 3: Update Deployment Scripts
 
-Your GitHub Actions workflows are already configured to deploy infrastructure with the authentication settings.
+### For GitHub Actions
 
-### Automatic Deployment (Dev)
+Update your `.github/workflows` deployment to pass the secret:
 
-When you push changes to the `main` branch that affect:
-- `apps/web/**`
-- `.github/workflows/deploy-static-web-app.yml`
+```yaml
+- name: Deploy Infrastructure
+  run: |
+    az deployment group create \
+      --resource-group ${{ vars.RESOURCE_GROUP_NAME }} \
+      --template-file ./infra/main.bicep \
+      --parameters ./infra/main.dev.bicepparam \
+      --parameters azureAdClientSecret=${{ secrets.AZURE_AD_CLIENT_SECRET }}
+```
 
-The workflow will automatically:
-1. Deploy/update infrastructure with the latest Bicep configuration
-2. Deploy the Static Web App with the new settings
-
-### Manual Deployment (Dev or Prod)
-
-1. Go to: https://github.com/somos-tech/somos-tech-v2/actions/workflows/deploy-static-web-app.yml
-2. Click **Run workflow**
-3. Select the environment (dev or prod)
-4. Click **Run workflow**
-
-### For Manual/Local Deployment
-
-If you need to deploy manually from your machine:
+### For Manual Deployment (PowerShell)
 
 ```powershell
 # Deploy with secure parameter
