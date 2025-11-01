@@ -38,6 +38,7 @@ class ApiEventService {
     }
 
     async createEvent(event: CreateEventDto): Promise<Event> {
+        console.log('sending event to API:', event);
         const response = await fetch(this.baseUrl, {
             method: 'POST',
             headers: {
@@ -111,6 +112,37 @@ class ApiEventService {
 
         if (!result.success || !result.data) {
             throw new Error(result.error || 'Failed to check social media posts status');
+        }
+
+        return result.data;
+    }
+
+    async regenerateVenueRecommendations(id: string): Promise<void> {
+        const response = await fetch(`${this.baseUrl}/${id}/regenerate-venue-recommendations`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        const result: ApiResponse<null> = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to regenerate venue recommendations');
+        }
+    }
+
+    async checkVenueRecommendationsStatus(id: string): Promise<{
+        status: 'idle' | 'in-progress' | 'completed' | 'failed';
+        venues?: any;
+        error?: string;
+        agentRunStatus?: string;
+    }> {
+        const response = await fetch(`${this.baseUrl}/${id}/venue-recommendations-status`);
+        const result: ApiResponse<any> = await response.json();
+
+        if (!result.success || !result.data) {
+            throw new Error(result.error || 'Failed to check venue recommendations status');
         }
 
         return result.data;

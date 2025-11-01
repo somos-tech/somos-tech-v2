@@ -1,6 +1,7 @@
 import { app } from '@azure/functions';
 import eventService from '../shared/services/eventService.js';
 import socialMediaService from '../shared/services/socialMediaService.js';
+import venueAgentService from '../shared/services/venueAgentService.js';
 import { successResponse, errorResponse, badRequestResponse, notFoundResponse } from '../shared/httpResponse.js';
 
 app.http('CreateEvent', {
@@ -21,7 +22,11 @@ app.http('CreateEvent', {
 
             // Generate social media posts asynchronously (non-blocking)
             context.log(`Triggering social media post generation for event ${newEvent.id}`);
-            socialMediaService.generatePostsAsync(newEvent, eventService);
+            // socialMediaService.generatePostsAsync(newEvent, eventService);
+
+            // Generate venue recommendations asynchronously (non-blocking)
+            context.log(`Triggering venue search for event ${newEvent.id}`);
+            venueAgentService.generateVenuesAsync(newEvent, eventService);
 
             return successResponse(newEvent, 201);
         } catch (error) {
@@ -199,6 +204,98 @@ app.http('CheckSocialMediaPostsStatus', {
             });
         } catch (error) {
             context.error('Error checking social media posts status:', error);
+            return errorResponse(error);
+        }
+    }
+});
+
+app.http('GetVenueRecommendations', {
+    methods: ['GET'],
+    authLevel: 'anonymous',
+    route: 'events/{id}/venue-recommendations',
+    handler: async (request, context) => {
+        try {
+            const id = request.params.id;
+            context.log(`Getting venue recommendations for event: ${id}`);
+
+            const event = await eventService.getEventById(id);
+
+            if (!event) {
+                return notFoundResponse('Event not found');
+            }
+
+            return successResponse(event.venueRecommendations || null);
+        } catch (error) {
+            context.error('Error getting venue recommendations:', error);
+            return errorResponse(error);
+        }
+    }
+});
+
+app.http('RegenerateVenueRecommendations', {
+    methods: ['POST'],
+    authLevel: 'anonymous',
+    route: 'events/{id}/regenerate-venue-recommendations',
+    handler: async (request, context) => {
+        try {
+            const id = request.params.id;
+            context.log(`Regenerating venue recommendations for event: ${id}`);
+
+            const event = await eventService.getEventById(id);
+
+            if (!event) {
+                return notFoundResponse('Event not found');
+            }
+
+            // Trigger regeneration asynchronously
+            venueAgentService.generateVenuesAsync(event, eventService);
+
+            return successResponse({ message: 'Venue recommendations regeneration started' });
+        } catch (error) {
+            context.error('Error regenerating venue recommendations:', error);
+            return errorResponse(error);
+        }
+    }
+});
+
+app.http('CheckVenueRecommendationsStatus', {
+    methods: ['GET'],
+    authLevel: 'anonymous',
+    route: 'events/{id}/venue-recommendations-status',
+    handler: async (request, context) => {
+        try {
+            const id = request.params.id;
+            context.log(`Checking venue recommendations status for event: ${id}`);
+
+            const event = await eventService.getEventById(id);
+
+            if (!event) {
+                return notFoundResponse('Event not found');
+            }
+
+            // If status is in-progress and we have agent run details, check the actual status
+            if (event.venueAgentStatus === 'in-progress' && event.venueAgentThreadId && event.venueAgentRunId) {
+                const result = await venueAgentService.checkAgentRunStatus(event, eventService);
+
+                // Fetch the updated event to return the latest data
+                const updatedEvent = await eventService.getEventById(id);
+
+                return successResponse({
+                    status: updatedEvent.venueAgentStatus,
+                    venues: updatedEvent.venueRecommendations,
+                    error: updatedEvent.venueAgentError,
+                    agentRunStatus: result.status
+                });
+            }
+
+            // Otherwise just return the current status
+            return successResponse({
+                status: event.venueAgentStatus || 'idle',
+                venues: event.venueRecommendations,
+                error: event.venueAgentError
+            });
+        } catch (error) {
+            context.error('Error checking venue recommendations status:', error);
             return errorResponse(error);
         }
     }

@@ -8,6 +8,7 @@ import { X, Link, Loader2, AlertCircle, ChevronDown, ChevronUp } from "lucide-re
 import AgentInbox from "./AgentInbox";
 import RecentActivity from "./RecentActivity";
 import SocialMediaPosts from "./SocialMediaPosts";
+import VenueRecommendations from "./VenueRecommendations";
 import eventService from "@/api/eventService";
 import type { Event } from "@shared/types";
 
@@ -63,6 +64,22 @@ export default function EventDetails({ eventId, onClose }: { eventId: string; on
 
     const handleSocialMediaStatusUpdate = async () => {
         // Reload the event when the social media status changes
+        await loadEvent();
+    };
+
+    const handleRegenerateVenues = async () => {
+        try {
+            await eventService.regenerateVenueRecommendations(eventId);
+            // Reload the event to get the updated status
+            await loadEvent();
+        } catch (err) {
+            console.error('Failed to regenerate venue recommendations:', err);
+            alert('Failed to regenerate venue recommendations');
+        }
+    };
+
+    const handleVenueStatusUpdate = async () => {
+        // Reload the event when the venue status changes
         await loadEvent();
     };
 
@@ -174,15 +191,45 @@ export default function EventDetails({ eventId, onClose }: { eventId: string; on
                             <CardContent className="p-3 md:p-4">
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="text-xs font-medium" style={{ color: '#8394A7' }}>Venue Outreach</div>
-                                    <Badge className="rounded-lg text-xs" style={{ backgroundColor: event.venueId ? 'rgba(0, 255, 145, 0.1)' : 'rgba(148, 163, 184, 0.1)', color: event.venueId ? '#00FF91' : '#8394A7' }}>
-                                        {event.venueId ? 'Confirmed' : 'Pending'}
+                                    <Badge
+                                        className="rounded-lg text-xs"
+                                        style={{
+                                            backgroundColor: event.venueAgentStatus === 'completed'
+                                                ? 'rgba(0, 255, 145, 0.1)'
+                                                : event.venueAgentStatus === 'in-progress'
+                                                    ? 'rgba(251, 191, 36, 0.1)'
+                                                    : event.venueAgentStatus === 'failed'
+                                                        ? 'rgba(239, 68, 68, 0.1)'
+                                                        : 'rgba(148, 163, 184, 0.1)',
+                                            color: event.venueAgentStatus === 'completed'
+                                                ? '#00FF91'
+                                                : event.venueAgentStatus === 'in-progress'
+                                                    ? '#FBB924'
+                                                    : event.venueAgentStatus === 'failed'
+                                                        ? '#ef4444'
+                                                        : '#8394A7'
+                                        }}
+                                    >
+                                        {event.venueAgentStatus === 'completed'
+                                            ? 'Found'
+                                            : event.venueAgentStatus === 'in-progress'
+                                                ? 'Searching'
+                                                : event.venueAgentStatus === 'failed'
+                                                    ? 'Failed'
+                                                    : 'Pending'}
                                     </Badge>
                                 </div>
                                 <div className="text-xl md:text-2xl font-semibold mb-1" style={{ color: '#FFFFFF' }}>
-                                    {event.venueId ? '1 Venue' : '0 / 3'}
+                                    {event.venueRecommendations?.recommendedVenues?.length || 0} Venues
                                 </div>
                                 <div className="text-xs" style={{ color: '#8394A7' }}>
-                                    {event.venueId ? 'Confirmed' : 'Reaching out'}
+                                    {event.venueAgentStatus === 'completed'
+                                        ? `${event.venueRecommendations?.recommendedVenues?.length || 0} recommendations`
+                                        : event.venueAgentStatus === 'in-progress'
+                                            ? 'Searching for venues...'
+                                            : event.venueAgentStatus === 'failed'
+                                                ? 'Search failed'
+                                                : 'Not started'}
                                 </div>
                             </CardContent>
                         </Card>
@@ -300,95 +347,15 @@ export default function EventDetails({ eventId, onClose }: { eventId: string; on
                 </TabsContent>
 
                 <TabsContent value="venues" className="mt-3 md:mt-4">
-                    {/* Venue Outreach Inbox */}
-                    <Card className="rounded-xl md:rounded-2xl" style={{ borderColor: 'rgba(0, 255, 145, 0.2)' }}>
-                        <CardContent className="p-3 md:p-4">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                                <div className="text-xs md:text-sm font-medium" style={{ color: '#FFFFFF' }}>Venue Outreach Inbox</div>
-                                <Button size="sm" className="rounded-xl text-xs w-full sm:w-auto" style={{ backgroundColor: '#00FF91', color: '#000000' }}>
-                                    + Start New Outreach
-                                </Button>
-                            </div>
-
-                            <div className="space-y-2 md:space-y-3">
-                                {/* Placeholder for venue conversations */}
-                                <Card className="rounded-lg md:rounded-xl" style={{ borderColor: 'rgba(148, 163, 184, 0.2)' }}>
-                                    <CardContent className="p-3">
-                                        <div className="flex items-start justify-between mb-2 gap-2">
-                                            <div>
-                                                <div className="font-medium text-xs md:text-sm" style={{ color: '#FFFFFF' }}>Downtown Event Center</div>
-                                                <div className="text-xs" style={{ color: '#8394A7' }}>Capacity: 250 · Downtown SF</div>
-                                            </div>
-                                            <Badge className="rounded-lg text-xs shrink-0" style={{ backgroundColor: 'rgba(251, 191, 36, 0.1)', color: '#FBB924' }}>
-                                                Awaiting
-                                            </Badge>
-                                        </div>
-                                        <div className="text-xs mb-2 p-2 rounded-lg" style={{ backgroundColor: '#051323', color: '#8394A7' }}>
-                                            <strong style={{ color: '#FFFFFF' }}>Agent:</strong> Sent initial inquiry about availability for {format(new Date(event.date), "MMM d, yyyy")}
-                                        </div>
-                                        <div className="flex gap-2 flex-wrap">
-                                            <Button size="sm" variant="outline" className="rounded-xl text-xs" style={{ borderColor: '#8394A7', color: '#8394A7' }}>
-                                                View Thread
-                                            </Button>
-                                            <Button size="sm" variant="outline" className="rounded-xl text-xs" style={{ borderColor: '#00FF91', color: '#00FF91' }}>
-                                                Follow-up
-                                            </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                <Card className="rounded-lg md:rounded-xl" style={{ borderColor: 'rgba(148, 163, 184, 0.2)' }}>
-                                    <CardContent className="p-3">
-                                        <div className="flex items-start justify-between mb-2 gap-2">
-                                            <div>
-                                                <div className="font-medium text-xs md:text-sm" style={{ color: '#FFFFFF' }}>Tech Hub Conference Room</div>
-                                                <div className="text-xs" style={{ color: '#8394A7' }}>Capacity: 150 · SoMa</div>
-                                            </div>
-                                            <Badge className="rounded-lg text-xs shrink-0" style={{ backgroundColor: 'rgba(0, 255, 145, 0.1)', color: '#00FF91' }}>
-                                                Active
-                                            </Badge>
-                                        </div>
-                                        <div className="text-xs mb-2 p-2 rounded-lg" style={{ backgroundColor: '#051323', color: '#8394A7' }}>
-                                            <div className="mb-1"><strong style={{ color: '#FFFFFF' }}>Venue:</strong> We have availability. Rate is $2,500 for 4 hours.</div>
-                                            <strong style={{ color: '#FFFFFF' }}>Last reply:</strong> 2 hours ago
-                                        </div>
-                                        <div className="flex gap-2 flex-wrap">
-                                            <Button size="sm" variant="outline" className="rounded-xl text-xs" style={{ borderColor: '#8394A7', color: '#8394A7' }}>
-                                                View Thread
-                                            </Button>
-                                            <Button size="sm" className="rounded-xl text-xs" style={{ backgroundColor: '#00FF91', color: '#000000' }}>
-                                                Reply
-                                            </Button>
-                                            <Button size="sm" className="rounded-xl text-xs" style={{ backgroundColor: '#00FF91', color: '#000000' }}>
-                                                Accept
-                                            </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                <Card className="rounded-lg md:rounded-xl" style={{ borderColor: 'rgba(148, 163, 184, 0.2)' }}>
-                                    <CardContent className="p-3">
-                                        <div className="flex items-start justify-between mb-2 gap-2">
-                                            <div>
-                                                <div className="font-medium text-xs md:text-sm" style={{ color: '#FFFFFF' }}>Innovation Space</div>
-                                                <div className="text-xs" style={{ color: '#8394A7' }}>Capacity: 200 · Mission Bay</div>
-                                            </div>
-                                            <Badge className="rounded-lg text-xs shrink-0" style={{ backgroundColor: 'rgba(148, 163, 184, 0.1)', color: '#8394A7' }}>
-                                                Declined
-                                            </Badge>
-                                        </div>
-                                        <div className="text-xs mb-2 p-2 rounded-lg" style={{ backgroundColor: '#051323', color: '#8394A7' }}>
-                                            <strong style={{ color: '#FFFFFF' }}>Venue:</strong> Unfortunately we're fully booked for that date.
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-
-                            <div className="mt-3 text-center text-xs" style={{ color: '#8394A7' }}>
-                                💡 The venue agent will automatically reach out based on your requirements
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <VenueRecommendations
+                        eventId={eventId}
+                        eventDate={event.date}
+                        venueRecommendations={event.venueRecommendations}
+                        venueAgentStatus={event.venueAgentStatus}
+                        venueAgentError={event.venueAgentError}
+                        onRegenerate={handleRegenerateVenues}
+                        onStatusUpdate={handleVenueStatusUpdate}
+                    />
                 </TabsContent>
 
                 <TabsContent value="sponsors" className="mt-3 md:mt-4">

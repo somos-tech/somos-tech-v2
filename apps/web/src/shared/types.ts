@@ -27,6 +27,60 @@ export interface SocialMediaPosts {
     };
 }
 
+export interface VenueContactInfo {
+    email?: string;
+    phone?: string;
+    website?: string;
+    bookingUrl?: string;
+    contactName?: string;
+}
+
+export interface VenueAvailability {
+    status: 'confirmed' | 'likely' | 'unknown';
+    notes?: string;
+}
+
+export interface VenueEstimatedCost {
+    amount: number;
+    currency: string;
+    notes?: string;
+}
+
+export interface VenueRecommendation {
+    name: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    capacity: number;
+    estimatedCost: VenueEstimatedCost;
+    amenities: string[];
+    contactInfo: VenueContactInfo;
+    availability: VenueAvailability;
+    whyRecommended: string;
+    outreachPriority: 'high' | 'medium' | 'low';
+    venueType: 'library' | 'coworking_space' | 'tech_company' | 'community_center' | 'university' | 'other';
+}
+
+export interface VenueOutreachTemplate {
+    venueId: number;
+    subject: string;
+    body: string;
+    followUpDays: number;
+}
+
+export interface VenueRecommendations {
+    searchSummary: string;
+    recommendedVenues: VenueRecommendation[];
+    outreachTemplates: VenueOutreachTemplate[];
+    searchMetadata: {
+        searchDate: string;
+        totalVenuesFound: number;
+        totalRecommended: number;
+        citiesSearched: string[];
+    };
+}
+
 export interface Event {
     id: string;
     name: string;
@@ -43,6 +97,11 @@ export interface Event {
     socialMediaAgentThreadId?: string;
     socialMediaAgentRunId?: string;
     socialMediaAgentError?: string;
+    venueRecommendations?: VenueRecommendations;
+    venueAgentStatus?: 'idle' | 'in-progress' | 'completed' | 'failed';
+    venueAgentThreadId?: string;
+    venueAgentRunId?: string;
+    venueAgentError?: string;
     createdAt: string;
     updatedAt: string;
 }
