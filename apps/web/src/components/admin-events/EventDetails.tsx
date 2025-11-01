@@ -220,11 +220,11 @@ export default function EventDetails({ eventId, onClose }: { eventId: string; on
                                     </Badge>
                                 </div>
                                 <div className="text-xl md:text-2xl font-semibold mb-1" style={{ color: '#FFFFFF' }}>
-                                    {event.venueRecommendations?.recommendedVenues?.length || 0} Venues
+                                    {event.venueRecommendations?.venues?.length || 0} Venues
                                 </div>
                                 <div className="text-xs" style={{ color: '#8394A7' }}>
                                     {event.venueAgentStatus === 'completed'
-                                        ? `${event.venueRecommendations?.recommendedVenues?.length || 0} recommendations`
+                                        ? `${event.venueRecommendations?.venues?.length || 0} recommendations`
                                         : event.venueAgentStatus === 'in-progress'
                                             ? 'Searching for venues...'
                                             : event.venueAgentStatus === 'failed'
