@@ -1,12 +1,6 @@
-name: Deploy Infrastructure
+name: Deploy Infrastructure (Manual Only)
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'infra/**'
-      - '.github/workflows/deploy-infrastructure.yml'
   workflow_dispatch:
     inputs:
       environment:
@@ -31,9 +25,9 @@ on:
         required: true
 
 jobs:
-  # Deploy to dev automatically on push to main
+  # Deploy to dev (manual dispatch only)
   deploy-dev:
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev') || (github.event_name == 'workflow_call' && inputs.environment == 'dev')
+    if: (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev') || (github.event_name == 'workflow_call' && inputs.environment == 'dev')
     runs-on: ubuntu-latest
     environment: dev
     name: Deploy Infrastructure to Dev
