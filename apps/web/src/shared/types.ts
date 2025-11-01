@@ -28,9 +28,9 @@ export interface SocialMediaPosts {
 }
 
 export interface VenueContact {
+    email?: string;
     phone?: string;
     website?: string;
-    booking?: string;
 }
 
 export interface VenueRecommendation {
@@ -40,6 +40,7 @@ export interface VenueRecommendation {
     amenities: string[];
     contact: VenueContact;
     notes?: string;
+    emailTemplate?: string;
 }
 
 export interface VenueRecommendations {
@@ -57,6 +58,8 @@ export interface Event {
     description?: string;
     venueId?: string;
     sponsorIds?: string[];
+    organizerName?: string;
+    organizationName?: string;
     socialMediaPosts?: SocialMediaPosts;
     socialMediaPostsStatus?: 'idle' | 'in-progress' | 'completed' | 'failed';
     socialMediaAgentThreadId?: string;
@@ -110,6 +113,8 @@ export interface CreateEventDto {
     description?: string;
     venueId?: string;
     sponsorIds?: string[];
+    organizerName?: string;
+    organizationName?: string;
 }
 
 export interface UpdateEventDto extends Partial<CreateEventDto> {

@@ -41,6 +41,10 @@ class VenueAgentService {
                                     contact: {
                                         type: "object",
                                         properties: {
+                                            email: {
+                                                type: "string",
+                                                description: "Contact email address (REQUIRED)"
+                                            },
                                             phone: {
                                                 type: "string",
                                                 description: "Contact phone number"
@@ -48,21 +52,21 @@ class VenueAgentService {
                                             website: {
                                                 type: "string",
                                                 description: "Venue website URL"
-                                            },
-                                            booking: {
-                                                type: "string",
-                                                description: "Direct booking page URL"
                                             }
                                         },
-                                        required: ["phone", "website", "booking"],
+                                        required: ["phone", "website", "email"],
                                         additionalProperties: false
                                     },
                                     notes: {
                                         type: "string",
                                         description: "Comprehensive information about pricing, booking requirements, what's included, and why it's recommended"
+                                    },
+                                    emailTemplate: {
+                                        type: "string",
+                                        description: "Personalized email draft for reaching out to this specific venue"
                                     }
                                 },
-                                required: ["name", "address", "capacity", "amenities", "contact", "notes"],
+                                required: ["name", "address", "capacity", "amenities", "contact", "notes", "emailTemplate"],
                                 additionalProperties: false
                             }
                         }
@@ -203,7 +207,12 @@ class VenueAgentService {
             eventRequirements,
             searchPreferences: {
                 includeCoworkingSpaces: true,
-                includeCommunitySpaces: true
+                includeBars: true,
+                includeRestaurants: true
+            },
+            organizerInfo: {
+                organizerName: event.organizerName || process.env.ORGANIZER_NAME || 'Event Organizer',
+                organizationName: event.organizationName || process.env.ORGANIZATION_NAME || 'SOMOS.tech'
             }
         };
     }
@@ -240,7 +249,7 @@ class VenueAgentService {
                 // Invoke the agent with the venue response schema
                 const response = await agentService.invokeAgent({
                     message,
-                    instructions: 'Search for suitable venues based on the event requirements. Return a JSON response with venue recommendations including name, address, capacity, amenities, and contact information.',
+                    instructions: 'Search for suitable venues based on the event requirements. For each venue, find their email address and draft a personalized outreach email. Return a JSON response with venue recommendations including name, address, capacity, amenities, contact information (with email), and a personalized email template for reaching out.',
                     responseFormat: this.venueResponseSchema
                 });
 

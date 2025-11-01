@@ -33,6 +33,10 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
         description: ''
     });
 
+    // Additional fields for agent context (not part of CreateEventDto)
+    const [organizerName, setOrganizerName] = useState('');
+    const [organizationName, setOrganizationName] = useState('SOMOS.tech');
+
     const handleInputChange = (field: keyof CreateEventDto, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
@@ -54,7 +58,13 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
             // Create the event via API
             setBusy(true);
             try {
-                await eventService.createEvent(formData as CreateEventDto);
+                // Merge organizer info with form data
+                const eventData: CreateEventDto = {
+                    ...formData as CreateEventDto,
+                    organizerName: organizerName || undefined,
+                    organizationName: organizationName || undefined
+                };
+                await eventService.createEvent(eventData);
                 setStep(3);
                 // Notify parent to refresh the list
                 onEventCreated?.();
@@ -79,6 +89,8 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
                     status: 'draft',
                     description: ''
                 });
+                setOrganizerName('');
+                setOrganizationName('SOMOS.tech');
             }, 300);
         }
     };
@@ -176,6 +188,40 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
                                     value={formData.description}
                                     onChange={(e) => handleInputChange('description', e.target.value)}
                                 />
+                            </div>
+                        </div>
+
+                        <div className="mt-4 p-4 rounded-xl" style={{ backgroundColor: '#0a1f35', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
+                            <div className="flex items-center gap-2 mb-3">
+                                <Sparkles className="h-4 w-4" style={{ color: '#00FF91' }} />
+                                <div className="font-medium" style={{ color: '#FFFFFF' }}>Organizer Information</div>
+                                <Badge className="rounded-lg" style={{ backgroundColor: 'rgba(0, 255, 145, 0.1)', color: '#00FF91' }}>Recommended</Badge>
+                            </div>
+                            <p className="text-sm mb-3" style={{ color: '#8394A7' }}>
+                                Your information will be used by AI agents to personalize venue outreach emails. Venues will see your name, not "Event Organizer".
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <Label style={{ color: '#FFFFFF' }}>Your Name</Label>
+                                    <Input
+                                        placeholder="e.g., Fernando Serna"
+                                        className="rounded-xl"
+                                        style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)', color: '#FFFFFF' }}
+                                        value={organizerName}
+                                        onChange={(e) => setOrganizerName(e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <Label style={{ color: '#FFFFFF' }}>Organization Name</Label>
+                                    <Input
+                                        placeholder="e.g., Somos Tech"
+                                        className="rounded-xl"
+                                        disabled={true}
+                                        style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)', color: '#FFFFFF' }}
+                                        value={organizationName}
+                                        onChange={(e) => setOrganizationName(e.target.value)}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
