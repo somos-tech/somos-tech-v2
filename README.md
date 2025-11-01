@@ -8,6 +8,7 @@ Modern event management platform built with React, Azure Functions, and Azure St
 - [Tech Stack](#tech-stack)
 - [Architecture](#architecture)
 - [Quick Start](#quick-start)
+- [Authentication Setup](#authentication-setup)
 - [Project Structure](#project-structure)
 - [Development](#development)
 - [Deployment](#deployment)
@@ -126,38 +127,44 @@ Application Insights (Monitoring)
 
 ### Prerequisites
 
+- GitHub account with access to the repository
+- Azure subscription
+- Azure CLI (for local development)
+
 ```bash
-# Install Azure CLI
+# Install Azure CLI (for local development only)
 brew install azure-cli  # macOS
 
-# Install Azure Functions Core Tools
+# Install Azure Functions Core Tools (for local API development)
 brew install azure/functions/azure-functions-core-tools@4
 
 # Install Node.js 20
 brew install node@20
-
-# Login to Azure
-az login
 ```
 
-### 1. Deploy Infrastructure (5 minutes)
+### 1. Configure GitHub Secrets & Variables
 
-```bash
-cd infra
-./deploy.sh
-```
+#### Overview: Service Principals & App Registrations
 
-This creates:
-- ✅ Azure Function App (API backend)
-- ✅ Azure Static Web App (React frontend)
-- ✅ Storage Account (data storage)
-- ✅ Application Insights (monitoring)
+This project uses two types of Azure credentials:
 
-When prompted, type `y` to deploy the Function App code.
+1. **Deployment Service Principal** (`AZURE_CREDENTIALS`)
+   - Purpose: Deploy infrastructure and application code via GitHub Actions
+   - Type: Service Principal with Contributor role
+   - Used by: All deployment workflows
 
-### 2. Configure GitHub Secrets (2 minutes)
+2. **Azure AD App Registration** (`AZURE_AD_CLIENT_SECRET`)
+   - Purpose: Enable user authentication in the Static Web App
+   - Type: Azure AD Application with delegated permissions
+   - Used by: Infrastructure deployment to configure authentication
 
-**Get deployment token:**
+#### Required Secrets
+
+Go to **Settings → Secrets and variables → Actions** in your GitHub repository.
+
+##### AZURE_STATIC_WEB_APPS_API_TOKEN
+
+Get deployment token:
 ```bash
 # Get Static Web App name
 SWA_NAME=$(az deployment group show \
@@ -174,20 +181,108 @@ az staticwebapp secrets list \
   --output tsv
 ```
 
-**Add to GitHub** (Settings → Secrets and variables → Actions):
-- **Secret**: `AZURE_STATIC_WEB_APPS_API_TOKEN` = (token from above)
-- **Variable**: `VITE_API_URL` = (Function App URL from deployment output)
-- **Variable**: `VITE_ENVIRONMENT` = `production`
+Add as secret: `AZURE_STATIC_WEB_APPS_API_TOKEN`
 
-### 3. Deploy Frontend (1 minute)
+##### AZURE_CREDENTIALS
+
+Create service principal for Function App deployment:
+
+```bash
+# Get subscription ID
+SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+
+# Create service principal
+az ad sp create-for-rbac \
+  --name "github-actions-somos-tech" \
+  --role contributor \
+  --scopes /subscriptions/$SUBSCRIPTION_ID/resourceGroups/rg-somos-tech-dev \
+  --sdk-auth
+```
+
+Copy the JSON output and add as secret: `AZURE_CREDENTIALS`
+
+Expected format:
+```json
+{
+  "clientId": "<your-client-id>",
+  "clientSecret": "<generated-secret>",
+  "subscriptionId": "<your-subscription-id>",
+  "tenantId": "<your-tenant-id>"
+}
+```
+
+##### AZURE_AD_CLIENT_SECRET (for authentication)
+
+Required for Static Web App authentication with Azure AD.
+
+**Note**: You'll create this when setting up Azure AD authentication. See the [Authentication Setup](#authentication-setup) section for detailed steps.
+
+Quick reference:
+1. Create an Azure AD App Registration for "SOMOS.tech Admin Portal"
+2. Generate a client secret in **Certificates & secrets**
+3. Add the secret value to GitHub as `AZURE_AD_CLIENT_SECRET`
+
+This secret allows the infrastructure deployment to automatically configure your Static Web App with Azure AD authentication settings.
+
+Add as secret: `AZURE_AD_CLIENT_SECRET`
+
+#### Required Variables
+
+Add these as **repository variables** (Settings → Secrets and variables → Actions → Variables):
+
+- `VITE_API_URL` = Function App URL (from deployment output)
+- `VITE_ENVIRONMENT` = `production` (or `development`)
+- `AZURE_FUNCTIONAPP_NAME` = Function App name (from deployment output)
+- `AZURE_SUBSCRIPTION_ID` = Your Azure subscription ID
+- `RESOURCE_GROUP_NAME` = `rg-somos-tech-dev`
+
+#### Secrets Checklist
+
+- [ ] `AZURE_STATIC_WEB_APPS_API_TOKEN` - Static Web App deployment
+- [ ] `AZURE_CREDENTIALS` - Service principal for Function App
+- [ ] `AZURE_AD_CLIENT_SECRET` - Azure AD authentication
+
+#### Variables Checklist
+
+- [ ] `VITE_API_URL` - API endpoint URL
+- [ ] `VITE_ENVIRONMENT` - Environment name
+- [ ] `AZURE_FUNCTIONAPP_NAME` - Function App name
+- [ ] `AZURE_SUBSCRIPTION_ID` - Subscription ID
+- [ ] `RESOURCE_GROUP_NAME` - Resource group name
+
+### 2. Deploy Infrastructure via GitHub Actions
+
+Once secrets and variables are configured:
+
+1. Go to **Actions** tab in your GitHub repository
+2. Select **Deploy Infrastructure (Manual Only)** workflow
+3. Click **Run workflow**
+4. Select environment (dev or prod)
+5. Click **Run workflow**
+
+This creates:
+- ✅ Azure Function App (API backend)
+- ✅ Azure Static Web App (React frontend)
+- ✅ Storage Account (data storage)
+- ✅ Application Insights (monitoring)
+
+The deployment typically completes in 3-5 minutes.
+
+### 3. Deploy Frontend & Backend
+
+After infrastructure is deployed, push your code to trigger automatic deployments:
 
 ```bash
 git add .
-git commit -m "Add Azure deployment config"
+git commit -m "Initial deployment"
 git push origin main
 ```
 
-Watch deployment in GitHub Actions tab.
+This triggers:
+- ✅ Function App deployment (API)
+- ✅ Static Web App deployment (frontend)
+
+Watch deployment progress in the **Actions** tab.
 
 ### 4. Access Your App
 
@@ -246,6 +341,198 @@ somos-tech-v2/
 
 ---
 
+## Authentication Setup
+
+The application uses Azure AD (Entra ID) for admin authentication with optional GitHub OAuth support.
+
+### Configure Azure AD Authentication
+
+#### 1. Register Application in Azure AD
+
+1. Go to **Azure Portal** → **Azure Active Directory** → **App registrations**
+2. Click **New registration**
+3. Fill in:
+   - **Name**: `SOMOS.tech Admin Portal`
+   - **Supported account types**: `Accounts in this organizational directory only`
+   - **Redirect URI**:
+     - Platform: `Web`
+     - URI: `https://your-swa-name.azurestaticapps.net/.auth/login/aad/callback`
+4. Click **Register**
+
+#### 2. Configure Authentication Settings
+
+1. Go to **Authentication** in your app registration
+2. Under **Implicit grant and hybrid flows**, enable:
+   - ✅ ID tokens
+3. Click **Save**
+
+#### 3. Create Client Secret
+
+1. Go to **Certificates & secrets**
+2. Click **New client secret**
+3. Add description: `SWA Auth Secret`
+4. Choose expiration (recommend 24 months)
+5. Click **Add**
+6. **⚠️ COPY THE SECRET VALUE** immediately (cannot view again)
+
+#### 4. Configure API Permissions
+
+1. Go to **API permissions**
+2. Ensure these Microsoft Graph permissions exist:
+   - `openid` (delegated)
+   - `profile` (delegated)
+   - `email` (delegated)
+3. Click **Grant admin consent** if required
+
+#### 5. Get Configuration Values
+
+From your app registration **Overview** page, copy:
+- **Application (client) ID**
+- **Directory (tenant) ID**
+
+#### 6. Add to GitHub Secrets
+
+The Azure AD client secret is required for infrastructure deployment. Add it to GitHub:
+
+**Go to**: Settings → Secrets and variables → Actions → New repository secret
+
+- **Name**: `AZURE_AD_CLIENT_SECRET`
+- **Value**: The client secret you copied in step 3
+
+This secret is used by the infrastructure deployment workflow to configure your Static Web App with Azure AD authentication automatically.
+
+#### 7. Update staticwebapp.config.json
+
+In `apps/web/staticwebapp.config.json`, replace `<YOUR_TENANT_ID>` with your actual tenant ID:
+
+```json
+"openIdIssuer": "https://login.microsoftonline.com/YOUR-TENANT-ID/v2.0"
+```
+
+Commit and push this change:
+
+```bash
+git add apps/web/staticwebapp.config.json
+git commit -m "Configure Azure AD tenant ID"
+git push origin main
+```
+
+#### 8. Deploy Infrastructure
+
+After adding the secret, deploy or redeploy your infrastructure:
+
+1. Go to **Actions** → **Deploy Infrastructure (Manual Only)**
+2. Click **Run workflow**
+3. Select environment
+4. Click **Run workflow**
+
+The workflow will automatically configure your Static Web App with:
+- `AZURE_CLIENT_ID` - From your app registration
+- `AZURE_CLIENT_SECRET` - From the GitHub secret
+- `AZURE_TENANT_ID` - From your Azure AD tenant
+
+### Verify Authentication Configuration
+
+After deployment, verify the settings in Azure Portal:
+
+1. Go to your **Static Web App** → **Configuration**
+2. Confirm these settings exist:
+   - ✅ `AZURE_CLIENT_ID`
+   - ✅ `AZURE_CLIENT_SECRET` (value hidden)
+   - ✅ `AZURE_TENANT_ID`
+
+### Optional: Configure GitHub OAuth
+
+#### 1. Create GitHub OAuth App
+
+1. Go to **GitHub** → **Settings** → **Developer settings** → **OAuth Apps**
+2. Click **New OAuth App**
+3. Fill in:
+   - **Application name**: `SOMOS.tech`
+   - **Homepage URL**: `https://your-swa-name.azurestaticapps.net`
+   - **Authorization callback URL**: `https://your-swa-name.azurestaticapps.net/.auth/login/github/callback`
+4. Click **Register application**
+5. Copy the **Client ID** and generate a **Client Secret**
+
+#### 2. Add GitHub Settings to Static Web App
+
+```
+GITHUB_CLIENT_ID=<your-github-client-id>
+GITHUB_CLIENT_SECRET=<your-github-client-secret>
+```
+
+### Assign Admin Roles
+
+#### Method 1: Azure Portal
+
+1. Go to **Static Web App** → **Role management**
+2. Click **Invitations** → **Invite**
+3. Fill in:
+   - **Domain**: Your Azure AD domain
+   - **Email**: Admin user's email
+   - **Role**: `admin`
+   - **Hours until expiration**: 24
+4. Send invitation to user
+
+#### Method 2: Configuration File
+
+Create `staticwebapp.database.config.json`:
+
+```json
+{
+  "$schema": "https://github.com/Azure/static-web-apps/schemas/latest/invitations.schema.json",
+  "roles": {
+    "admin": [
+      "admin@yourdomain.com"
+    ],
+    "member": []
+  }
+}
+```
+
+### Authentication Flow
+
+```
+Public Pages (/, /register)
+    ↓
+    Anyone can access
+
+Admin Pages (/admin/*)
+    ↓
+    Check authentication (useAuth hook)
+    ↓
+    ├─→ Not authenticated → Redirect to /.auth/login/aad
+    │                        ↓
+    │                        Microsoft Sign-In
+    │                        ↓
+    │                        Success → Return to page
+    │
+    └─→ Authenticated → Check role
+        ↓
+        ├─→ Has 'admin' role → Allow access
+        └─→ No 'admin' role → /unauthorized
+```
+
+### Test Authentication
+
+1. Navigate to `/admin/events`
+2. Should redirect to Microsoft login
+3. Sign in with admin account
+4. Should see admin dashboard after successful login
+
+### Troubleshooting Authentication
+
+**Issue: Redirect loop on admin pages**
+- Verify redirect URI matches exactly: `https://your-site.azurestaticapps.net/.auth/login/aad/callback`
+
+**Issue: "User is not authorized"**
+- Verify user has 'admin' role in Role Management
+
+**Issue: Cannot see user info**
+- Ensure API permissions include openid, profile, and email
+
+---
+
 ## Development
 
 ### Local Development Setup
@@ -301,6 +588,8 @@ App will be available at `http://localhost:5173`
 
 ## Deployment
 
+All deployments are automated via GitHub Actions workflows. No manual deployment scripts are needed.
+
 ### Azure Resources Deployed
 
 | Resource | Type | Purpose |
@@ -324,51 +613,48 @@ App will be available at `http://localhost:5173`
 | `maximumInstanceCount` | 100 | Max Function App instances |
 | `instanceMemoryMB` | 2048 | Instance memory (2048/4096) |
 
-### Manual Deployment
+### Deployment Workflows
 
-#### Deploy Infrastructure
-```bash
-cd infra
+#### 1. Infrastructure Deployment
+- **Workflow**: `deploy-infrastructure.yml`
+- **Trigger**: Manual only (workflow_dispatch)
+- **Purpose**: Deploy or update Azure infrastructure
+- **Environments**: dev, prod
 
-# Using parameters file
-az deployment group create \
-  --resource-group rg-somos-tech-dev \
-  --template-file main.bicep \
-  --parameters main.dev.bicepparam
+#### 2. Function App Deployment
+- **Workflow**: `deploy-function-app.yml`
+- **Trigger**: Push to `main` with changes in `apps/api/**`
+- **Purpose**: Deploy API backend code
+- **Automatic**: Yes
 
-# Or inline parameters
-az deployment group create \
-  --resource-group rg-somos-tech-dev \
-  --template-file main.bicep \
-  --parameters environmentName=dev location=eastus
-```
-
-#### Deploy Function App Code
-```bash
-cd apps/api
-FUNC_NAME=$(az deployment group show \
-  --resource-group rg-somos-tech-dev \
-  --name main \
-  --query properties.outputs.functionAppName.value \
-  --output tsv)
-
-func azure functionapp publish $FUNC_NAME
-```
-
-#### Deploy Static Web App
-```bash
-cd apps/web
-npm run build
-
-az staticwebapp deploy \
-  --name $SWA_NAME \
-  --resource-group rg-somos-tech-dev \
-  --output-location dist
-```
+#### 3. Static Web App Deployment
+- **Workflow**: `deploy-static-web-app.yml`
+- **Trigger**: Push to `main` with changes in `apps/web/**`
+- **Purpose**: Deploy frontend code
+- **Automatic**: Yes
 
 ---
 
 ## CI/CD Workflows
+
+### Infrastructure Workflow (`deploy-infrastructure.yml`)
+
+**Triggers:**
+- Manual workflow dispatch only
+
+**Configuration Required:**
+- **Secret**: `AZURE_CREDENTIALS` (service principal)
+- **Secret**: `AZURE_AD_CLIENT_SECRET` (Azure AD auth)
+- **Variable**: `AZURE_SUBSCRIPTION_ID`
+- **Variable**: `RESOURCE_GROUP_NAME`
+
+**Steps:**
+1. Checkout code
+2. Login to Azure
+3. Deploy Bicep template with parameters
+4. Azure logout
+
+**Duration:** ~3-5 minutes
 
 ### Frontend Workflow (`deploy-static-web-app.yml`)
 
@@ -445,41 +731,47 @@ Create PR → Build & Deploy to Staging → Test on unique URL → Merge → Dep
 
 ### Environment Strategy
 
-| Environment | Purpose | Auto-Deploy | Approval | Max Instances | Instance Memory |
-|-------------|---------|-------------|----------|---------------|-----------------|
-| **dev** | Development & testing | ✅ Yes | ❌ No | 100 | 2048 MB |
-| **staging** | Pre-production testing | ✅ Yes | ⚠️ Optional | 200 | 2048 MB |
-| **prod** | Live application | ❌ No | ✅ Required | 500 | 4096 MB |
+| Environment | Purpose | Infrastructure Deploy | Code Deploy | Approval | Max Instances | Instance Memory |
+|-------------|---------|----------------------|-------------|----------|---------------|-----------------|
+| **dev** | Development & testing | Manual | ✅ Auto | ❌ No | 100 | 2048 MB |
+| **prod** | Live application | Manual | ✅ Auto | ✅ Required | 500 | 4096 MB |
 
-### Deploy Multiple Environments
+### Deploy to Multiple Environments
+
+#### 1. Create Azure Resource Groups
 
 ```bash
-cd infra
+# Create dev resource group
+az group create --name rg-somos-tech-dev --location westus2
 
-# Deploy dev
-./deploy-environment.sh dev
-
-# Deploy staging
-./deploy-environment.sh staging
-
-# Deploy production
-./deploy-environment.sh prod
+# Create prod resource group
+az group create --name rg-somos-tech-prod --location westus2
 ```
 
-### GitHub Environment Configuration
+#### 2. Deploy Infrastructure via GitHub Actions
 
-1. **Create Environments**: Settings → Environments → Create (dev, staging, prod)
+For each environment:
+1. Go to **Actions** → **Deploy Infrastructure (Manual Only)**
+2. Click **Run workflow**
+3. Select environment (dev or prod)
+4. Click **Run workflow**
+
+#### 3. Configure GitHub Environments
+
+1. **Create Environments**: Settings → Environments → Create (dev, prod)
 
 2. **Configure Protection Rules**:
    - **dev**: No protection rules
-   - **staging**: Optional reviewers
    - **prod**: Required reviewers, prevent bypass
 
 3. **Add Environment Secrets** (for each environment):
    - `AZURE_CREDENTIALS` - Service principal JSON
    - `AZURE_STATIC_WEB_APPS_API_TOKEN` - Deployment token
+   - `AZURE_AD_CLIENT_SECRET` - Azure AD client secret
 
 4. **Add Environment Variables** (for each environment):
+   - `AZURE_SUBSCRIPTION_ID` - Azure subscription ID
+   - `RESOURCE_GROUP_NAME` - Resource group name (e.g., `rg-somos-tech-dev`)
    - `AZURE_FUNCTIONAPP_NAME` - Function App name
    - `VITE_API_URL` - Function App URL
    - `VITE_ENVIRONMENT` - Environment name
@@ -492,7 +784,7 @@ cd infra
 Examples:
 - func-somos-tech-dev-abc123xyz
 - swa-somos-tech-prod-def456uvw
-- st-somostech-staging-ghi789rst
+- st-somostech-dev-ghi789rst
 ```
 
 ---
