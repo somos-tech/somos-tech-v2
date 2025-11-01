@@ -23,8 +23,19 @@ env:
   NODE_VERSION: '20'
 
 jobs:
+  # Deploy infrastructure first
+  deploy-infrastructure-dev:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
+    uses: ./.github/workflows/deploy-infrastructure.yml
+    with:
+      environment: 'dev'
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+
   # Deploy to dev automatically on push to main
   deploy-dev:
+    needs: deploy-infrastructure-dev
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
     runs-on: ubuntu-latest
     environment: dev
@@ -66,8 +77,19 @@ jobs:
       run: az logout
       if: always()
 
+  # Deploy infrastructure to production first
+  deploy-infrastructure-prod:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
+    uses: ./.github/workflows/deploy-infrastructure.yml
+    with:
+      environment: 'prod'
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+
   # Deploy to production (manual approval required via environment protection rules)
   deploy-prod:
+    needs: deploy-infrastructure-prod
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
     runs-on: ubuntu-latest
     environment: prod

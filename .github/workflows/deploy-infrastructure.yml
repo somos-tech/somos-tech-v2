@@ -1,0 +1,96 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/**'
+      - '.github/workflows/deploy-infrastructure.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+        default: 'dev'
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: string
+        default: 'dev'
+    secrets:
+      AZURE_CREDENTIALS:
+        required: true
+      AZURE_AD_CLIENT_SECRET:
+        required: true
+
+jobs:
+  # Deploy to dev automatically on push to main
+  deploy-dev:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev') || (github.event_name == 'workflow_call' && inputs.environment == 'dev')
+    runs-on: ubuntu-latest
+    environment: dev
+    name: Deploy Infrastructure to Dev
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy Bicep to Azure (Dev)
+      uses: azure/arm-deploy@v2
+      with:
+        scope: resourcegroup
+        subscriptionId: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        resourceGroupName: ${{ vars.RESOURCE_GROUP_NAME }}
+        template: ./infra/main.bicep
+        parameters: >
+          ./infra/main.dev.bicepparam
+          azureAdClientSecret=${{ secrets.AZURE_AD_CLIENT_SECRET }}
+        failOnStdErr: false
+
+    - name: Azure logout
+      run: az logout
+      if: always()
+
+  # Deploy to production (manual approval required via environment protection rules)
+  deploy-prod:
+    if: (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod') || (github.event_name == 'workflow_call' && inputs.environment == 'prod')
+    runs-on: ubuntu-latest
+    environment: prod
+    name: Deploy Infrastructure to Production
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy Bicep to Azure (Production)
+      uses: azure/arm-deploy@v2
+      with:
+        scope: resourcegroup
+        subscriptionId: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        resourceGroupName: ${{ vars.RESOURCE_GROUP_NAME }}
+        template: ./infra/main.bicep
+        parameters: >
+          ./infra/main.prod.bicepparam
+          azureAdClientSecret=${{ secrets.AZURE_AD_CLIENT_SECRET }}
+        failOnStdErr: false
+
+    - name: Azure logout
+      run: az logout
+      if: always()

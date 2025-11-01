@@ -36,6 +36,10 @@ param azureAdTenantId string
 @description('Azure AD Application (Client) ID for Static Web App authentication')
 param azureAdClientId string
 
+@description('Azure AD Client Secret for Static Web App authentication')
+@secure()
+param azureAdClientSecret string
+
 @description('GitHub OAuth Client ID (optional)')
 param githubClientId string = ''
 
@@ -480,6 +484,7 @@ resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2023-01-01' = {
       VITE_API_URL: 'https://${functionApp.properties.defaultHostName}'
       VITE_ENVIRONMENT: environmentName
       AZURE_CLIENT_ID: azureAdClientId
+      AZURE_CLIENT_SECRET: azureAdClientSecret
       AZURE_TENANT_ID: azureAdTenantId
     },
     !empty(githubClientId)
