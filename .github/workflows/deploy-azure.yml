@@ -34,6 +34,8 @@ on:
         type: boolean
         default: true
 
+run-name: Deploy to ${{ github.event.inputs.environment || 'dev' }} - ${{ github.sha }} - ${{ github.run_number }}
+
 env:
   NODE_VERSION: '20'
   ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
@@ -59,6 +61,14 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+    - name: Set deployment name with timestamp
+      id: deployment-name
+      run: |
+        TIMESTAMP=$(date -u +"%Y%m%d-%H%M%S")
+        DEPLOYMENT_NAME="main-${TIMESTAMP}"
+        echo "name=${DEPLOYMENT_NAME}" >> $GITHUB_OUTPUT
+        echo "Deployment name: ${DEPLOYMENT_NAME}"
+
     - name: Deploy Bicep to Azure
       id: deploy
       uses: azure/arm-deploy@v2
@@ -67,6 +77,7 @@ jobs:
         subscriptionId: ${{ vars.AZURE_SUBSCRIPTION_ID }}
         resourceGroupName: ${{ vars.RESOURCE_GROUP_NAME }}
         template: ./infra/main.bicep
+        deploymentName: ${{ steps.deployment-name.outputs.name }}
         parameters: >
           ./infra/main.${{ github.event.inputs.environment || 'dev' }}.bicepparam
           azureAdClientSecret=${{ secrets.AZURE_AD_CLIENT_SECRET }}

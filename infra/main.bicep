@@ -86,12 +86,6 @@ var storageBlobDataOwnerRoleId = subscriptionResourceId(
   'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
 )
 
-// Storage Table Data Contributor role definition ID
-var storageTableDataContributorRoleId = subscriptionResourceId(
-  'Microsoft.Authorization/roleDefinitions',
-  '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
-)
-
 // Log Analytics Workspace for Application Insights
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   name: logAnalyticsName
@@ -411,16 +405,6 @@ resource functionAppStorageRoleAssignment 'Microsoft.Authorization/roleAssignmen
   scope: storageAccount
   properties: {
     roleDefinitionId: storageBlobDataOwnerRoleId
-    principalId: functionApp.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource functionAppTableRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, functionApp.id, storageTableDataContributorRoleId)
-  scope: storageAccount
-  properties: {
-    roleDefinitionId: storageTableDataContributorRoleId
     principalId: functionApp.identity.principalId
     principalType: 'ServicePrincipal'
   }
