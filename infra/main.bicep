@@ -36,10 +36,6 @@ param azureAdTenantId string
 @description('Azure AD Application (Client) ID for Static Web App authentication')
 param azureAdClientId string
 
-@description('Azure AD Client Secret for Static Web App authentication')
-@secure()
-param azureAdClientSecret string
-
 @description('GitHub OAuth Client ID (optional)')
 param githubClientId string = ''
 
@@ -64,6 +60,9 @@ param azureOpenAiDeploymentName string = 'gpt-5'
 
 @description('Social Media Agent ID (defaults to main agent ID if not specified)')
 param socialMediaAgentId string = ''
+
+@description('Venue Agent ID (defaults to main agent ID if not specified)')
+param venueAgentId string = ''
 
 // Variables for resource naming
 var resourceSuffix = '${appName}-${environmentName}-${uniqueString(resourceGroup().id)}'
@@ -391,6 +390,10 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'SOCIAL_MEDIA_AGENT_ID'
           value: !empty(socialMediaAgentId) ? socialMediaAgentId : azureOpenAiAgentId
         }
+        {
+          name: 'VENUE_AGENT_ID'
+          value: !empty(venueAgentId) ? venueAgentId : azureOpenAiAgentId
+        }
       ]
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
@@ -477,10 +480,7 @@ resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2023-01-01' = {
       VITE_API_URL: 'https://${functionApp.properties.defaultHostName}'
       VITE_ENVIRONMENT: environmentName
       AZURE_CLIENT_ID: azureAdClientId
-      AZURE_CLIENT_SECRET: azureAdClientSecret
       AZURE_TENANT_ID: azureAdTenantId
-      COSMOS_ENDPOINT: cosmosDbAccount.properties.documentEndpoint
-      COSMOS_DATABASE_NAME: cosmosDbDatabaseName
     },
     !empty(githubClientId)
       ? {

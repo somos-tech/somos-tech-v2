@@ -68,6 +68,8 @@ jobs:
           api_location: ''
           output_location: '.'
           skip_app_build: true
+        env:
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
   # Deploy to production (manual approval required via environment protection rules)
   deploy-prod:
@@ -109,6 +111,8 @@ jobs:
           api_location: ''
           output_location: '.'
           skip_app_build: true
+        env:
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
   # Handle PR preview deployments (uses dev environment)
   deploy-preview:
@@ -150,6 +154,8 @@ jobs:
           api_location: ''
           output_location: '.'
           skip_app_build: true
+        env:
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
