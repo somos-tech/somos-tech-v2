@@ -27,58 +27,23 @@ export interface SocialMediaPosts {
     };
 }
 
-export interface VenueContactInfo {
-    email?: string;
+export interface VenueContact {
     phone?: string;
     website?: string;
-    bookingUrl?: string;
-    contactName?: string;
-}
-
-export interface VenueAvailability {
-    status: 'confirmed' | 'likely' | 'unknown';
-    notes?: string;
-}
-
-export interface VenueEstimatedCost {
-    amount: number;
-    currency: string;
-    notes?: string;
+    booking?: string;
 }
 
 export interface VenueRecommendation {
     name: string;
     address: string;
-    city: string;
-    state: string;
-    zipCode: string;
     capacity: number;
-    estimatedCost: VenueEstimatedCost;
     amenities: string[];
-    contactInfo: VenueContactInfo;
-    availability: VenueAvailability;
-    whyRecommended: string;
-    outreachPriority: 'high' | 'medium' | 'low';
-    venueType: 'library' | 'coworking_space' | 'tech_company' | 'community_center' | 'university' | 'other';
-}
-
-export interface VenueOutreachTemplate {
-    venueId: number;
-    subject: string;
-    body: string;
-    followUpDays: number;
+    contact: VenueContact;
+    notes?: string;
 }
 
 export interface VenueRecommendations {
-    searchSummary: string;
-    recommendedVenues: VenueRecommendation[];
-    outreachTemplates: VenueOutreachTemplate[];
-    searchMetadata: {
-        searchDate: string;
-        totalVenuesFound: number;
-        totalRecommended: number;
-        citiesSearched: string[];
-    };
+    venues: VenueRecommendation[];
 }
 
 export interface Event {

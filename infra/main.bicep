@@ -212,7 +212,7 @@ resource eventContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/cont
       id: 'events'
       partitionKey: {
         paths: [
-          '/id'
+          '/chapter'
         ]
         kind: 'Hash'
       }
