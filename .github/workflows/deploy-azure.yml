@@ -34,7 +34,7 @@ on:
         type: boolean
         default: true
 
-run-name: Deploy to ${{ github.event.inputs.environment || 'dev' }} - ${{ github.sha }} - ${{ github.run_number }}
+run-name: Deploy to ${{ github.event.inputs.environment || 'dev' }} (#${{ github.run_number }})
 
 env:
   NODE_VERSION: '20'
