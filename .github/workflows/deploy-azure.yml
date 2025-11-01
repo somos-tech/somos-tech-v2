@@ -34,7 +34,7 @@ on:
         type: boolean
         default: true
 
-run-name: Deploy to ${{ github.event.inputs.environment || 'dev' }} (#${{ github.run_number }})
+run-name: 🚀 Deploy to ${{ github.event.inputs.environment || 'dev' }} (${{ github.event.head_commit.message || 'Manual Deploy' }})
 
 env:
   NODE_VERSION: '20'
