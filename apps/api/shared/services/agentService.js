@@ -85,7 +85,7 @@ class AgentService {
         }
     }
 
-    async runAgent(threadId, instructions = null) {
+    async runAgent(threadId, instructions = null, responseFormat = null) {
         try {
             const authHeader = await this.getAuthHeader();
 
@@ -95,6 +95,10 @@ class AgentService {
 
             if (instructions) {
                 body.instructions = instructions;
+            }
+
+            if (responseFormat) {
+                body.response_format = responseFormat;
             }
 
             const response = await fetch(
@@ -236,7 +240,7 @@ class AgentService {
         throw new Error('No valid JSON found in agent response');
     }
 
-    async invokeAgent({ message, threadId = null, instructions = null }) {
+    async invokeAgent({ message, threadId = null, instructions = null, responseFormat = null }) {
         try {
             // Create a new thread if not provided
             let thread;
@@ -249,7 +253,7 @@ class AgentService {
             await this.addMessageToThread(threadId, message);
 
             // Run the agent
-            const run = await this.runAgent(threadId, instructions);
+            const run = await this.runAgent(threadId, instructions, responseFormat);
 
             // Wait for completion
             await this.waitForRunCompletion(threadId, run.id);

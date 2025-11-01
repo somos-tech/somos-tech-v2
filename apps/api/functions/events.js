@@ -22,7 +22,7 @@ app.http('CreateEvent', {
 
             // Generate social media posts asynchronously (non-blocking)
             context.log(`Triggering social media post generation for event ${newEvent.id}`);
-            // socialMediaService.generatePostsAsync(newEvent, eventService);
+            socialMediaService.generatePostsAsync(newEvent, eventService);
 
             // Generate venue recommendations asynchronously (non-blocking)
             context.log(`Triggering venue search for event ${newEvent.id}`);

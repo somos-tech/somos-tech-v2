@@ -4,6 +4,74 @@ class VenueAgentService {
     constructor() {
         // Use a separate agent ID for venue outreach if configured
         this.venueAgentId = process.env.VENUE_AGENT_ID || process.env.AZURE_OPENAI_AGENT_ID;
+
+        // Define the JSON schema for venue recommendations response
+        this.venueResponseSchema = {
+            type: "json_schema",
+            json_schema: {
+                name: "venue_recommendations",
+                strict: true,
+                schema: {
+                    type: "object",
+                    properties: {
+                        venues: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    name: {
+                                        type: "string",
+                                        description: "Official venue name"
+                                    },
+                                    address: {
+                                        type: "string",
+                                        description: "Complete address including street, city, state, and zip code"
+                                    },
+                                    capacity: {
+                                        type: "number",
+                                        description: "Maximum capacity for events"
+                                    },
+                                    amenities: {
+                                        type: "array",
+                                        items: {
+                                            type: "string"
+                                        },
+                                        description: "Available amenities like WiFi, Projector, Bar, Seating, etc."
+                                    },
+                                    contact: {
+                                        type: "object",
+                                        properties: {
+                                            phone: {
+                                                type: "string",
+                                                description: "Contact phone number"
+                                            },
+                                            website: {
+                                                type: "string",
+                                                description: "Venue website URL"
+                                            },
+                                            booking: {
+                                                type: "string",
+                                                description: "Direct booking page URL"
+                                            }
+                                        },
+                                        required: ["phone", "website", "booking"],
+                                        additionalProperties: false
+                                    },
+                                    notes: {
+                                        type: "string",
+                                        description: "Comprehensive information about pricing, booking requirements, what's included, and why it's recommended"
+                                    }
+                                },
+                                required: ["name", "address", "capacity", "amenities", "contact", "notes"],
+                                additionalProperties: false
+                            }
+                        }
+                    },
+                    required: ["venues"],
+                    additionalProperties: false
+                }
+            }
+        };
     }
 
     /**
@@ -38,6 +106,10 @@ class VenueAgentService {
 
                     try {
                         parsedData = agentService.extractJsonFromResponse(rawResponse);
+                        // Normalize: if agent returned { venueRecommendations: [...] }, convert to { venues: [...] }
+                        if (parsedData.venueRecommendations && !parsedData.venues) {
+                            parsedData = { venues: parsedData.venueRecommendations };
+                        }
                     } catch (error) {
                         validationError = error.message;
                     }
@@ -119,23 +191,17 @@ class VenueAgentService {
             city: city,
             requiredAmenities: [
                 'WiFi',
-                'Projector',
                 'Seating'
             ],
             preferredCapacityRange: {
                 min: event.attendees || 30,
                 max: event.capacity || 100
-            },
-            budget: {
-                maxPerHour: 0, // Free venues preferred
-                currency: 'USD'
             }
         };
 
         return {
             eventRequirements,
             searchPreferences: {
-                prioritizeFreePEVenues: true,
                 includeCoworkingSpaces: true,
                 includeCommunitySpaces: true
             }
@@ -171,10 +237,11 @@ class VenueAgentService {
             agentService.agentId = this.venueAgentId;
 
             try {
-                // Invoke the agent
+                // Invoke the agent with the venue response schema
                 const response = await agentService.invokeAgent({
                     message,
-                    instructions: 'Search for suitable venues based on the event requirements. Return a JSON response with venue recommendations including name, address, capacity, amenities, and contact information.'
+                    instructions: 'Search for suitable venues based on the event requirements. Return a JSON response with venue recommendations including name, address, capacity, amenities, and contact information.',
+                    responseFormat: this.venueResponseSchema
                 });
 
                 // Restore original agent ID
@@ -182,11 +249,17 @@ class VenueAgentService {
 
                 // Check if we have validated data
                 if (response.parsedData) {
+                    // Normalize: if agent returned { venueRecommendations: [...] }, convert to { venues: [...] }
+                    let normalizedData = response.parsedData;
+                    if (normalizedData.venueRecommendations && !normalizedData.venues) {
+                        normalizedData = { venues: normalizedData.venueRecommendations };
+                    }
+
                     return {
                         success: true,
                         threadId: response.threadId,
                         runId: response.runId,
-                        venues: response.parsedData,
+                        venues: normalizedData,
                         eventId: event.id
                     };
                 }

@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, MapPin, Users, Wifi, Phone, Globe, Calendar, RefreshCw, Building2, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import type { VenueRecommendations as VenueRecommendationsType } from "@shared/types";
+import eventService from "@/api/eventService";
 
 interface VenueRecommendationsProps {
     eventId: string;
@@ -23,6 +25,44 @@ export default function VenueRecommendations({
     onRegenerate,
     onStatusUpdate
 }: VenueRecommendationsProps) {
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    // Automatic polling when status is in-progress
+    useEffect(() => {
+        if (venueAgentStatus === 'in-progress') {
+            const pollInterval = setInterval(async () => {
+                try {
+                    await checkStatus();
+                } catch (error) {
+                    console.error('Error polling venue status:', error);
+                }
+            }, 30000); // Poll every 30 seconds
+
+            return () => clearInterval(pollInterval);
+        }
+    }, [venueAgentStatus, eventId]);
+
+    const checkStatus = async () => {
+        try {
+            const statusData = await eventService.checkVenueRecommendationsStatus(eventId);
+
+            // If status changed or recommendations are available, notify parent to reload event
+            if (statusData.status !== venueAgentStatus || (statusData.venues && !venueRecommendations)) {
+                onStatusUpdate(statusData);
+            }
+        } catch (error) {
+            console.error('Failed to check venue status:', error);
+        }
+    };
+
+    const handleManualRefresh = async () => {
+        setIsRefreshing(true);
+        try {
+            await checkStatus();
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
 
     const getStatusIcon = () => {
         switch (venueAgentStatus) {
@@ -107,7 +147,7 @@ export default function VenueRecommendations({
                         </div>
                     )}
 
-                    <div className="mt-3 flex gap-2">
+                    <div className="mt-3 flex gap-2 items-center">
                         <Button
                             size="sm"
                             variant="outline"
@@ -119,6 +159,33 @@ export default function VenueRecommendations({
                             <RefreshCw className="h-3 w-3 mr-1" />
                             {venueAgentStatus === 'completed' ? 'Regenerate' : 'Start Search'}
                         </Button>
+                        {venueAgentStatus === 'in-progress' && (
+                            <>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleManualRefresh}
+                                    disabled={isRefreshing}
+                                    className="rounded-xl"
+                                    style={{ borderColor: '#8394A7', color: '#8394A7' }}
+                                >
+                                    {isRefreshing ? (
+                                        <>
+                                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                            Checking...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <RefreshCw className="h-3 w-3 mr-1" />
+                                            Check Status
+                                        </>
+                                    )}
+                                </Button>
+                                <span className="text-xs" style={{ color: '#8394A7' }}>
+                                    💡 Auto-refreshing every 30 seconds
+                                </span>
+                            </>
+                        )}
                     </div>
                 </CardContent>
             </Card>

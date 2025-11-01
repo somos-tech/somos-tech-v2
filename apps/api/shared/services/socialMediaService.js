@@ -4,6 +4,115 @@ class SocialMediaService {
     constructor() {
         // Use a separate agent ID for social media posts if configured
         this.socialMediaAgentId = process.env.SOCIAL_MEDIA_AGENT_ID || process.env.AZURE_OPENAI_AGENT_ID;
+
+        // Define the JSON schema for social media posts response
+        this.socialMediaResponseSchema = {
+            type: "json_schema",
+            json_schema: {
+                name: "social_media_posts",
+                strict: true,
+                schema: {
+                    type: "object",
+                    properties: {
+                        summary: {
+                            type: "string",
+                            description: "1-2 sentence overview of the event"
+                        },
+                        recommendedWindow: {
+                            type: "array",
+                            items: {
+                                type: "string"
+                            },
+                            minItems: 2,
+                            maxItems: 2,
+                            description: "Array of two ISO8601 datetime strings representing the posting window"
+                        },
+                        posts: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    platform: {
+                                        type: "string",
+                                        enum: ["x", "instagram", "linkedin"],
+                                        description: "Social media platform"
+                                    },
+                                    variant: {
+                                        type: "string",
+                                        enum: ["A", "B"],
+                                        description: "A/B variant identifier"
+                                    },
+                                    copy: {
+                                        type: "string",
+                                        description: "Final post text with handles/hashtags inline"
+                                    },
+                                    altText: {
+                                        type: "string",
+                                        description: "11-140 characters describing the image"
+                                    },
+                                    suggestedMedia: {
+                                        type: "array",
+                                        items: {
+                                            type: "string"
+                                        },
+                                        description: "Photo ideas or layout suggestions"
+                                    },
+                                    suggestedHashtags: {
+                                        type: "array",
+                                        items: {
+                                            type: "string"
+                                        },
+                                        description: "Hashtags with # symbol"
+                                    },
+                                    suggestedMentions: {
+                                        type: "array",
+                                        items: {
+                                            type: "string"
+                                        },
+                                        description: "Handles with @ symbol"
+                                    },
+                                    suggestedTime: {
+                                        type: "string",
+                                        description: "ISO8601 datetime for optimal posting time"
+                                    },
+                                    utmLink: {
+                                        type: "string",
+                                        description: "Full URL with UTM parameters"
+                                    },
+                                    notes: {
+                                        type: "string",
+                                        description: "Optional targeting tips or rationale"
+                                    }
+                                },
+                                required: ["platform", "variant", "copy", "altText", "suggestedMedia", "suggestedHashtags", "suggestedMentions", "suggestedTime", "utmLink", "notes"],
+                                additionalProperties: false
+                            }
+                        },
+                        complianceChecklist: {
+                            type: "object",
+                            properties: {
+                                no_deceptive_claims: {
+                                    type: "boolean"
+                                },
+                                no_personal_data: {
+                                    type: "boolean"
+                                },
+                                alt_text_present: {
+                                    type: "boolean"
+                                },
+                                length_ok: {
+                                    type: "boolean"
+                                }
+                            },
+                            required: ["no_deceptive_claims", "no_personal_data", "alt_text_present", "length_ok"],
+                            additionalProperties: false
+                        }
+                    },
+                    required: ["summary", "recommendedWindow", "posts", "complianceChecklist"],
+                    additionalProperties: false
+                }
+            }
+        };
     }
 
     /**
@@ -166,10 +275,11 @@ class SocialMediaService {
             agentService.agentId = this.socialMediaAgentId;
 
             try {
-                // Invoke the agent with strict instructions
+                // Invoke the agent with strict instructions and schema
                 const response = await agentService.invokeAgent({
                     message,
-                    instructions: 'Follow your system instructions exactly. Return ONLY valid JSON matching the SocialMediaPosts schema. No markdown code blocks, no extra fields, just the raw JSON object.'
+                    instructions: 'Follow your system instructions exactly. Return ONLY valid JSON matching the SocialMediaPosts schema. No markdown code blocks, no extra fields, just the raw JSON object.',
+                    responseFormat: this.socialMediaResponseSchema
                 });
 
                 // Restore original agent ID

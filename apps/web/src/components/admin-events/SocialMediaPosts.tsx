@@ -213,7 +213,7 @@ export default function SocialMediaPosts({
                 } catch (error) {
                     console.error('Error polling status:', error);
                 }
-            }, 5000); // Poll every 5 seconds
+            }, 30000); // Poll every 30 seconds
 
             return () => clearInterval(pollInterval);
         }
@@ -275,7 +275,7 @@ export default function SocialMediaPosts({
                         </Button>
                     </div>
                     <div className="text-xs" style={{ color: '#8394A7' }}>
-                        💡 Status updates automatically every 5 seconds
+                        💡 Status updates automatically every 30 seconds
                     </div>
                 </CardContent>
             </Card>
