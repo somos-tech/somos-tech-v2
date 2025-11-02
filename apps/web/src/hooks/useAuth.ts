@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 
+const isMockAuth = import.meta.env.DEV;
+
 interface UserInfo {
     identityProvider: string;
     userId: string;
@@ -25,9 +27,25 @@ export function useAuth(): AuthState {
     useEffect(() => {
         async function fetchUserInfo() {
             try {
+                if (isMockAuth) {
+                    // Mock authenticated admin user
+                    setAuthState({
+                        user: {
+                            identityProvider: 'mock',
+                            userId: 'mock-user-123',
+                            userDetails: 'developer@somos.tech',
+                            userRoles: ['authenticated', 'admin']
+                        },
+                        isAuthenticated: true,
+                        isAdmin: true,
+                        isLoading: false,
+                    });
+                    return;
+                }
+
                 const response = await fetch('/.auth/me');
                 const data = await response.json();
-                
+
                 if (data.clientPrincipal) {
                     const user = data.clientPrincipal;
                     setAuthState({

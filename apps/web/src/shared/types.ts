@@ -53,6 +53,7 @@ export interface Event {
     date: string;
     location: string;
     status: 'draft' | 'published' | 'cancelled' | 'completed';
+    type?: 'in-person' | 'virtual' | 'hybrid';
     attendees?: number;
     capacity?: number;
     description?: string;
@@ -108,6 +109,7 @@ export interface CreateEventDto {
     date: string;
     location: string;
     status?: 'draft' | 'published' | 'cancelled' | 'completed';
+    type?: 'in-person' | 'virtual' | 'hybrid';
     attendees?: number;
     capacity?: number;
     description?: string;

@@ -30,7 +30,8 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
         date: '',
         location: '',
         status: 'draft',
-        description: ''
+        description: '',
+        type: 'in-person'
     });
 
     // Additional fields for agent context (not part of CreateEventDto)
@@ -50,11 +51,7 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
                 setError('Please fill in all required fields');
                 return;
             }
-            setStep(2);
-            return;
-        }
 
-        if (step === 2) {
             // Create the event via API
             setBusy(true);
             try {
@@ -65,7 +62,7 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
                     organizationName: organizationName || undefined
                 };
                 await eventService.createEvent(eventData);
-                setStep(3);
+                setStep(2);
                 // Notify parent to refresh the list
                 onEventCreated?.();
             } catch (err) {
@@ -77,7 +74,7 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
             return;
         }
 
-        if (step === 3) {
+        if (step === 2) {
             // Close dialog and reset
             setOpen(false);
             setTimeout(() => {
@@ -87,7 +84,8 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
                     date: '',
                     location: '',
                     status: 'draft',
-                    description: ''
+                    description: '',
+                    type: 'in-person'
                 });
                 setOrganizerName('');
                 setOrganizationName('SOMOS.tech');
@@ -95,14 +93,12 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
         }
     };
 
-    const prev = () => setStep(Math.max(1, step - 1));
-
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent className="sm:max-w-2xl rounded-2xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)', color: '#FFFFFF' }}>
                 <DialogHeader>
                     <DialogTitle style={{ color: '#FFFFFF' }}>Create new event</DialogTitle>
-                    <DialogDescription style={{ color: '#8394A7' }}>Step {step} of 3</DialogDescription>
+                    <DialogDescription style={{ color: '#8394A7' }}>{step === 1 ? 'Fill in event details' : 'AI assistants are working...'}</DialogDescription>
                 </DialogHeader>
 
                 {step === 1 && (
@@ -124,15 +120,16 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
                                 />
                             </div>
                             <div>
-                                <Label style={{ color: '#FFFFFF' }}>Status</Label>
+                                <Label style={{ color: '#FFFFFF' }}>Event Type</Label>
                                 <Select
-                                    value={formData.status}
-                                    onValueChange={(v) => handleInputChange('status', v)}
+                                    value={formData.type}
+                                    onValueChange={(v) => handleInputChange('type', v)}
                                 >
-                                    <SelectTrigger className="rounded-xl" style={{ backgroundColor: '#0a1f35', border: '1px solid rgba(0, 255, 145, 0.2)', color: '#FFFFFF' }}><SelectValue placeholder="Draft" /></SelectTrigger>
+                                    <SelectTrigger className="rounded-xl" style={{ backgroundColor: '#0a1f35', border: '1px solid rgba(0, 255, 145, 0.2)', color: '#FFFFFF' }}><SelectValue placeholder="In-Person" /></SelectTrigger>
                                     <SelectContent className="rounded-xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
-                                        <SelectItem value="draft" style={{ color: '#FFFFFF' }}>Draft</SelectItem>
-                                        <SelectItem value="published" style={{ color: '#FFFFFF' }}>Published</SelectItem>
+                                        <SelectItem value="in-person" style={{ color: '#FFFFFF' }}>In-Person</SelectItem>
+                                        <SelectItem value="virtual" style={{ color: '#FFFFFF' }}>Virtual</SelectItem>
+                                        <SelectItem value="hybrid" style={{ color: '#FFFFFF' }}>Hybrid</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -150,7 +147,7 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
                             <div>
                                 <Label style={{ color: '#FFFFFF' }}>Location *</Label>
                                 <Input
-                                    placeholder="e.g., Downtown Library"
+                                    placeholder="e.g., Seattle, WA"
                                     className="rounded-xl"
                                     style={{ backgroundColor: '#0a1f35', border: '1px solid rgba(0, 255, 145, 0.2)', color: '#FFFFFF' }}
                                     value={formData.location}
@@ -228,89 +225,6 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
                 )}
 
                 {step === 2 && (
-                    <div className="grid gap-6">
-                        <div>
-                            <div className="flex items-center gap-2 text-sm" style={{ color: '#8394A7' }}><Sparkles className="h-4 w-4" style={{ color: '#00FF91' }} /> AI workflow</div>
-                            <p className="text-sm mt-1" style={{ color: '#8394A7' }}>Choose which assistants to run after saving.</p>
-                        </div>
-                        <div className="grid sm:grid-cols-2 gap-4">
-                            <Card className="rounded-2xl" style={{ backgroundColor: '#0a1f35', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
-                                <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="font-medium" style={{ color: '#FFFFFF' }}>Social copy</div>
-                                        <Checkbox defaultChecked />
-                                    </div>
-                                    <p className="text-sm mt-1" style={{ color: '#8394A7' }}>Generate posts for X/Instagram/LinkedIn.</p>
-                                    <div className="mt-3">
-                                        <Label className="text-xs" style={{ color: '#8394A7' }}>Tone</Label>
-                                        <Select defaultValue="friendly">
-                                            <SelectTrigger className="rounded-xl h-9" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)', color: '#FFFFFF' }}><SelectValue /></SelectTrigger>
-                                            <SelectContent className="rounded-xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
-                                                <SelectItem value="friendly" style={{ color: '#FFFFFF' }}>Friendly</SelectItem>
-                                                <SelectItem value="formal" style={{ color: '#FFFFFF' }}>Formal</SelectItem>
-                                                <SelectItem value="excited" style={{ color: '#FFFFFF' }}>Excited</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="rounded-2xl" style={{ backgroundColor: '#0a1f35', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
-                                <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="font-medium" style={{ color: '#FFFFFF' }}>Venue outreach</div>
-                                        <Checkbox defaultChecked />
-                                    </div>
-                                    <p className="text-sm mt-1" style={{ color: '#8394A7' }}>Email/call shortlisted venues for availability.</p>
-                                    <div className="mt-3">
-                                        <Label className="text-xs" style={{ color: '#8394A7' }}>City</Label>
-                                        <Input className="rounded-xl h-9" placeholder="e.g., Medellín" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)', color: '#FFFFFF' }} />
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="rounded-2xl" style={{ backgroundColor: '#0a1f35', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
-                                <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="font-medium" style={{ color: '#FFFFFF' }}>Sponsor leads</div>
-                                        <Checkbox />
-                                    </div>
-                                    <p className="text-sm mt-1" style={{ color: '#8394A7' }}>Find and draft outreach to potential sponsors.</p>
-                                    <div className="mt-3">
-                                        <Label className="text-xs" style={{ color: '#8394A7' }}>Category</Label>
-                                        <Select defaultValue="tech">
-                                            <SelectTrigger className="rounded-xl h-9" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)', color: '#FFFFFF' }}><SelectValue /></SelectTrigger>
-                                            <SelectContent className="rounded-xl" style={{ backgroundColor: '#051323', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
-                                                <SelectItem value="tech" style={{ color: '#FFFFFF' }}>Tech</SelectItem>
-                                                <SelectItem value="food" style={{ color: '#FFFFFF' }}>Food & Bev</SelectItem>
-                                                <SelectItem value="finance" style={{ color: '#FFFFFF' }}>Finance</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="rounded-2xl" style={{ backgroundColor: '#0a1f35', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
-                                <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="font-medium" style={{ color: '#FFFFFF' }}>Asset kit</div>
-                                        <Checkbox />
-                                    </div>
-                                    <p className="text-sm mt-1" style={{ color: '#8394A7' }}>Generate a banner, flyer layout, and email invite.</p>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        {busy && (
-                            <div className="flex items-center gap-3 rounded-xl p-3" style={{ border: '1px solid rgba(0, 255, 145, 0.2)', backgroundColor: '#0a1f35' }}>
-                                <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#00FF91' }} />
-                                <div className="text-sm" style={{ color: '#8394A7' }}>Starting assistants…</div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {step === 3 && (
                     <div className="grid gap-3">
                         <div className="text-sm" style={{ color: '#8394A7' }}>Assistants progress</div>
                         <div className="space-y-3">
@@ -358,20 +272,19 @@ export default function CreateEventDialog({ open, setOpen, onEventCreated }: Cre
                 )}
 
                 <DialogFooter className="mt-4">
-                    <div className="flex w-full justify-between">
-                        <Button variant="ghost" onClick={prev} className="rounded-xl" disabled={step === 1}>Back</Button>
-                        <div className="flex gap-2">
-                            <Button variant="outline" className="rounded-xl" onClick={() => setOpen(false)} style={{ borderColor: '#00FF91', color: '#00FF91' }}>Cancel</Button>
-                            <Button
-                                className="rounded-xl"
-                                style={{ backgroundColor: '#00FF91', color: '#051323' }}
-                                onClick={next}
-                                disabled={busy}
-                            >
-                                {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {step < 3 ? (step === 2 ? "Create Event" : "Continue") : "Close"}
-                            </Button>
-                        </div>
+                    <div className="flex w-full justify-end gap-2">
+                        <Button variant="outline" className="rounded-xl" onClick={() => setOpen(false)} style={{ borderColor: '#00FF91', color: '#00FF91' }} disabled={busy}>
+                            Cancel
+                        </Button>
+                        <Button
+                            className="rounded-xl"
+                            style={{ backgroundColor: '#00FF91', color: '#051323' }}
+                            onClick={next}
+                            disabled={busy}
+                        >
+                            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {step === 1 ? "Create Event" : "Close"}
+                        </Button>
                     </div>
                 </DialogFooter>
             </DialogContent>
