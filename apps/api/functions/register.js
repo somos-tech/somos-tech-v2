@@ -1,6 +1,7 @@
 import { app } from '@azure/functions';
 import { CosmosClient } from '@azure/cosmos';
 import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity';
+import { rateLimitMiddleware, getClientIdentifier } from '../shared/rateLimiter.js';
 
 // Initialize Cosmos DB client
 // Uses ManagedIdentity in deployed environments, DefaultAzureCredential locally
@@ -31,6 +32,13 @@ app.http('register', {
         context.log('Processing member registration request');
 
         try {
+            // Apply rate limiting: 3 registration attempts per hour per IP
+            const rateLimitError = rateLimitMiddleware(request, 3, 3600000);
+            if (rateLimitError) {
+                context.log.warn(`Rate limit exceeded for IP: ${getClientIdentifier(request)}`);
+                return rateLimitError;
+            }
+
             const body = await request.json();
             const { email, firstName, lastName } = body;
 
@@ -44,13 +52,34 @@ app.http('register', {
                 };
             }
 
-            // Validate email format
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            // Validate email format (enhanced)
+            const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
             if (!emailRegex.test(email)) {
                 return {
                     status: 400,
                     jsonBody: {
                         error: 'Invalid email format'
+                    }
+                };
+            }
+
+            // Validate name fields (prevent injection attacks)
+            if (firstName.length > 50 || lastName.length > 50) {
+                return {
+                    status: 400,
+                    jsonBody: {
+                        error: 'First name and last name must be less than 50 characters'
+                    }
+                };
+            }
+
+            // Prevent special characters in names that could be used for injection
+            const nameRegex = /^[a-zA-Z\s'-]+$/;
+            if (!nameRegex.test(firstName) || !nameRegex.test(lastName)) {
+                return {
+                    status: 400,
+                    jsonBody: {
+                        error: 'Names can only contain letters, spaces, hyphens, and apostrophes'
                     }
                 };
             }
