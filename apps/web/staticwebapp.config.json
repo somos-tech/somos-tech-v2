@@ -64,7 +64,7 @@
                 },
                 "login": {
                     "loginParameters": [
-                        "scope=openid profile email https://ai.azure.com/.default"
+                        "scope=openid profile email"
                     ]
                 }
             }

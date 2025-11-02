@@ -365,14 +365,6 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           value: azureAdTenantId
         }
         {
-          name: 'AZURE_CLIENT_ID'
-          value: azureAdClientId
-        }
-        {
-          name: 'AZURE_CLIENT_SECRET'
-          value: azureAdClientSecret
-        }
-        {
           name: 'ALLOWED_ADMIN_DOMAIN'
           value: allowedAdminDomain
         }

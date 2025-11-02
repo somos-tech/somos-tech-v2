@@ -18,14 +18,6 @@ class AgentService {
     }
 
     async getAuthHeader(userAccessToken = null) {
-        // If user access token is provided, use it directly
-        if (userAccessToken) {
-            console.log("Using user's access token directly");
-            return {
-                'Authorization': `Bearer ${userAccessToken}`
-            };
-        }
-
         // Use ManagedIdentity in deployed environments, DefaultAzureCredential locally
         const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
             process.env.NODE_ENV === 'development';
