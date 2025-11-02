@@ -1,4 +1,4 @@
-import { DefaultAzureCredential } from '@azure/identity';
+import { DefaultAzureCredential, OnBehalfOfCredential } from '@azure/identity';
 
 class AgentService {
     constructor() {
@@ -7,6 +7,11 @@ class AgentService {
         this.apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-05-01-preview';
         this.agentId = process.env.AZURE_OPENAI_AGENT_ID;
         this.deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
+
+        // OBO configuration
+        this.clientId = process.env.AZURE_CLIENT_ID;
+        this.tenantId = process.env.AZURE_TENANT_ID;
+        this.clientSecret = process.env.AZURE_CLIENT_SECRET;
 
         if (!this.endpoint) {
             throw new Error('AZURE_OPENAI_ENDPOINT environment variable is required');
@@ -17,17 +22,33 @@ class AgentService {
         }
     }
 
-    async getAuthHeader() {
+    async getAuthHeader(userAccessToken = null) {
+        // If user access token is provided, use OBO flow
+        if (userAccessToken && this.clientId && this.tenantId && this.clientSecret) {
+            const credential = new OnBehalfOfCredential({
+                tenantId: this.tenantId,
+                clientId: this.clientId,
+                clientSecret: this.clientSecret,
+                userAssertionToken: userAccessToken
+            });
+
+            const token = await credential.getToken('https://cognitiveservices.azure.com/.default');
+            return {
+                'Authorization': `Bearer ${token.token}`
+            };
+        }
+
+        // Fallback to DefaultAzureCredential (for local dev or when OBO not configured)
         const credential = new DefaultAzureCredential();
-        const token = await credential.getToken('https://ai.azure.com/.default');
+        const token = await credential.getToken('https://cognitiveservices.azure.com/.default');
         return {
             'Authorization': `Bearer ${token.token}`
         };
     }
 
-    async createThread(metadata = {}) {
+    async createThread(metadata = {}, userAccessToken = null) {
         try {
-            const authHeader = await this.getAuthHeader();
+            const authHeader = await this.getAuthHeader(userAccessToken);
 
             const response = await fetch(
                 `${this.endpoint}/threads?api-version=${this.apiVersion}`,
@@ -55,9 +76,9 @@ class AgentService {
         }
     }
 
-    async addMessageToThread(threadId, message) {
+    async addMessageToThread(threadId, message, userAccessToken = null) {
         try {
-            const authHeader = await this.getAuthHeader();
+            const authHeader = await this.getAuthHeader(userAccessToken);
 
             const response = await fetch(
                 `${this.endpoint}/threads/${threadId}/messages?api-version=${this.apiVersion}`,
@@ -85,9 +106,9 @@ class AgentService {
         }
     }
 
-    async runAgent(threadId, instructions = null, responseFormat = null) {
+    async runAgent(threadId, instructions = null, responseFormat = null, userAccessToken = null) {
         try {
-            const authHeader = await this.getAuthHeader();
+            const authHeader = await this.getAuthHeader(userAccessToken);
 
             const body = {
                 assistant_id: this.agentId
@@ -124,9 +145,9 @@ class AgentService {
         }
     }
 
-    async getRun(threadId, runId) {
+    async getRun(threadId, runId, userAccessToken = null) {
         try {
-            const authHeader = await this.getAuthHeader();
+            const authHeader = await this.getAuthHeader(userAccessToken);
 
             const response = await fetch(
                 `${this.endpoint}/threads/${threadId}/runs/${runId}?api-version=${this.apiVersion}`,
@@ -149,11 +170,11 @@ class AgentService {
         }
     }
 
-    async waitForRunCompletion(threadId, runId, maxWaitTime = 300000, pollInterval = 1000) {
+    async waitForRunCompletion(threadId, runId, maxWaitTime = 300000, pollInterval = 1000, userAccessToken = null) {
         const startTime = Date.now();
 
         while (Date.now() - startTime < maxWaitTime) {
-            const run = await this.getRun(threadId, runId);
+            const run = await this.getRun(threadId, runId, userAccessToken);
 
             if (run.status === 'completed') {
                 return run;
@@ -168,9 +189,9 @@ class AgentService {
         throw new Error('Agent run timed out');
     }
 
-    async getThreadMessages(threadId, limit = 20) {
+    async getThreadMessages(threadId, limit = 20, userAccessToken = null) {
         try {
-            const authHeader = await this.getAuthHeader();
+            const authHeader = await this.getAuthHeader(userAccessToken);
 
             const response = await fetch(
                 `${this.endpoint}/threads/${threadId}/messages?api-version=${this.apiVersion}&limit=${limit}`,
@@ -194,9 +215,9 @@ class AgentService {
         }
     }
 
-    async deleteThread(threadId) {
+    async deleteThread(threadId, userAccessToken = null) {
         try {
-            const authHeader = await this.getAuthHeader();
+            const authHeader = await this.getAuthHeader(userAccessToken);
 
             const response = await fetch(
                 `${this.endpoint}/threads/${threadId}?api-version=${this.apiVersion}`,
@@ -240,26 +261,26 @@ class AgentService {
         throw new Error('No valid JSON found in agent response');
     }
 
-    async invokeAgent({ message, threadId = null, instructions = null, responseFormat = null }) {
+    async invokeAgent({ message, threadId = null, instructions = null, responseFormat = null, userAccessToken = null }) {
         try {
             // Create a new thread if not provided
             let thread;
             if (!threadId) {
-                thread = await this.createThread();
+                thread = await this.createThread({}, userAccessToken);
                 threadId = thread.id;
             }
 
             // Add the user message to the thread
-            await this.addMessageToThread(threadId, message);
+            await this.addMessageToThread(threadId, message, userAccessToken);
 
             // Run the agent
-            const run = await this.runAgent(threadId, instructions, responseFormat);
+            const run = await this.runAgent(threadId, instructions, responseFormat, userAccessToken);
 
             // Wait for completion
-            await this.waitForRunCompletion(threadId, run.id);
+            await this.waitForRunCompletion(threadId, run.id, 300000, 1000, userAccessToken);
 
             // Get the latest messages
-            const messages = await this.getThreadMessages(threadId, 10);
+            const messages = await this.getThreadMessages(threadId, 10, userAccessToken);
 
             // Get the assistant's response (first message with role 'assistant')
             const assistantMessage = messages.find(msg => msg.role === 'assistant');
