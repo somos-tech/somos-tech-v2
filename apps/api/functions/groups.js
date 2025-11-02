@@ -1,16 +1,23 @@
 import { app } from '@azure/functions';
 import { CosmosClient } from '@azure/cosmos';
-import { DefaultAzureCredential } from '@azure/identity';
+import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity';
 
 // Initialize Cosmos DB client
-// Uses DefaultAzureCredential which works both locally (Azure CLI) and in Azure (Managed Identity)
+// Uses ManagedIdentity in deployed environments, DefaultAzureCredential locally
 const endpoint = process.env.COSMOS_ENDPOINT;
 
 if (!endpoint) {
     throw new Error('COSMOS_ENDPOINT must be configured');
 }
 
-const credential = new DefaultAzureCredential();
+const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
+    process.env.NODE_ENV === 'development';
+const credential = isLocal
+    ? new DefaultAzureCredential()
+    : new ManagedIdentityCredential();
+
+console.log(`groups function: Using ${isLocal ? 'DefaultAzureCredential (local)' : 'ManagedIdentityCredential (deployed)'}`);
+
 const client = new CosmosClient({ endpoint, aadCredentials: credential });
 
 const databaseId = process.env.COSMOS_DATABASE_NAME || 'somostech';

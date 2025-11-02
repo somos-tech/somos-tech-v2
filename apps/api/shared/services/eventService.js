@@ -1,5 +1,5 @@
 import { CosmosClient } from '@azure/cosmos';
-import { DefaultAzureCredential } from '@azure/identity';
+import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity';
 
 class EventService {
     constructor() {
@@ -14,8 +14,15 @@ class EventService {
         }
 
         try {
-            // Use Managed Identity for authentication
-            const credential = new DefaultAzureCredential();
+            // Use ManagedIdentity in deployed environments, DefaultAzureCredential locally
+            const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
+                process.env.NODE_ENV === 'development';
+            const credential = isLocal
+                ? new DefaultAzureCredential()
+                : new ManagedIdentityCredential();
+
+            console.log(`EventService: Using ${isLocal ? 'DefaultAzureCredential (local)' : 'ManagedIdentityCredential (deployed)'}`);
+
             this.client = new CosmosClient({
                 endpoint: cosmosEndpoint,
                 aadCredentials: credential
