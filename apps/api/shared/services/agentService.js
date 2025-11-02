@@ -32,7 +32,7 @@ class AgentService {
                 userAssertionToken: userAccessToken
             });
 
-            const token = await credential.getToken('https://cognitiveservices.azure.com/.default');
+            const token = await credential.getToken('https://ai.azure.com/.default');
             return {
                 'Authorization': `Bearer ${token.token}`
             };
@@ -40,7 +40,7 @@ class AgentService {
 
         // Fallback to DefaultAzureCredential (for local dev or when OBO not configured)
         const credential = new DefaultAzureCredential();
-        const token = await credential.getToken('https://cognitiveservices.azure.com/.default');
+        const token = await credential.getToken('https://ai.azure.com/.default');
         return {
             'Authorization': `Bearer ${token.token}`
         };
