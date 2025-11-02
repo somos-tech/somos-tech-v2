@@ -233,7 +233,7 @@ class VenueAgentService {
     /**
      * Generate venue recommendations for a newly created event
      */
-    async generateVenueRecommendations(event) {
+    async generateVenueRecommendations(event, userAccessToken = null) {
         try {
             // Format the event data
             const formattedInput = this.formatEventForAgent(event);
@@ -250,7 +250,8 @@ class VenueAgentService {
                 const response = await agentService.invokeAgent({
                     message,
                     instructions: 'Search for suitable venues based on the event requirements. For each venue, find their email address and draft a personalized outreach email. Return a JSON response with venue recommendations including name, address, capacity, amenities, contact information (with email), and a personalized email template for reaching out.',
-                    responseFormat: this.venueResponseSchema
+                    responseFormat: this.venueResponseSchema,
+                    userAccessToken
                 });
 
                 // Restore original agent ID
@@ -310,7 +311,7 @@ class VenueAgentService {
      * Generate venue recommendations asynchronously (fire and forget)
      * This is useful when you don't want to block the event creation
      */
-    async generateVenuesAsync(event, eventService) {
+    async generateVenuesAsync(event, eventService, userAccessToken = null) {
         // Immediately mark the event as 'in-progress' before starting the agent
         try {
             await eventService.updateEvent(event.id, {
@@ -322,7 +323,7 @@ class VenueAgentService {
         }
 
         // Run in background without awaiting
-        this.generateVenueRecommendations(event)
+        this.generateVenueRecommendations(event, userAccessToken)
             .then(async result => {
                 console.log(`Venue recommendations generated for event ${event.id}:`, result.success);
 

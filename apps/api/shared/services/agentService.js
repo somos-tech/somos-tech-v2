@@ -25,6 +25,7 @@ class AgentService {
     async getAuthHeader(userAccessToken = null) {
         // If user access token is provided, use OBO flow
         if (userAccessToken && this.clientId && this.tenantId && this.clientSecret) {
+            console.log("Using OnBehalfOfCredential for user token");
             const credential = new OnBehalfOfCredential({
                 tenantId: this.tenantId,
                 clientId: this.clientId,
@@ -38,6 +39,7 @@ class AgentService {
             };
         }
 
+        console.log("Falling back to DefaultAzureCredential");
         // Fallback to DefaultAzureCredential (for local dev or when OBO not configured)
         const credential = new DefaultAzureCredential();
         const token = await credential.getToken('https://ai.azure.com/.default');

@@ -4,6 +4,26 @@ import socialMediaService from '../shared/services/socialMediaService.js';
 import venueAgentService from '../shared/services/venueAgentService.js';
 import { successResponse, errorResponse, badRequestResponse, notFoundResponse } from '../shared/httpResponse.js';
 
+/**
+ * Extract user access token from Azure Static Web Apps authentication headers
+ * This token can be used for On-Behalf-Of authentication flow
+ */
+function extractUserAccessToken(request) {
+    // Try to get token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        return authHeader.substring(7);
+    }
+
+    // For Static Web Apps, you might also get it from x-ms-token-aad-access-token
+    const swaToken = request.headers.get('x-ms-token-aad-access-token');
+    if (swaToken) {
+        return swaToken;
+    }
+
+    return null;
+}
+
 app.http('CreateEvent', {
     methods: ['POST'],
     authLevel: 'anonymous',
@@ -18,15 +38,23 @@ app.http('CreateEvent', {
                 return badRequestResponse('Event name and date are required');
             }
 
+            const userAccessToken = extractUserAccessToken(request);
+
+            if (userAccessToken) {
+                context.log('Using On-Behalf-Of authentication with user token');
+            } else {
+                context.log('Using ManagedIdentity/DefaultAzureCredential (no user token found)');
+            }
+
             const newEvent = await eventService.createEvent(body);
 
             // Generate social media posts asynchronously (non-blocking)
             context.log(`Triggering social media post generation for event ${newEvent.id}`);
-            socialMediaService.generatePostsAsync(newEvent, eventService);
+            socialMediaService.generatePostsAsync(newEvent, eventService, userAccessToken);
 
             // Generate venue recommendations asynchronously (non-blocking)
             context.log(`Triggering venue search for event ${newEvent.id}`);
-            venueAgentService.generateVenuesAsync(newEvent, eventService);
+            venueAgentService.generateVenuesAsync(newEvent, eventService, userAccessToken);
 
             return successResponse(newEvent, 201);
         } catch (error) {
@@ -155,8 +183,10 @@ app.http('RegenerateSocialMediaPosts', {
                 return notFoundResponse('Event not found');
             }
 
+            const userAccessToken = extractUserAccessToken(request);
+
             // Trigger regeneration asynchronously
-            socialMediaService.generatePostsAsync(event, eventService);
+            socialMediaService.generatePostsAsync(event, eventService, userAccessToken);
 
             return successResponse({ message: 'Social media posts regeneration started' });
         } catch (error) {
@@ -247,8 +277,10 @@ app.http('RegenerateVenueRecommendations', {
                 return notFoundResponse('Event not found');
             }
 
+            const userAccessToken = extractUserAccessToken(request);
+
             // Trigger regeneration asynchronously
-            venueAgentService.generateVenuesAsync(event, eventService);
+            venueAgentService.generateVenuesAsync(event, eventService, userAccessToken);
 
             return successResponse({ message: 'Venue recommendations regeneration started' });
         } catch (error) {

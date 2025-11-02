@@ -262,7 +262,7 @@ class SocialMediaService {
     /**
      * Generate social media posts for a newly created event
      */
-    async generateSocialMediaPosts(event) {
+    async generateSocialMediaPosts(event, userAccessToken = null) {
         try {
             // Format the event data
             const formattedInput = this.formatEventForAgent(event);
@@ -279,7 +279,8 @@ class SocialMediaService {
                 const response = await agentService.invokeAgent({
                     message,
                     instructions: 'Follow your system instructions exactly. Return ONLY valid JSON matching the SocialMediaPosts schema. No markdown code blocks, no extra fields, just the raw JSON object.',
-                    responseFormat: this.socialMediaResponseSchema
+                    responseFormat: this.socialMediaResponseSchema,
+                    userAccessToken
                 });
 
                 // Restore original agent ID
@@ -333,7 +334,7 @@ class SocialMediaService {
      * Generate posts asynchronously (fire and forget)
      * This is useful when you don't want to block the event creation
      */
-    async generatePostsAsync(event, eventService) {
+    async generatePostsAsync(event, eventService, userAccessToken = null) {
         // Immediately mark the event as 'in-progress' before starting the agent
         try {
             await eventService.updateEvent(event.id, {
@@ -345,7 +346,7 @@ class SocialMediaService {
         }
 
         // Run in background without awaiting
-        this.generateSocialMediaPosts(event)
+        this.generateSocialMediaPosts(event, userAccessToken)
             .then(async result => {
                 console.log(`Social media posts generated for event ${event.id}:`, result.success);
 
