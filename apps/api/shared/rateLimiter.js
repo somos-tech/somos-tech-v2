@@ -6,15 +6,20 @@
 // Store rate limit data in memory (cleared on function restart)
 const rateLimitStore = new Map();
 
-// Clean up old entries periodically
-setInterval(() => {
+/**
+ * Clean up old entries from rate limit store
+ * Called on-demand during rate limit checks to avoid persistent timers in serverless
+ */
+function cleanupOldEntries() {
     const now = Date.now();
+    const cutoffTime = now - 3600000; // 1 hour ago
+    
     for (const [key, data] of rateLimitStore.entries()) {
-        if (now - data.resetTime > 60000) { // Clean up entries older than 1 minute
+        if (data.resetTime < cutoffTime) {
             rateLimitStore.delete(key);
         }
     }
-}, 60000); // Run every minute
+}
 
 /**
  * Check if request should be rate limited
@@ -24,6 +29,9 @@ setInterval(() => {
  * @returns {Object} { allowed: boolean, remaining: number, resetTime: number }
  */
 export function checkRateLimit(identifier, maxRequests = 5, windowMs = 60000) {
+    // Clean up old entries on each check (serverless-friendly)
+    cleanupOldEntries();
+    
     const now = Date.now();
     const key = `ratelimit:${identifier}`;
     

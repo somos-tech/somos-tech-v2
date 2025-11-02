@@ -77,7 +77,7 @@ export function sanitizeObject(obj, allowedFields) {
     
     const sanitized = {};
     for (const field of allowedFields) {
-        if (obj.hasOwnProperty(field)) {
+        if (Object.hasOwn(obj, field)) {
             sanitized[field] = obj[field];
         }
     }

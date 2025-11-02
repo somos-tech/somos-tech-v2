@@ -64,6 +64,16 @@ app.http('register', {
             }
 
             // Validate name fields (prevent injection attacks)
+            // First check they are strings
+            if (typeof firstName !== 'string' || typeof lastName !== 'string') {
+                return {
+                    status: 400,
+                    jsonBody: {
+                        error: 'First name and last name must be valid strings'
+                    }
+                };
+            }
+
             if (firstName.length > 50 || lastName.length > 50) {
                 return {
                     status: 400,
