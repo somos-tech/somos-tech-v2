@@ -2,23 +2,33 @@
     "routes": [
         {
             "route": "/login",
-            "allowedRoles": ["anonymous"]
+            "allowedRoles": [
+                "anonymous"
+            ]
         },
         {
             "route": "/register",
-            "allowedRoles": ["anonymous"]
+            "allowedRoles": [
+                "anonymous"
+            ]
         },
         {
             "route": "/admin/*",
-            "allowedRoles": ["authenticated"]
+            "allowedRoles": [
+                "authenticated"
+            ]
         },
         {
             "route": "/api/register",
-            "allowedRoles": ["anonymous"]
+            "allowedRoles": [
+                "anonymous"
+            ]
         },
         {
             "route": "/api/*",
-            "allowedRoles": ["authenticated"]
+            "allowedRoles": [
+                "authenticated"
+            ]
         }
     ],
     "navigationFallback": {
@@ -53,7 +63,9 @@
                     "clientSecretSettingName": "AZURE_CLIENT_SECRET"
                 },
                 "login": {
-                    "loginParameters": ["scope=openid profile email"]
+                    "loginParameters": [
+                        "scope=openid profile email https://ai.azure.com/.default"
+                    ]
                 }
             }
         },

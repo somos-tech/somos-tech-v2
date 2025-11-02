@@ -10,8 +10,47 @@ class ApiEventService {
         this.baseUrl = `${API_BASE_URL}/api/events`;
     }
 
+    /**
+     * Get the user's access token from Azure Static Web Apps
+     * This token will be used for On-Behalf-Of authentication
+     */
+    private async getAccessToken(): Promise<string | null> {
+        try {
+            // In production with Azure SWA, get the access token
+            if (!import.meta.env.DEV) {
+                const response = await fetch('/.auth/me');
+                const data = await response.json();
+
+                if (data.clientPrincipal && data.clientPrincipal.accessToken) {
+                    return data.clientPrincipal.accessToken;
+                }
+            }
+            return null;
+        } catch (error) {
+            console.warn('Failed to get access token:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Build headers with authentication token if available
+     */
+    private async buildHeaders(additionalHeaders: Record<string, string> = {}): Promise<HeadersInit> {
+        const headers: Record<string, string> = {
+            ...additionalHeaders
+        };
+
+        const accessToken = await this.getAccessToken();
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+        }
+
+        return headers;
+    }
+
     async getEvents(): Promise<Event[]> {
-        const response = await fetch(this.baseUrl);
+        const headers = await this.buildHeaders();
+        const response = await fetch(this.baseUrl, { headers });
         const result: ApiResponse<Event[]> = await response.json();
 
         if (!result.success || !result.data) {
@@ -22,7 +61,8 @@ class ApiEventService {
     }
 
     async getEventById(id: string): Promise<Event | null> {
-        const response = await fetch(`${this.baseUrl}/${id}`);
+        const headers = await this.buildHeaders();
+        const response = await fetch(`${this.baseUrl}/${id}`, { headers });
 
         if (response.status === 404) {
             return null;
@@ -39,11 +79,13 @@ class ApiEventService {
 
     async createEvent(event: CreateEventDto): Promise<Event> {
         console.log('sending event to API:', event);
+        const headers = await this.buildHeaders({
+            'Content-Type': 'application/json',
+        });
+
         const response = await fetch(this.baseUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify(event),
         });
 
@@ -57,11 +99,13 @@ class ApiEventService {
     }
 
     async updateEvent(id: string, event: UpdateEventDto): Promise<Event> {
+        const headers = await this.buildHeaders({
+            'Content-Type': 'application/json',
+        });
+
         const response = await fetch(`${this.baseUrl}/${id}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify(event),
         });
 
@@ -75,8 +119,10 @@ class ApiEventService {
     }
 
     async deleteEvent(id: string): Promise<void> {
+        const headers = await this.buildHeaders();
         const response = await fetch(`${this.baseUrl}/${id}`, {
             method: 'DELETE',
+            headers,
         });
 
         const result: ApiResponse<null> = await response.json();
@@ -87,11 +133,13 @@ class ApiEventService {
     }
 
     async regenerateSocialMediaPosts(id: string): Promise<void> {
+        const headers = await this.buildHeaders({
+            'Content-Type': 'application/json',
+        });
+
         const response = await fetch(`${this.baseUrl}/${id}/regenerate-social-media-posts`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
         });
 
         const result: ApiResponse<null> = await response.json();
@@ -107,7 +155,8 @@ class ApiEventService {
         error?: string;
         agentRunStatus?: string;
     }> {
-        const response = await fetch(`${this.baseUrl}/${id}/social-media-posts-status`);
+        const headers = await this.buildHeaders();
+        const response = await fetch(`${this.baseUrl}/${id}/social-media-posts-status`, { headers });
         const result: ApiResponse<any> = await response.json();
 
         if (!result.success || !result.data) {
@@ -118,11 +167,13 @@ class ApiEventService {
     }
 
     async regenerateVenueRecommendations(id: string): Promise<void> {
+        const headers = await this.buildHeaders({
+            'Content-Type': 'application/json',
+        });
+
         const response = await fetch(`${this.baseUrl}/${id}/regenerate-venue-recommendations`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
         });
 
         const result: ApiResponse<null> = await response.json();
@@ -138,7 +189,8 @@ class ApiEventService {
         error?: string;
         agentRunStatus?: string;
     }> {
-        const response = await fetch(`${this.baseUrl}/${id}/venue-recommendations-status`);
+        const headers = await this.buildHeaders();
+        const response = await fetch(`${this.baseUrl}/${id}/venue-recommendations-status`, { headers });
         const result: ApiResponse<any> = await response.json();
 
         if (!result.success || !result.data) {

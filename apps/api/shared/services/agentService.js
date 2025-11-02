@@ -1,4 +1,4 @@
-import { DefaultAzureCredential, OnBehalfOfCredential } from '@azure/identity';
+import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity';
 
 class AgentService {
     constructor() {
@@ -7,11 +7,6 @@ class AgentService {
         this.apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-05-01-preview';
         this.agentId = process.env.AZURE_OPENAI_AGENT_ID;
         this.deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
-
-        // OBO configuration
-        this.clientId = process.env.AZURE_CLIENT_ID;
-        this.tenantId = process.env.AZURE_TENANT_ID;
-        this.clientSecret = process.env.AZURE_CLIENT_SECRET;
 
         if (!this.endpoint) {
             throw new Error('AZURE_OPENAI_ENDPOINT environment variable is required');
@@ -23,25 +18,23 @@ class AgentService {
     }
 
     async getAuthHeader(userAccessToken = null) {
-        // If user access token is provided, use OBO flow
-        if (userAccessToken && this.clientId && this.tenantId && this.clientSecret) {
-            console.log("Using OnBehalfOfCredential for user token");
-            const credential = new OnBehalfOfCredential({
-                tenantId: this.tenantId,
-                clientId: this.clientId,
-                clientSecret: this.clientSecret,
-                userAssertionToken: userAccessToken
-            });
-
-            const token = await credential.getToken('https://ai.azure.com/.default');
+        // If user access token is provided, use it directly
+        if (userAccessToken) {
+            console.log("Using user's access token directly");
             return {
-                'Authorization': `Bearer ${token.token}`
+                'Authorization': `Bearer ${userAccessToken}`
             };
         }
 
-        console.log("Falling back to DefaultAzureCredential");
-        // Fallback to DefaultAzureCredential (for local dev or when OBO not configured)
-        const credential = new DefaultAzureCredential();
+        // Use ManagedIdentity in deployed environments, DefaultAzureCredential locally
+        const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
+            process.env.NODE_ENV === 'development';
+        const credential = isLocal
+            ? new DefaultAzureCredential()
+            : new ManagedIdentityCredential();
+
+        console.log(`Using ${isLocal ? 'DefaultAzureCredential (local)' : 'ManagedIdentityCredential (deployed)'}`);
+
         const token = await credential.getToken('https://ai.azure.com/.default');
         return {
             'Authorization': `Bearer ${token.token}`
