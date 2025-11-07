@@ -3,6 +3,7 @@ import eventService from '../shared/services/eventService.js';
 import socialMediaService from '../shared/services/socialMediaService.js';
 import venueAgentService from '../shared/services/venueAgentService.js';
 import { successResponse, errorResponse, badRequestResponse, notFoundResponse } from '../shared/httpResponse.js';
+import { requireAuth, requireAdmin, logAuthEvent } from '../shared/authMiddleware.js';
 
 /**
  * Extract user access token from Azure Static Web Apps authentication headers
@@ -30,7 +31,15 @@ app.http('CreateEvent', {
     route: 'events',
     handler: async (request, context) => {
         try {
+            // Require admin authentication
+            const authError = requireAdmin(request);
+            if (authError) {
+                logAuthEvent(context, request, 'CREATE_EVENT', 'events', false);
+                return authError;
+            }
+
             context.log('Creating new event');
+            logAuthEvent(context, request, 'CREATE_EVENT', 'events', true);
 
             const body = await request.json();
 
@@ -70,8 +79,16 @@ app.http('DeleteEvent', {
     route: 'events/{id}',
     handler: async (request, context) => {
         try {
+            // Require admin authentication
+            const authError = requireAdmin(request);
+            if (authError) {
+                logAuthEvent(context, request, 'DELETE_EVENT', `events/${request.params.id}`, false);
+                return authError;
+            }
+
             const id = request.params.id;
             context.log(`Deleting event with id: ${id}`);
+            logAuthEvent(context, request, 'DELETE_EVENT', `events/${id}`, true);
 
             await eventService.deleteEvent(id);
             return successResponse({ message: 'Event deleted successfully' });
@@ -88,7 +105,15 @@ app.http('GetAllEvents', {
     route: 'events',
     handler: async (request, context) => {
         try {
+            // Require authentication for viewing events
+            const authError = requireAuth(request);
+            if (authError) {
+                logAuthEvent(context, request, 'GET_EVENTS', 'events', false);
+                return authError;
+            }
+
             context.log('Getting all events');
+            logAuthEvent(context, request, 'GET_EVENTS', 'events', true);
             const events = await eventService.getEvents();
             return successResponse(events);
         } catch (error) {
@@ -104,8 +129,16 @@ app.http('GetEventById', {
     route: 'events/{id}',
     handler: async (request, context) => {
         try {
+            // Require authentication for viewing events
+            const authError = requireAuth(request);
+            if (authError) {
+                logAuthEvent(context, request, 'GET_EVENT', `events/${request.params.id}`, false);
+                return authError;
+            }
+
             const id = request.params.id;
             context.log(`Getting event with id: ${id}`);
+            logAuthEvent(context, request, 'GET_EVENT', `events/${id}`, true);
 
             const event = await eventService.getEventById(id);
 
@@ -127,8 +160,16 @@ app.http('UpdateEvent', {
     route: 'events/{id}',
     handler: async (request, context) => {
         try {
+            // Require admin authentication
+            const authError = requireAdmin(request);
+            if (authError) {
+                logAuthEvent(context, request, 'UPDATE_EVENT', `events/${request.params.id}`, false);
+                return authError;
+            }
+
             const id = request.params.id;
             context.log(`Updating event with id: ${id}`);
+            logAuthEvent(context, request, 'UPDATE_EVENT', `events/${id}`, true);
 
             const body = await request.json();
 
@@ -151,6 +192,12 @@ app.http('GetSocialMediaPosts', {
     route: 'events/{id}/social-media-posts',
     handler: async (request, context) => {
         try {
+            // Require authentication
+            const authError = requireAuth(request);
+            if (authError) {
+                return authError;
+            }
+
             const id = request.params.id;
             context.log(`Getting social media posts for event: ${id}`);
 
@@ -174,6 +221,12 @@ app.http('RegenerateSocialMediaPosts', {
     route: 'events/{id}/regenerate-social-media-posts',
     handler: async (request, context) => {
         try {
+            // Require admin authentication
+            const authError = requireAdmin(request);
+            if (authError) {
+                return authError;
+            }
+
             const id = request.params.id;
             context.log(`Regenerating social media posts for event: ${id}`);
 
@@ -202,6 +255,12 @@ app.http('CheckSocialMediaPostsStatus', {
     route: 'events/{id}/social-media-posts-status',
     handler: async (request, context) => {
         try {
+            // Require authentication
+            const authError = requireAuth(request);
+            if (authError) {
+                return authError;
+            }
+
             const id = request.params.id;
             context.log(`Checking social media posts status for event: ${id}`);
 
@@ -245,6 +304,12 @@ app.http('GetVenueRecommendations', {
     route: 'events/{id}/venue-recommendations',
     handler: async (request, context) => {
         try {
+            // Require authentication
+            const authError = requireAuth(request);
+            if (authError) {
+                return authError;
+            }
+
             const id = request.params.id;
             context.log(`Getting venue recommendations for event: ${id}`);
 
@@ -268,6 +333,12 @@ app.http('RegenerateVenueRecommendations', {
     route: 'events/{id}/regenerate-venue-recommendations',
     handler: async (request, context) => {
         try {
+            // Require admin authentication
+            const authError = requireAdmin(request);
+            if (authError) {
+                return authError;
+            }
+
             const id = request.params.id;
             context.log(`Regenerating venue recommendations for event: ${id}`);
 
@@ -296,6 +367,12 @@ app.http('CheckVenueRecommendationsStatus', {
     route: 'events/{id}/venue-recommendations-status',
     handler: async (request, context) => {
         try {
+            // Require authentication
+            const authError = requireAuth(request);
+            if (authError) {
+                return authError;
+            }
+
             const id = request.params.id;
             context.log(`Checking venue recommendations status for event: ${id}`);
 

@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react';
 
-const isMockAuth = import.meta.env.DEV;
+// SECURITY: Development mode authentication should ONLY be enabled in local development
+// This is controlled by Vite's import.meta.env.DEV which is false in production builds
+// Never manually override this in production
+const isMockAuth = import.meta.env.DEV && import.meta.env.MODE === 'development';
+
+// Additional safety check: Verify we're actually running on localhost
+const isLocalhost = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || 
+     window.location.hostname === '127.0.0.1' ||
+     window.location.hostname === '');
+
+// Only allow mock auth if BOTH conditions are true
+const allowMockAuth = isMockAuth && isLocalhost;
 
 interface UserInfo {
     identityProvider: string;
@@ -27,7 +39,9 @@ export function useAuth(): AuthState {
     useEffect(() => {
         async function fetchUserInfo() {
             try {
-                if (isMockAuth) {
+                // SECURITY: Only allow mock authentication in local development
+                if (allowMockAuth) {
+                    console.warn('⚠️ DEVELOPMENT MODE: Using mock authentication');
                     // Mock authenticated admin user
                     setAuthState({
                         user: {

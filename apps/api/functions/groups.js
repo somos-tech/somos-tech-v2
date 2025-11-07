@@ -1,6 +1,7 @@
 import { app } from '@azure/functions';
 import { CosmosClient } from '@azure/cosmos';
 import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity';
+import { requireAuth, requireAdmin, logAuthEvent } from '../shared/authMiddleware.js';
 
 // Initialize Cosmos DB client
 // Uses ManagedIdentity in deployed environments, DefaultAzureCredential locally
@@ -37,10 +38,30 @@ app.http('groups', {
     route: 'groups/{id?}',
     handler: async (request, context) => {
         try {
-            const database = client.database(databaseId);
-            const container = database.container(containerId);
             const method = request.method;
             const groupId = request.params.id;
+
+            // Check authentication for all operations
+            // GET requires authentication, POST/PUT/DELETE require admin
+            if (method === 'GET') {
+                const authError = requireAuth(request);
+                if (authError) {
+                    logAuthEvent(context, request, 'GET_GROUPS', `groups/${groupId || 'all'}`, false);
+                    return authError;
+                }
+                logAuthEvent(context, request, 'GET_GROUPS', `groups/${groupId || 'all'}`, true);
+            } else {
+                // POST, PUT, DELETE require admin
+                const authError = requireAdmin(request);
+                if (authError) {
+                    logAuthEvent(context, request, `${method}_GROUP`, `groups/${groupId || ''}`, false);
+                    return authError;
+                }
+                logAuthEvent(context, request, `${method}_GROUP`, `groups/${groupId || ''}`, true);
+            }
+
+            const database = client.database(databaseId);
+            const container = database.container(containerId);
 
             // GET - List all groups or get single group
             if (method === 'GET') {
