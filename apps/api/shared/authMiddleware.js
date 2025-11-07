@@ -17,7 +17,7 @@ function getMockClientPrincipal() {
     if (!isDevelopment) {
         return null;
     }
-    
+
     console.warn('⚠️ DEVELOPMENT MODE: Using mock authentication in API');
     return {
         identityProvider: 'mock',
@@ -35,7 +35,7 @@ function getMockClientPrincipal() {
 export function getClientPrincipal(request) {
     try {
         const clientPrincipalHeader = request.headers.get('x-ms-client-principal');
-        
+
         if (!clientPrincipalHeader) {
             // SECURITY: In local development, use mock authentication
             // This matches the frontend's mock auth behavior
@@ -48,11 +48,11 @@ export function getClientPrincipal(request) {
         // Decode the base64 encoded client principal
         const decoded = Buffer.from(clientPrincipalHeader, 'base64').toString('utf-8');
         const clientPrincipal = JSON.parse(decoded);
-        
+
         return clientPrincipal;
     } catch (error) {
         console.error('Error parsing client principal:', error);
-        
+
         // SECURITY: In local development, fall back to mock authentication on error
         if (isDevelopment) {
             return getMockClientPrincipal();
@@ -79,7 +79,7 @@ export function isAuthenticated(request) {
  */
 export function hasRole(request, requiredRoles) {
     const principal = getClientPrincipal(request);
-    
+
     if (!principal || !principal.userRoles) {
         return false;
     }
@@ -139,7 +139,7 @@ export function requireAdmin(request) {
             }
         };
     }
-    
+
     return null;
 }
 
@@ -175,7 +175,7 @@ export function logAuthEvent(context, request, action, resource, allowed) {
     const principal = getClientPrincipal(request);
     const userEmail = principal?.userDetails || 'anonymous';
     const userId = principal?.userId || 'N/A';
-    
+
     context.log({
         timestamp: new Date().toISOString(),
         event: 'auth_event',

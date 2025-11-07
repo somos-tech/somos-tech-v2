@@ -1,6 +1,7 @@
 import { app } from '@azure/functions';
 import agentService from '../shared/services/agentService.js';
 import { successResponse, errorResponse, badRequestResponse } from '../shared/httpResponse.js';
+import { rateLimitMiddleware, getClientIdentifier } from '../shared/rateLimiter.js';
 
 /**
  * Extract user access token from Azure Static Web Apps authentication headers
@@ -28,6 +29,14 @@ app.http('InvokeAgent', {
     route: 'agent/invoke',
     handler: async (request, context) => {
         try {
+            // Apply rate limiting: 10 agent invocations per 5 minutes per IP
+            // AI agent calls can be resource-intensive, so we limit them more strictly
+            const rateLimitError = rateLimitMiddleware(request, 10, 300000);
+            if (rateLimitError) {
+                context.log.warn(`Rate limit exceeded for agent invocation from IP: ${getClientIdentifier(request)}`);
+                return rateLimitError;
+            }
+
             context.log('Invoking Azure OpenAI Foundry Agent');
 
             const body = await request.json();
@@ -66,6 +75,14 @@ app.http('CreateAgentThread', {
     route: 'agent/thread',
     handler: async (request, context) => {
         try {
+            // Apply rate limiting: 10 thread creations per 5 minutes per IP
+            // Thread creation should be less frequent than message sending
+            const rateLimitError = rateLimitMiddleware(request, 10, 300000);
+            if (rateLimitError) {
+                context.log.warn(`Rate limit exceeded for thread creation from IP: ${getClientIdentifier(request)}`);
+                return rateLimitError;
+            }
+
             context.log('Creating new agent thread');
 
             const body = await request.json();
@@ -87,6 +104,14 @@ app.http('GetAgentThreadMessages', {
     route: 'agent/thread/{threadId}/messages',
     handler: async (request, context) => {
         try {
+            // Apply rate limiting: 30 message retrievals per minute per IP
+            // Read operations can be more frequent than writes
+            const rateLimitError = rateLimitMiddleware(request, 30, 60000);
+            if (rateLimitError) {
+                context.log.warn(`Rate limit exceeded for message retrieval from IP: ${getClientIdentifier(request)}`);
+                return rateLimitError;
+            }
+
             const threadId = request.params.threadId;
             const userAccessToken = extractUserAccessToken(request);
             context.log(`Getting messages for thread: ${threadId}`);
