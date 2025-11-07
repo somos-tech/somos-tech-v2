@@ -1,6 +1,8 @@
+import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { useState, useEffect } from 'react';
+import { getUserRoles, isUserAdmin } from '@/utils/tokenUtils';
 
-const isMockAuth = import.meta.env.DEV;
+const isMockAuth = import.meta.env.DEV && !import.meta.env.VITE_AZURE_CLIENT_ID;
 
 interface UserInfo {
     identityProvider: string;
@@ -17,6 +19,8 @@ interface AuthState {
 }
 
 export function useAuth(): AuthState {
+    const { instance, accounts, inProgress } = useMsal();
+    const isAuthenticated = useIsAuthenticated();
     const [authState, setAuthState] = useState<AuthState>({
         user: null,
         isAuthenticated: false,
@@ -25,56 +29,55 @@ export function useAuth(): AuthState {
     });
 
     useEffect(() => {
-        async function fetchUserInfo() {
-            try {
-                if (isMockAuth) {
-                    // Mock authenticated admin user
-                    setAuthState({
-                        user: {
-                            identityProvider: 'mock',
-                            userId: 'mock-user-123',
-                            userDetails: 'developer@somos.tech',
-                            userRoles: ['authenticated', 'admin']
-                        },
-                        isAuthenticated: true,
-                        isAdmin: true,
-                        isLoading: false,
-                    });
-                    return;
-                }
-
-                const response = await fetch('/.auth/me');
-                const data = await response.json();
-
-                if (data.clientPrincipal) {
-                    const user = data.clientPrincipal;
-                    setAuthState({
-                        user,
-                        isAuthenticated: true,
-                        isAdmin: user.userRoles.includes('admin') || user.userRoles.includes('administrator'),
-                        isLoading: false,
-                    });
-                } else {
-                    setAuthState({
-                        user: null,
-                        isAuthenticated: false,
-                        isAdmin: false,
-                        isLoading: false,
-                    });
-                }
-            } catch (error) {
-                console.error('Error fetching user info:', error);
-                setAuthState({
-                    user: null,
-                    isAuthenticated: false,
-                    isAdmin: false,
-                    isLoading: false,
-                });
-            }
+        // Mock auth for development without Azure AD
+        if (isMockAuth) {
+            setAuthState({
+                user: {
+                    identityProvider: 'mock',
+                    userId: 'mock-user-123',
+                    userDetails: 'developer@somos.tech',
+                    userRoles: ['authenticated', 'admin']
+                },
+                isAuthenticated: true,
+                isAdmin: true,
+                isLoading: false,
+            });
+            return;
         }
 
-        fetchUserInfo();
-    }, []);
+        // MSAL is still processing
+        if (inProgress !== 'none') {
+            setAuthState(prev => ({ ...prev, isLoading: true }));
+            return;
+        }
+
+        // User is authenticated with MSAL
+        if (isAuthenticated && accounts.length > 0) {
+            const account = accounts[0];
+            const roles = getUserRoles(instance);
+            const admin = isUserAdmin(instance);
+
+            setAuthState({
+                user: {
+                    identityProvider: 'aad',
+                    userId: account.localAccountId,
+                    userDetails: account.username,
+                    userRoles: roles,
+                },
+                isAuthenticated: true,
+                isAdmin: admin,
+                isLoading: false,
+            });
+        } else {
+            // Not authenticated
+            setAuthState({
+                user: null,
+                isAuthenticated: false,
+                isAdmin: false,
+                isLoading: false,
+            });
+        }
+    }, [instance, accounts, isAuthenticated, inProgress]);
 
     return authState;
 }

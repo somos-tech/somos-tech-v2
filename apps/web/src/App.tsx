@@ -1,4 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { useEffect } from 'react';
+import { useMsal } from '@azure/msal-react';
+import eventService from '@/api/eventService';
 
 import Home from './pages/Home'
 import AdminDashboard from './pages/AdminDashboard'
@@ -13,8 +16,14 @@ import './index.css'
 
 function AppContent() {
   const location = useLocation();
+  const { instance } = useMsal();
   const isAdminPage = location.pathname.startsWith('/admin');
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+
+  // Set MSAL instance in API service
+  useEffect(() => {
+    eventService.setMsalInstance(instance);
+  }, [instance]);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: isAdminPage ? '#0a1f35' : '#051323' }}>
@@ -29,29 +38,29 @@ function AppContent() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
-          <Route 
-            path="/admin" 
+          <Route
+            path="/admin"
             element={
               <ProtectedRoute>
                 <AdminDashboard />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/events" 
+          <Route
+            path="/admin/events"
             element={
               <ProtectedRoute>
                 <AdminEvents />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/groups" 
+          <Route
+            path="/admin/groups"
             element={
               <ProtectedRoute>
                 <AdminGroups />
               </ProtectedRoute>
-            } 
+            }
           />
         </Routes>
       </main>

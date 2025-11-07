@@ -14,7 +14,10 @@
         "VENUE_AGENT_ID": "asst_DdidWVi5Z86V1QZ8FX42sTrb",
         "COSMOS_ENDPOINT": "https://cosmos-somos-tech-dev-64qb73pzvgekw.documents.azure.com:443/",
         "COSMOS_DATABASE_NAME": "somostech",
-        "ALLOWED_ADMIN_DOMAIN": "somos.tech"
+        "ALLOWED_ADMIN_DOMAIN": "somos.tech",
+        "AZURE_CLIENT_ID": "your-client-id-here",
+        "AZURE_TENANT_ID": "your-tenant-id-here",
+        "AZURE_CLIENT_SECRET": "your-client-secret-here"
     },
     "Host": {
         "CORS": "*"

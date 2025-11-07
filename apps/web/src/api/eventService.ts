@@ -1,17 +1,46 @@
-// API client for making requests to the backend
+// API client with MSAL token authentication
 import { Event, CreateEventDto, UpdateEventDto, ApiResponse } from '@shared/types';
+import { IPublicClientApplication } from '@azure/msal-browser';
+import { getAccessToken } from '@/utils/tokenUtils';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 class ApiEventService {
     private baseUrl: string;
+    private msalInstance: IPublicClientApplication | null = null;
 
     constructor() {
         this.baseUrl = `${API_BASE_URL}/api/events`;
     }
 
+    // Set the MSAL instance (call this from your component)
+    setMsalInstance(instance: IPublicClientApplication) {
+        this.msalInstance = instance;
+    }
+
+    private async getAuthHeaders(): Promise<HeadersInit> {
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+        };
+
+        // Skip auth in dev mode without Azure AD configured
+        if (import.meta.env.DEV && !import.meta.env.VITE_AZURE_CLIENT_ID) {
+            return headers;
+        }
+
+        if (this.msalInstance) {
+            const token = await getAccessToken(this.msalInstance);
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+        }
+
+        return headers;
+    }
+
     async getEvents(): Promise<Event[]> {
-        const response = await fetch(this.baseUrl);
+        const headers = await this.getAuthHeaders();
+        const response = await fetch(this.baseUrl, { headers });
         const result: ApiResponse<Event[]> = await response.json();
 
         if (!result.success || !result.data) {
@@ -22,7 +51,8 @@ class ApiEventService {
     }
 
     async getEventById(id: string): Promise<Event | null> {
-        const response = await fetch(`${this.baseUrl}/${id}`);
+        const headers = await this.getAuthHeaders();
+        const response = await fetch(`${this.baseUrl}/${id}`, { headers });
 
         if (response.status === 404) {
             return null;
@@ -39,11 +69,10 @@ class ApiEventService {
 
     async createEvent(event: CreateEventDto): Promise<Event> {
         console.log('sending event to API:', event);
+        const headers = await this.getAuthHeaders();
         const response = await fetch(this.baseUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify(event),
         });
 
@@ -57,11 +86,10 @@ class ApiEventService {
     }
 
     async updateEvent(id: string, event: UpdateEventDto): Promise<Event> {
+        const headers = await this.getAuthHeaders();
         const response = await fetch(`${this.baseUrl}/${id}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify(event),
         });
 
@@ -75,8 +103,10 @@ class ApiEventService {
     }
 
     async deleteEvent(id: string): Promise<void> {
+        const headers = await this.getAuthHeaders();
         const response = await fetch(`${this.baseUrl}/${id}`, {
             method: 'DELETE',
+            headers,
         });
 
         const result: ApiResponse<null> = await response.json();
@@ -87,11 +117,10 @@ class ApiEventService {
     }
 
     async regenerateSocialMediaPosts(id: string): Promise<void> {
+        const headers = await this.getAuthHeaders();
         const response = await fetch(`${this.baseUrl}/${id}/regenerate-social-media-posts`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
         });
 
         const result: ApiResponse<null> = await response.json();
@@ -107,7 +136,8 @@ class ApiEventService {
         error?: string;
         agentRunStatus?: string;
     }> {
-        const response = await fetch(`${this.baseUrl}/${id}/social-media-posts-status`);
+        const headers = await this.getAuthHeaders();
+        const response = await fetch(`${this.baseUrl}/${id}/social-media-posts-status`, { headers });
         const result: ApiResponse<any> = await response.json();
 
         if (!result.success || !result.data) {
@@ -118,11 +148,10 @@ class ApiEventService {
     }
 
     async regenerateVenueRecommendations(id: string): Promise<void> {
+        const headers = await this.getAuthHeaders();
         const response = await fetch(`${this.baseUrl}/${id}/regenerate-venue-recommendations`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
         });
 
         const result: ApiResponse<null> = await response.json();
@@ -138,7 +167,8 @@ class ApiEventService {
         error?: string;
         agentRunStatus?: string;
     }> {
-        const response = await fetch(`${this.baseUrl}/${id}/venue-recommendations-status`);
+        const headers = await this.getAuthHeaders();
+        const response = await fetch(`${this.baseUrl}/${id}/venue-recommendations-status`, { headers });
         const result: ApiResponse<any> = await response.json();
 
         if (!result.success || !result.data) {

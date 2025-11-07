@@ -12,6 +12,9 @@
         "@azure/cosmos": "^4.7.0",
         "@azure/data-tables": "^13.2.2",
         "@azure/functions": "^4.8.0",
-        "@azure/identity": "^4.13.0"
+        "@azure/identity": "^4.13.0",
+        "@azure/msal-node": "^3.8.1",
+        "jsonwebtoken": "^9.0.2",
+        "jwks-rsa": "^3.2.0"
     }
 }
