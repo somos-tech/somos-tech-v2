@@ -3,6 +3,30 @@
  * Validates Azure Static Web Apps authentication headers
  */
 
+// SECURITY: Development mode authentication should ONLY be enabled in local development
+// This is controlled by NODE_ENV environment variable
+// Never enable this in production
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+/**
+ * Get mock client principal for local development
+ * SECURITY: This should only be used in local development
+ * @returns {Object} Mock client principal for development
+ */
+function getMockClientPrincipal() {
+    if (!isDevelopment) {
+        return null;
+    }
+    
+    console.warn('⚠️ DEVELOPMENT MODE: Using mock authentication in API');
+    return {
+        identityProvider: 'mock',
+        userId: 'mock-user-123',
+        userDetails: 'developer@somos.tech',
+        userRoles: ['authenticated', 'admin', 'administrator']
+    };
+}
+
 /**
  * Extract and validate client principal from Azure Static Web Apps headers
  * @param {import('@azure/functions').HttpRequest} request - The HTTP request
@@ -13,6 +37,11 @@ export function getClientPrincipal(request) {
         const clientPrincipalHeader = request.headers.get('x-ms-client-principal');
         
         if (!clientPrincipalHeader) {
+            // SECURITY: In local development, use mock authentication
+            // This matches the frontend's mock auth behavior
+            if (isDevelopment) {
+                return getMockClientPrincipal();
+            }
             return null;
         }
 
@@ -23,6 +52,11 @@ export function getClientPrincipal(request) {
         return clientPrincipal;
     } catch (error) {
         console.error('Error parsing client principal:', error);
+        
+        // SECURITY: In local development, fall back to mock authentication on error
+        if (isDevelopment) {
+            return getMockClientPrincipal();
+        }
         return null;
     }
 }
