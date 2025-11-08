@@ -1,7 +1,7 @@
 import { app } from '@azure/functions';
 import { CosmosClient } from '@azure/cosmos';
 import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity';
-import { requireAdmin, getClientPrincipal } from '../shared/authMiddleware.js';
+import { requireAdmin, requireAuth, getClientPrincipal, isAdmin } from '../shared/authMiddleware.js';
 import { successResponse, errorResponse } from '../shared/httpResponse.js';
 import { notifyAdminRoleAssigned, notifyAdminRoleRemoved } from '../shared/services/notificationService.js';
 
@@ -36,27 +36,25 @@ app.http('adminUsers', {
             const action = request.params.action || 'list';
             const method = request.method;
 
-            // All admin-users endpoints require admin role
-            const authError = requireAdmin(request);
-            if (authError) {
-                return authError;
-            }
-
             const database = client.database(databaseId);
             const container = database.container(containerId);
 
-            // GET: List all admin users
-            if (method === 'GET' && action === 'list') {
-                const { resources: users } = await container.items
-                    .query('SELECT * FROM c ORDER BY c.createdAt DESC')
-                    .fetchAll();
-
-                return successResponse(users);
-            }
-
-            // GET: Get specific admin user by email
+            // GET: Get specific admin user by email (authenticated users can check their own status)
             if (method === 'GET' && action !== 'list') {
-                const email = decodeURIComponent(action);
+                // Require authentication but not admin role for checking own status
+                const authError = requireAuth(request);
+                if (authError) {
+                    return authError;
+                }
+
+                const email = decodeURIComponent(action).toLowerCase();
+                const principal = getClientPrincipal(request);
+                const requestingUserEmail = principal?.userDetails?.toLowerCase();
+
+                // Users can only check their own status unless they're admin
+                if (email !== requestingUserEmail && !isAdmin(request)) {
+                    return errorResponse(403, 'You can only check your own admin status');
+                }
                 
                 const querySpec = {
                     query: 'SELECT * FROM c WHERE c.email = @email',
@@ -72,6 +70,21 @@ app.http('adminUsers', {
                 }
 
                 return successResponse(users[0]);
+            }
+
+            // All other endpoints require admin role
+            const adminError = requireAdmin(request);
+            if (adminError) {
+                return adminError;
+            }
+
+            // GET: List all admin users
+            if (method === 'GET' && action === 'list') {
+                const { resources: users } = await container.items
+                    .query('SELECT * FROM c ORDER BY c.createdAt DESC')
+                    .fetchAll();
+
+                return successResponse(users);
             }
 
             // POST: Create/Add new admin user
