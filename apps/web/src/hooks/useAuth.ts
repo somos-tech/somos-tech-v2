@@ -64,37 +64,13 @@ export function useAuth(): AuthState {
                     const user = data.clientPrincipal;
                     const userEmail = user.userDetails?.toLowerCase() || '';
                     
-                    // Check if user is from somos.tech domain
+                    // Check if user is from somos.tech domain - all somos.tech users are admins
                     const isSomosTech = userEmail.endsWith('@somos.tech');
-                    
-                    // If user is from somos.tech, check admin status from API
-                    let isAdminUser = false;
-                    if (isSomosTech) {
-                        try {
-                            // Use relative path - will be proxied by Static Web App to Function App
-                            const adminCheckUrl = `/api/admin-users/${encodeURIComponent(userEmail)}`;
-                            
-                            const adminResponse = await fetch(adminCheckUrl, {
-                                credentials: 'include',
-                            });
-                            
-                            if (adminResponse.ok) {
-                                const adminUser = await adminResponse.json();
-                                isAdminUser = adminUser.status === 'active' && 
-                                             adminUser.roles && 
-                                             Array.isArray(adminUser.roles) && 
-                                             adminUser.roles.includes('admin');
-                            }
-                        } catch (err) {
-                            console.error('Error checking admin status:', err);
-                            // If API call fails, default to false
-                        }
-                    }
                     
                     setAuthState({
                         user,
                         isAuthenticated: true,
-                        isAdmin: isAdminUser,
+                        isAdmin: isSomosTech, // All somos.tech users are admins
                         isLoading: false,
                     });
                 } else {
