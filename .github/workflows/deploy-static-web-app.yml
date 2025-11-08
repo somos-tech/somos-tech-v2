@@ -41,7 +41,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: 'upload'
           app_location: 'apps/web'
-          api_location: ''
+          api_location: 'apps/web/api'
           output_location: 'dist'
         env:
           VITE_API_URL: ''
@@ -67,7 +67,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: 'upload'
           app_location: 'apps/web'
-          api_location: ''
+          api_location: 'apps/web/api'
           output_location: 'dist'
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
@@ -93,7 +93,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: 'upload'
           app_location: 'apps/web'
-          api_location: ''
+          api_location: 'apps/web/api'
           output_location: 'dist'
         env:
           VITE_API_URL: https://func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net
