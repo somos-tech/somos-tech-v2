@@ -62,10 +62,38 @@ export function useAuth(): AuthState {
 
                 if (data.clientPrincipal) {
                     const user = data.clientPrincipal;
+                    const userEmail = user.userDetails?.toLowerCase() || '';
+                    
+                    // Check if user is from somos.tech domain
+                    const isSomosTech = userEmail.endsWith('@somos.tech');
+                    
+                    // If user is from somos.tech, check admin status from API
+                    let isAdminUser = false;
+                    if (isSomosTech) {
+                        try {
+                            const apiUrl = import.meta.env.VITE_API_URL || '';
+                            const adminCheckUrl = apiUrl ? `${apiUrl}/admin-users/${encodeURIComponent(userEmail)}` : `/api/admin-users/${encodeURIComponent(userEmail)}`;
+                            const adminResponse = await fetch(adminCheckUrl, {
+                                credentials: 'include',
+                            });
+                            
+                            if (adminResponse.ok) {
+                                const adminUser = await adminResponse.json();
+                                isAdminUser = adminUser.status === 'active' && 
+                                             adminUser.roles && 
+                                             Array.isArray(adminUser.roles) && 
+                                             adminUser.roles.includes('admin');
+                            }
+                        } catch (err) {
+                            console.error('Error checking admin status:', err);
+                            // If API call fails, default to false
+                        }
+                    }
+                    
                     setAuthState({
                         user,
                         isAuthenticated: true,
-                        isAdmin: user.userRoles.includes('admin') || user.userRoles.includes('administrator'),
+                        isAdmin: isAdminUser,
                         isLoading: false,
                     });
                 } else {
