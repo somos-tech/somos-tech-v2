@@ -2,6 +2,48 @@
 
 This directory contains utility scripts for managing the SOMOS.tech platform.
 
+## Admin User Management
+
+### add-admin-user.ps1
+
+Adds a new admin user to the admin-users container in Cosmos DB.
+
+**Usage:**
+```powershell
+.\add-admin-user.ps1 -Email "user@somos.tech" -Name "User Name" -Environment "dev"
+```
+
+**Parameters:**
+- `-Email` (required): Email address of the user
+- `-Name` (optional): Full name of the user
+- `-Environment` (optional): Environment (dev/prod), defaults to "dev"
+
+**Example:**
+```powershell
+.\add-admin-user.ps1 -Email "jcruz@somos.tech" -Name "Jose Cruz"
+```
+
+### add-first-admin.js
+
+Node.js script to add the first admin user. Used for bootstrapping the admin system.
+
+**Usage:**
+```bash
+cd scripts
+npm install  # Install dependencies first time only
+node add-first-admin.js
+```
+
+### check-admin-user.js
+
+Check if a specific user exists in the admin-users container and list all admin users.
+
+**Usage:**
+```bash
+cd scripts
+node check-admin-user.js
+```
+
 ## populate-groups.js
 
 Populates the Cosmos DB with initial city chapter groups.

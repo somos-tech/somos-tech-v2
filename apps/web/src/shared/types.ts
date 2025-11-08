@@ -153,6 +153,35 @@ export interface UpdateSponsorDto extends Partial<CreateSponsorDto> {
     id: string;
 }
 
+// Admin User types
+export interface AdminUser {
+    id: string;
+    email: string;
+    name: string;
+    roles: string[];
+    status: 'active' | 'inactive' | 'suspended';
+    identityProvider?: string;
+    createdAt: string;
+    createdBy?: string;
+    updatedAt?: string;
+    updatedBy?: string;
+    lastLogin?: string | null;
+}
+
+export interface CreateAdminUserDto {
+    email: string;
+    name?: string;
+    roles?: string[];
+    status?: 'active' | 'inactive' | 'suspended';
+}
+
+export interface UpdateAdminUserDto {
+    email: string;
+    name?: string;
+    roles?: string[];
+    status?: 'active' | 'inactive' | 'suspended';
+}
+
 // API Response types
 export interface ApiResponse<T> {
     success: boolean;

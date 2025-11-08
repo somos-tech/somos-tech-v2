@@ -4,6 +4,7 @@ import Home from './pages/Home'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminEvents from './pages/AdminEvents'
 import AdminGroups from './pages/AdminGroups'
+import AdminUsers from './pages/AdminUsers'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Unauthorized from './pages/Unauthorized'
@@ -50,6 +51,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <AdminGroups />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/users" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminUsers />
               </ProtectedRoute>
             } 
           />
