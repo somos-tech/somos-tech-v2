@@ -8,6 +8,7 @@ import AdminUsers from './pages/AdminUsers'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Unauthorized from './pages/Unauthorized'
+import Donate from './pages/Donate'
 import Navigation from './components/Navigation'
 import ProtectedRoute from './components/ProtectedRoute'
 import './index.css'
@@ -30,6 +31,7 @@ function AppContent() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/donate" element={<Donate />} />
           <Route 
             path="/admin" 
             element={
