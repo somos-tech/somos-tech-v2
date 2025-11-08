@@ -10,8 +10,7 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "types": [
-      "vite/client",
-      "./src/types/givebutter"
+      "vite/client"
     ],
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,

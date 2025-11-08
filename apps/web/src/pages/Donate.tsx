@@ -73,9 +73,9 @@ export default function Donate() {
                             Every donation makes a difference!
                         </p>
                         
-                        {/* Givebutter Widget Placeholder */}
+                        {/* Givebutter Widget */}
                         <div className="bg-[#0F2744] rounded-lg p-8 text-center" style={{ borderColor: '#1E3A5F', border: '1px solid' }}>
-                            <givebutter-widget id="WPqRMD"></givebutter-widget>
+                            <div data-givebutter-id="WPqRMD"></div>
                             
                             {/* Fallback if widget doesn't load */}
                             <noscript>
