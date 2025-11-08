@@ -38,8 +38,31 @@ module.exports = async function (context, req) {
         
         const response = await fetch(`${apiUrl}/api/admin-users/${encodeURIComponent(email)}`);
         
+        context.log(`Admin API response status: ${response.status}`);
+        
+        // Get the response text first to debug
+        const responseText = await response.text();
+        context.log(`Admin API response body: ${responseText}`);
+        
         if (response.ok) {
-            const adminUser = await response.json();
+            let adminUser;
+            try {
+                adminUser = JSON.parse(responseText);
+            } catch (parseError) {
+                context.log.error(`Failed to parse response as JSON: ${parseError.message}`);
+                context.res = {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        isAdmin: false,
+                        authenticated: true,
+                        email,
+                        error: 'Invalid JSON response from API'
+                    })
+                };
+                return;
+            }
+            
             const isAdmin = adminUser && 
                            adminUser.status === 'active' && 
                            Array.isArray(adminUser.roles) && 
@@ -53,7 +76,8 @@ module.exports = async function (context, req) {
                 body: JSON.stringify({ 
                     isAdmin,
                     authenticated: true,
-                    email
+                    email,
+                    adminUser: adminUser
                 })
             };
         } else if (response.status === 404) {
