@@ -19,6 +19,12 @@
             ]
         },
         {
+            "route": "/api/GetUserRoles",
+            "allowedRoles": [
+                "anonymous"
+            ]
+        },
+        {
             "route": "/api/register",
             "allowedRoles": [
                 "anonymous"
@@ -69,7 +75,7 @@
                 }
             }
         },
-        "rolesSource": "/api/GetUserRoles"
+        "rolesSource": "https://func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net/api/GetUserRoles"
     },
     "globalHeaders": {
         "X-SWA-Debug": "config-active",
