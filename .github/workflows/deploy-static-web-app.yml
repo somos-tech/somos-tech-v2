@@ -59,7 +59,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: 'upload'
           app_location: 'apps/web/dist'
-          api_location: ''
+          api_location: 'apps/api'
           output_location: '.'
           skip_app_build: true
         env:
@@ -102,7 +102,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: 'upload'
           app_location: 'apps/web/dist'
-          api_location: ''
+          api_location: 'apps/api'
           output_location: '.'
           skip_app_build: true
         env:
@@ -145,7 +145,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: 'upload'
           app_location: 'apps/web/dist'
-          api_location: ''
+          api_location: 'apps/api'
           output_location: '.'
           skip_app_build: true
         env:
