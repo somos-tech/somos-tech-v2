@@ -359,7 +359,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           'https://${staticWebApp.properties.defaultHostname}'
           'https://portal.azure.com'
         ]
-        supportCredentials: false
+        supportCredentials: true
       }
       appSettings: [
         {
