@@ -40,11 +40,15 @@ app.http('adminUsers', {
             const container = database.container(containerId);
 
             // GET: Get specific admin user by email (public endpoint for checking admin status)
+            // This endpoint does NOT require authentication to allow the SWA check-admin API to call it
             if (method === 'GET' && action !== 'list') {
                 const email = decodeURIComponent(action).toLowerCase();
                 
+                context.log(`[Admin Check] Looking up admin user: ${email}`);
+                
                 // Only allow checking @somos.tech emails
                 if (!email.endsWith('@somos.tech')) {
+                    context.log(`[Admin Check] Email ${email} is not from somos.tech domain`);
                     return errorResponse(403, 'Only somos.tech users can be checked');
                 }
                 
@@ -53,13 +57,21 @@ app.http('adminUsers', {
                     parameters: [{ name: '@email', value: email }]
                 };
 
+                context.log(`[Admin Check] Executing query:`, JSON.stringify(querySpec));
+
                 const { resources: users } = await container.items
                     .query(querySpec)
                     .fetchAll();
 
+                context.log(`[Admin Check] Query returned ${users.length} results`);
+
                 if (users.length === 0) {
+                    context.log(`[Admin Check] No admin user found for ${email}`);
                     return errorResponse(404, 'Admin user not found');
                 }
+
+                // Log the check for audit purposes
+                context.log(`[Admin Check] Admin user found: ${email}, status: ${users[0].status}, roles: ${JSON.stringify(users[0].roles)}`);
 
                 return successResponse(users[0]);
             }

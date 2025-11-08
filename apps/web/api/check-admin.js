@@ -30,8 +30,12 @@ module.exports = async function (context, req) {
             return;
         }
 
-        // Check if user is admin by calling the main API
+        // Check if user is admin by calling the Azure Function API
+        // The admin lookup endpoint is public and doesn't require authentication
         const apiUrl = process.env.VITE_API_URL || 'https://func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net';
+        
+        context.log(`Checking admin status for ${email} via ${apiUrl}/api/admin-users/${encodeURIComponent(email)}`);
+        
         const response = await fetch(`${apiUrl}/api/admin-users/${encodeURIComponent(email)}`);
         
         if (response.ok) {
@@ -40,6 +44,8 @@ module.exports = async function (context, req) {
                            adminUser.status === 'active' && 
                            Array.isArray(adminUser.roles) && 
                            adminUser.roles.includes('admin');
+            
+            context.log(`Admin check result for ${email}: ${isAdmin}`);
             
             context.res = {
                 status: 200,
@@ -50,8 +56,9 @@ module.exports = async function (context, req) {
                     email
                 })
             };
-        } else {
+        } else if (response.status === 404) {
             // User not found in admin-users - not an admin
+            context.log(`User ${email} not found in admin-users`);
             context.res = {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' },
@@ -59,6 +66,22 @@ module.exports = async function (context, req) {
                     isAdmin: false,
                     authenticated: true,
                     email
+                })
+            };
+        } else {
+            // API error - log and return false for security
+            context.log.error(`API error checking admin status: ${response.status} ${response.statusText}`);
+            const errorText = await response.text();
+            context.log.error(`Error details: ${errorText}`);
+            
+            context.res = {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    isAdmin: false,
+                    authenticated: true,
+                    email,
+                    error: `API error: ${response.status}`
                 })
             };
         }
