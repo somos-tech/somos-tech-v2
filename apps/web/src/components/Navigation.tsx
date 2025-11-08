@@ -181,6 +181,9 @@ export default function Navigation() {
                                         backgroundColor: isActive(item.path) ? 'rgba(0, 255, 145, 0.1)' : 'transparent',
                                         border: isActive(item.path) ? '1px solid #00FF91' : '1px solid transparent',
                                     }}
+                                >
+                                    {item.label}
+                                </button>
                             ))}
                             {isAuthenticated && (
                                 <>
@@ -202,9 +205,6 @@ export default function Navigation() {
                                         Admin
                                     </Button>
                                 </>
-                            )}
-                            <Button Admin
-                                </Button>
                             )}
                             <Button
                                 className="w-full rounded-full mt-4"
