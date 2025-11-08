@@ -1,18 +1,6 @@
 import { Heart, DollarSign, Users, Sparkles } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
-// Declare the custom givebutter-widget element for TypeScript
-declare global {
-    namespace JSX {
-        interface IntrinsicElements {
-            'givebutter-widget': {
-                id: string;
-                children?: never;
-            };
-        }
-    }
-}
-
 export default function Donate() {
     return (
         <div className="min-h-screen" style={{ backgroundColor: '#051323' }}>
