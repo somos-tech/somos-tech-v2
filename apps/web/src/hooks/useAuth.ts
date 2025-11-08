@@ -71,8 +71,9 @@ export function useAuth(): AuthState {
                     let isAdminUser = false;
                     if (isSomosTech) {
                         try {
-                            const apiUrl = import.meta.env.VITE_API_URL || '';
-                            const adminCheckUrl = apiUrl ? `${apiUrl}/admin-users/${encodeURIComponent(userEmail)}` : `/api/admin-users/${encodeURIComponent(userEmail)}`;
+                            // Use relative path - will be proxied by Static Web App to Function App
+                            const adminCheckUrl = `/api/admin-users/${encodeURIComponent(userEmail)}`;
+                            
                             const adminResponse = await fetch(adminCheckUrl, {
                                 credentials: 'include',
                             });

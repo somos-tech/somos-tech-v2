@@ -44,7 +44,7 @@ jobs:
           api_location: ''
           output_location: 'dist'
         env:
-          VITE_API_URL: https://func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net
+          VITE_API_URL: ''
           VITE_ENVIRONMENT: dev
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
