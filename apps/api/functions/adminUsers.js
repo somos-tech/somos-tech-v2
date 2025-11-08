@@ -160,6 +160,19 @@ app.http('adminUsers', {
                 const user = users[0];
 
                 // Update fields
+                if (roles) {
+                    user.roles = roles;
+                }
+                if (status) {
+                    user.status = status;
+                }
+                if (name) {
+                    user.name = name;
+                }
+
+                user.updatedAt = new Date().toISOString();
+                user.updatedBy = getClientPrincipal(request)?.userDetails || 'system';
+
                 // Replace the document
                 const { resource: updated } = await container.item(user.id, user.email).replace(user);
 
@@ -183,39 +196,15 @@ app.http('adminUsers', {
                 }
 
                 return successResponse(updated);
-                if (name) {
-                    user.name = name;
-                }
-
-                user.updatedAt = new Date().toISOString();
-                user.updatedBy = getClientPrincipal(request)?.userDetails || 'system';
-
-                // Replace the document
-                const { resource: updated } = await container.item(user.id, user.email).replace(user);
-
-                context.log(`Admin user updated: ${email} by ${user.updatedBy}`);
-
-                return successResponse(updated);
             }
 
             // DELETE: Remove admin user
-                // Delete the user
-                await container.item(user.id, user.email).delete();
+            if (method === 'DELETE') {
+                const body = await request.json();
+                const { email } = body;
 
-                context.log(`Admin user deleted: ${email} by ${currentUser?.userDetails || 'system'}`);
-
-                // Send notification
-                try {
-                    await notifyAdminRoleRemoved({
-                        userEmail: email.toLowerCase(),
-                        userName: user.name,
-                        removedBy: currentUser?.userDetails || 'system'
-                    });
-                } catch (notifError) {
-                    context.log.error('Error sending notification:', notifError);
-                }
-
-                return successResponse({ message: 'Admin user deleted successfully' });
+                if (!email) {
+                    return errorResponse(400, 'Email is required');
                 }
 
                 // Find existing user
@@ -244,6 +233,17 @@ app.http('adminUsers', {
                 await container.item(user.id, user.email).delete();
 
                 context.log(`Admin user deleted: ${email} by ${currentUser?.userDetails || 'system'}`);
+
+                // Send notification
+                try {
+                    await notifyAdminRoleRemoved({
+                        userEmail: email.toLowerCase(),
+                        userName: user.name,
+                        removedBy: currentUser?.userDetails || 'system'
+                    });
+                } catch (notifError) {
+                    context.log.error('Error sending notification:', notifError);
+                }
 
                 return successResponse({ message: 'Admin user deleted successfully' });
             }
