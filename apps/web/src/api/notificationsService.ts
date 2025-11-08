@@ -1,13 +1,14 @@
 import type { Notification } from '@/shared/types';
 
 const API_BASE_URL = import.meta.env?.VITE_API_URL || '';
+const API_PATH = API_BASE_URL ? `${API_BASE_URL}/notifications` : '/api/notifications';
 
 export const notificationsService = {
     /**
      * Get all notifications for the current user
      */
     async getNotifications(): Promise<Notification[]> {
-        const response = await fetch(`${API_BASE_URL}/api/notifications/list`, {
+        const response = await fetch(`${API_PATH}/list`, {
             credentials: 'include',
         });
 
@@ -22,7 +23,7 @@ export const notificationsService = {
      * Get unread notifications
      */
     async getUnreadNotifications(): Promise<Notification[]> {
-        const response = await fetch(`${API_BASE_URL}/api/notifications/unread`, {
+        const response = await fetch(`${API_PATH}/unread`, {
             credentials: 'include',
         });
 
@@ -37,7 +38,7 @@ export const notificationsService = {
      * Get unread notification count
      */
     async getUnreadCount(): Promise<number> {
-        const response = await fetch(`${API_BASE_URL}/api/notifications/count`, {
+        const response = await fetch(`${API_PATH}/count`, {
             credentials: 'include',
         });
 
@@ -53,7 +54,7 @@ export const notificationsService = {
      * Mark a notification as read
      */
     async markAsRead(notificationId: string, type: string): Promise<Notification> {
-        const response = await fetch(`${API_BASE_URL}/api/notifications/mark-read`, {
+        const response = await fetch(`${API_PATH}/mark-read`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -73,7 +74,7 @@ export const notificationsService = {
      * Mark all notifications as read
      */
     async markAllAsRead(): Promise<void> {
-        const response = await fetch(`${API_BASE_URL}/api/notifications/mark-all-read`, {
+        const response = await fetch(`${API_PATH}/mark-all-read`, {
             method: 'PUT',
             credentials: 'include',
         });

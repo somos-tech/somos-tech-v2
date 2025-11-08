@@ -1,13 +1,13 @@
 // API client for making requests to the backend
 import { Event, CreateEventDto, UpdateEventDto, ApiResponse } from '@shared/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 class ApiEventService {
     private baseUrl: string;
 
     constructor() {
-        this.baseUrl = `${API_BASE_URL}/api/events`;
+        this.baseUrl = API_BASE_URL ? `${API_BASE_URL}/events` : '/api/events';
     }
 
     async getEvents(): Promise<Event[]> {
