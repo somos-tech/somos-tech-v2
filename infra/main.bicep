@@ -474,7 +474,7 @@ resource staticWebApp 'Microsoft.Web/staticSites@2023-01-01' = {
     branch: 'main'
     buildProperties: {
       appLocation: '/apps/web'
-      apiLocation: ''
+      apiLocation: '/apps/web/api'
       outputLocation: 'dist'
       appBuildCommand: 'npm run build'
     }

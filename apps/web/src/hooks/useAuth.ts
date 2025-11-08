@@ -64,13 +64,32 @@ export function useAuth(): AuthState {
                     const user = data.clientPrincipal;
                     const userEmail = user.userDetails?.toLowerCase() || '';
                     
-                    // Check if user is from somos.tech domain - all somos.tech users are admins
+                    // Check if user is from somos.tech domain
                     const isSomosTech = userEmail.endsWith('@somos.tech');
+                    
+                    // Check admin status from API (only for somos.tech users)
+                    let isAdminUser = false;
+                    if (isSomosTech) {
+                        try {
+                            // Call the Static Web App's local API endpoint which has access to auth headers
+                            const adminCheckUrl = `/api/check-admin`;
+                            
+                            const adminResponse = await fetch(adminCheckUrl);
+                            
+                            if (adminResponse.ok) {
+                                const adminCheck = await adminResponse.json();
+                                isAdminUser = adminCheck.isAdmin === true;
+                            }
+                        } catch (err) {
+                            console.error('Error checking admin status:', err);
+                            // If API call fails, default to false for security
+                        }
+                    }
                     
                     setAuthState({
                         user,
                         isAuthenticated: true,
-                        isAdmin: isSomosTech, // All somos.tech users are admins
+                        isAdmin: isAdminUser,
                         isLoading: false,
                     });
                 } else {

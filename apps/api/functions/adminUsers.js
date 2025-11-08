@@ -39,21 +39,13 @@ app.http('adminUsers', {
             const database = client.database(databaseId);
             const container = database.container(containerId);
 
-            // GET: Get specific admin user by email (authenticated users can check their own status)
+            // GET: Get specific admin user by email (public endpoint for checking admin status)
             if (method === 'GET' && action !== 'list') {
-                // Require authentication but not admin role for checking own status
-                const authError = requireAuth(request);
-                if (authError) {
-                    return authError;
-                }
-
                 const email = decodeURIComponent(action).toLowerCase();
-                const principal = getClientPrincipal(request);
-                const requestingUserEmail = principal?.userDetails?.toLowerCase();
-
-                // Users can only check their own status unless they're admin
-                if (email !== requestingUserEmail && !isAdmin(request)) {
-                    return errorResponse(403, 'You can only check your own admin status');
+                
+                // Only allow checking @somos.tech emails
+                if (!email.endsWith('@somos.tech')) {
+                    return errorResponse(403, 'Only somos.tech users can be checked');
                 }
                 
                 const querySpec = {

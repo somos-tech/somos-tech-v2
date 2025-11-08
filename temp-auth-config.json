@@ -1,0 +1,11 @@
+{
+  "properties": {
+    "globalValidation": {
+      "requireAuthentication": false,
+      "unauthenticatedClientAction": "AllowAnonymous"
+    },
+    "platform": {
+      "enabled": false
+    }
+  }
+}
