@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Menu, X, Settings, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import NotificationPanel from '@/components/NotificationPanel';
 
 export default function Navigation() {
     const navigate = useNavigate();
@@ -94,17 +95,20 @@ export default function Navigation() {
                             </Button>
                         )}
                         {isAuthenticated && (
-                            <Button
-                                className="hidden md:flex items-center gap-2 rounded-full px-6 transition-all hover:scale-105"
-                                style={{
-                                    backgroundColor: '#00D4FF',
-                                    color: '#051323',
-                                }}
-                                onClick={() => navigate('/admin')}
-                            >
-                                <Settings size={16} />
-                                Admin
-                            </Button>
+                            <>
+                                <NotificationPanel />
+                                <Button
+                                    className="hidden md:flex items-center gap-2 rounded-full px-6 transition-all hover:scale-105"
+                                    style={{
+                                        backgroundColor: '#00D4FF',
+                                        color: '#051323',
+                                    }}
+                                    onClick={() => navigate('/admin')}
+                                >
+                                    <Settings size={16} />
+                                    Admin
+                                </Button>
+                            </>
                         )}
                         <Button
                             className="hidden md:flex rounded-full px-6 transition-all hover:scale-105"
@@ -177,24 +181,29 @@ export default function Navigation() {
                                         backgroundColor: isActive(item.path) ? 'rgba(0, 255, 145, 0.1)' : 'transparent',
                                         border: isActive(item.path) ? '1px solid #00FF91' : '1px solid transparent',
                                     }}
-                                >
-                                    {item.label}
-                                </button>
                             ))}
                             {isAuthenticated && (
-                                <Button
-                                    className="w-full rounded-full flex items-center justify-center gap-2"
-                                    style={{
-                                        backgroundColor: '#00D4FF',
-                                        color: '#051323',
-                                    }}
-                                    onClick={() => {
-                                        navigate('/admin');
-                                        setIsMobileMenuOpen(false);
-                                    }}
-                                >
-                                    <Settings size={16} />
-                                    Admin
+                                <>
+                                    <div className="px-4 py-2">
+                                        <NotificationPanel />
+                                    </div>
+                                    <Button
+                                        className="w-full rounded-full flex items-center justify-center gap-2"
+                                        style={{
+                                            backgroundColor: '#00D4FF',
+                                            color: '#051323',
+                                        }}
+                                        onClick={() => {
+                                            navigate('/admin');
+                                            setIsMobileMenuOpen(false);
+                                        }}
+                                    >
+                                        <Settings size={16} />
+                                        Admin
+                                    </Button>
+                                </>
+                            )}
+                            <Button Admin
                                 </Button>
                             )}
                             <Button

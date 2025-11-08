@@ -3,7 +3,8 @@ import eventService from '../shared/services/eventService.js';
 import socialMediaService from '../shared/services/socialMediaService.js';
 import venueAgentService from '../shared/services/venueAgentService.js';
 import { successResponse, errorResponse, badRequestResponse, notFoundResponse } from '../shared/httpResponse.js';
-import { requireAuth, requireAdmin, logAuthEvent } from '../shared/authMiddleware.js';
+import { requireAuth, requireAdmin, logAuthEvent, getUserEmail } from '../shared/authMiddleware.js';
+import { notifyEventCreated } from '../shared/services/notificationService.js';
 
 /**
  * Extract user access token from Azure Static Web Apps authentication headers
@@ -56,6 +57,20 @@ app.http('CreateEvent', {
             }
 
             const newEvent = await eventService.createEvent(body);
+
+            // Send notification
+            try {
+                const createdBy = getUserEmail(request) || 'system';
+                await notifyEventCreated({
+                    eventName: newEvent.name,
+                    eventDate: newEvent.date,
+                    location: newEvent.location,
+                    createdBy
+                });
+            } catch (notifError) {
+                context.log.error('Error sending notification:', notifError);
+                // Don't fail the request if notification fails
+            }
 
             // Generate social media posts asynchronously (non-blocking)
             context.log(`Triggering social media post generation for event ${newEvent.id}`);

@@ -182,6 +182,40 @@ export interface UpdateAdminUserDto {
     status?: 'active' | 'inactive' | 'suspended';
 }
 
+// Notification types
+export interface Notification {
+    id: string;
+    type: 'admin_role_assigned' | 'admin_role_removed' | 'event_created' | 'event_updated' | 'event_deleted' | 'system';
+    title: string;
+    message: string;
+    severity: 'info' | 'warning' | 'success' | 'error';
+    read: boolean;
+    actionUrl?: string;
+    metadata?: Record<string, any>;
+    createdAt: string;
+    createdBy?: string;
+    recipientEmail?: string;
+}
+
+export interface CreateNotificationDto {
+    type: Notification['type'];
+    title: string;
+    message: string;
+    severity?: Notification['severity'];
+    actionUrl?: string;
+    metadata?: Record<string, any>;
+    recipientEmail?: string;
+}
+
+export interface NotificationSettings {
+    email: string;
+    enableEmailNotifications: boolean;
+    notifyOnRoleChanges: boolean;
+    notifyOnEventCreation: boolean;
+    notifyOnEventUpdates: boolean;
+    notifyOnSystemChanges: boolean;
+}
+
 // API Response types
 export interface ApiResponse<T> {
     success: boolean;
