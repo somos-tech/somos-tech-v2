@@ -1,19 +1,17 @@
 import { Heart, DollarSign, Users, Sparkles } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { useEffect } from 'react';
+
+declare global {
+    namespace JSX {
+        interface IntrinsicElements {
+            'givebutter-widget': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+                id: string;
+            };
+        }
+    }
+}
 
 export default function Donate() {
-    useEffect(() => {
-        // Ensure Givebutter widget is loaded
-        const checkGivebutter = setInterval(() => {
-            if (window.givebutter) {
-                clearInterval(checkGivebutter);
-            }
-        }, 100);
-
-        return () => clearInterval(checkGivebutter);
-    }, []);
-
     return (
         <div className="min-h-screen" style={{ backgroundColor: '#051323' }}>
             {/* Hero Section */}
