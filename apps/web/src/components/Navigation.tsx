@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Settings, User } from 'lucide-react';
+import { Menu, X, Settings, User, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import NotificationPanel from '@/components/NotificationPanel';
 
@@ -10,6 +10,7 @@ export default function Navigation() {
     const location = useLocation();
     const { isAuthenticated, user } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 
     // Extract first name from email or use full email
     const getDisplayName = () => {
@@ -24,9 +25,15 @@ export default function Navigation() {
         { label: 'Home', path: '/' },
         { label: 'About', path: '/about' },
         { label: 'Programs', path: '/programs' },
-        { label: 'Community', path: '/community' },
+        { 
+            label: 'Community', 
+            path: '/community',
+            submenu: [
+                { label: 'Groups', path: '/community' },
+                { label: 'Events', path: '/events' },
+            ]
+        },
         { label: 'Career', path: '/career' },
-        { label: 'Events', path: '/events' },
     ];
 
     const isActive = (path: string) => location.pathname === path;
@@ -53,18 +60,50 @@ export default function Navigation() {
                     {/* Desktop Menu */}
                     <div className="hidden lg:flex items-center space-x-1">
                         {menuItems.map((item) => (
-                            <button
-                                key={item.path}
-                                onClick={() => navigate(item.path)}
-                                className="px-4 py-2 rounded-lg transition-all duration-200"
-                                style={{
-                                    color: isActive(item.path) ? '#00FF91' : '#FFFFFF',
-                                    backgroundColor: isActive(item.path) ? 'rgba(0, 255, 145, 0.1)' : 'transparent',
-                                    border: isActive(item.path) ? '2px solid #00FF91' : '2px solid transparent',
-                                }}
+                            <div 
+                                key={item.path} 
+                                className="relative"
+                                onMouseEnter={() => item.submenu && setOpenSubmenu(item.label)}
+                                onMouseLeave={() => setOpenSubmenu(null)}
                             >
-                                {item.label}
-                            </button>
+                                <button
+                                    onClick={() => !item.submenu && navigate(item.path)}
+                                    className="px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-1"
+                                    style={{
+                                        color: isActive(item.path) ? '#00FF91' : '#FFFFFF',
+                                        backgroundColor: isActive(item.path) ? 'rgba(0, 255, 145, 0.1)' : 'transparent',
+                                        border: isActive(item.path) ? '2px solid #00FF91' : '2px solid transparent',
+                                    }}
+                                >
+                                    {item.label}
+                                    {item.submenu && <ChevronDown size={16} />}
+                                </button>
+                                
+                                {/* Dropdown Menu */}
+                                {item.submenu && openSubmenu === item.label && (
+                                    <div 
+                                        className="absolute top-full left-0 mt-1 py-2 rounded-lg shadow-xl min-w-[160px]"
+                                        style={{
+                                            backgroundColor: '#0a1f35',
+                                            border: '1px solid rgba(0, 255, 145, 0.2)',
+                                        }}
+                                    >
+                                        {item.submenu.map((subItem) => (
+                                            <button
+                                                key={subItem.path}
+                                                onClick={() => navigate(subItem.path)}
+                                                className="w-full text-left px-4 py-2 transition-all duration-200 hover:bg-opacity-10"
+                                                style={{
+                                                    color: isActive(subItem.path) ? '#00FF91' : '#FFFFFF',
+                                                    backgroundColor: isActive(subItem.path) ? 'rgba(0, 255, 145, 0.1)' : 'transparent',
+                                                }}
+                                            >
+                                                {subItem.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         ))}
                     </div>
 
@@ -180,21 +219,57 @@ export default function Navigation() {
                                 </Button>
                             )}
                             {menuItems.map((item) => (
-                                <button
-                                    key={item.path}
-                                    onClick={() => {
-                                        navigate(item.path);
-                                        setIsMobileMenuOpen(false);
-                                    }}
-                                    className="px-4 py-3 rounded-lg text-left transition-all"
-                                    style={{
-                                        color: isActive(item.path) ? '#00FF91' : '#FFFFFF',
-                                        backgroundColor: isActive(item.path) ? 'rgba(0, 255, 145, 0.1)' : 'transparent',
-                                        border: isActive(item.path) ? '1px solid #00FF91' : '1px solid transparent',
-                                    }}
-                                >
-                                    {item.label}
-                                </button>
+                                <div key={item.path}>
+                                    <button
+                                        onClick={() => {
+                                            if (item.submenu) {
+                                                setOpenSubmenu(openSubmenu === item.label ? null : item.label);
+                                            } else {
+                                                navigate(item.path);
+                                                setIsMobileMenuOpen(false);
+                                            }
+                                        }}
+                                        className="px-4 py-3 rounded-lg text-left transition-all w-full flex items-center justify-between"
+                                        style={{
+                                            color: isActive(item.path) ? '#00FF91' : '#FFFFFF',
+                                            backgroundColor: isActive(item.path) ? 'rgba(0, 255, 145, 0.1)' : 'transparent',
+                                            border: isActive(item.path) ? '1px solid #00FF91' : '1px solid transparent',
+                                        }}
+                                    >
+                                        {item.label}
+                                        {item.submenu && (
+                                            <ChevronDown 
+                                                size={16} 
+                                                style={{
+                                                    transform: openSubmenu === item.label ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                    transition: 'transform 0.2s'
+                                                }}
+                                            />
+                                        )}
+                                    </button>
+                                    {/* Mobile Submenu */}
+                                    {item.submenu && openSubmenu === item.label && (
+                                        <div className="ml-4 mt-1 space-y-1">
+                                            {item.submenu.map((subItem) => (
+                                                <button
+                                                    key={subItem.path}
+                                                    onClick={() => {
+                                                        navigate(subItem.path);
+                                                        setIsMobileMenuOpen(false);
+                                                        setOpenSubmenu(null);
+                                                    }}
+                                                    className="px-4 py-2 rounded-lg text-left transition-all w-full"
+                                                    style={{
+                                                        color: isActive(subItem.path) ? '#00FF91' : '#8394A7',
+                                                        backgroundColor: isActive(subItem.path) ? 'rgba(0, 255, 145, 0.05)' : 'transparent',
+                                                    }}
+                                                >
+                                                    {subItem.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             ))}
                             {isAuthenticated && (
                                 <>

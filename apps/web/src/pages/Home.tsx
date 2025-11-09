@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import EventbriteWidget from '@/components/EventbriteWidget';
 
 export default function Home() {
     const [memberCount, setMemberCount] = useState(0);
@@ -292,6 +293,9 @@ export default function Home() {
                     </p>
                 </div>
             </section>
+
+            {/* Eventbrite Widget Section */}
+            <EventbriteWidget />
 
             {/* Programs Section */}
             <section className="relative py-16 z-10" style={{ backgroundColor: 'rgba(10, 31, 53, 0.9)' }}>
