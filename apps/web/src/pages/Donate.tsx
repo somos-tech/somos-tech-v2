@@ -1,7 +1,10 @@
-import { Heart, DollarSign, Users, Sparkles } from 'lucide-react';
+import { Heart, DollarSign, Users, Sparkles, Smartphone, CreditCard } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { usePaymentCapabilities } from '@/hooks/usePaymentCapabilities';
 
 export default function Donate() {
+    const { supportsApplePay, supportsGooglePay, isAppleDevice, isAndroidDevice } = usePaymentCapabilities();
+
     return (
         <div className="min-h-screen" style={{ backgroundColor: '#051323' }}>
             {/* Hero Section */}
@@ -73,8 +76,41 @@ export default function Donate() {
                             Every donation makes a difference!
                         </p>
                         
+                        {/* Payment Methods Available */}
+                        {(supportsApplePay || supportsGooglePay || isAppleDevice || isAndroidDevice) && (
+                            <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: '#0F2744', borderColor: '#1E3A5F', border: '1px solid' }}>
+                                <div className="flex items-center justify-center gap-2 text-sm" style={{ color: '#8394A7' }}>
+                                    {isAppleDevice && (
+                                        <div className="flex items-center gap-1">
+                                            <Smartphone className="h-4 w-4" style={{ color: '#00FF91' }} />
+                                            <span style={{ color: '#00FF91' }}>Apple Pay {supportsApplePay ? '✓' : 'Available'}</span>
+                                        </div>
+                                    )}
+                                    {isAndroidDevice && (
+                                        <div className="flex items-center gap-1">
+                                            <CreditCard className="h-4 w-4" style={{ color: '#00FF91' }} />
+                                            <span style={{ color: '#00FF91' }}>Google Pay {supportsGooglePay ? '✓' : 'Available'}</span>
+                                        </div>
+                                    )}
+                                    {!isAppleDevice && !isAndroidDevice && (
+                                        <div className="flex items-center gap-1">
+                                            <CreditCard className="h-4 w-4" style={{ color: '#00FF91' }} />
+                                            <span>Credit/Debit Cards Accepted</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                        
                         {/* Givebutter Widget */}
-                        <div className="bg-[#0F2744] rounded-lg p-8 text-center" style={{ borderColor: '#1E3A5F', border: '1px solid' }}>
+                        <div 
+                            className="bg-[#0F2744] rounded-lg p-8 text-center" 
+                            style={{ borderColor: '#1E3A5F', border: '1px solid' }}
+                            data-apple-pay={supportsApplePay ? 'true' : 'false'}
+                            data-google-pay={supportsGooglePay ? 'true' : 'false'}
+                            data-apple-device={isAppleDevice ? 'true' : 'false'}
+                            data-android-device={isAndroidDevice ? 'true' : 'false'}
+                        >
                             <givebutter-widget id="g8zA2j"></givebutter-widget>
                             
                             {/* Fallback if widget doesn't load */}
