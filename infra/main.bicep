@@ -527,15 +527,6 @@ resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2023-01-01' = {
 }
 
 // Link Function App as backend for Static Web App
-resource staticWebAppLinkedBackend 'Microsoft.Web/staticSites/linkedBackends@2023-01-01' = {
-  parent: staticWebApp
-  name: 'backend'
-  properties: {
-    backendResourceId: functionApp.id
-    region: location
-  }
-}
-
 // Outputs
 output functionAppName string = functionApp.name
 output functionAppHostName string = functionApp.properties.defaultHostName
