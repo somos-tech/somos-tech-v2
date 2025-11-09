@@ -32,7 +32,7 @@ function getMockClientPrincipal() {
  * @param {import('@azure/functions').HttpRequest} request - The HTTP request
  * @returns {Object|null} Parsed client principal or null if not authenticated
  */
-export function getClientPrincipal(request) {
+function getClientPrincipal(request) {
     try {
         const clientPrincipalHeader = request.headers.get('x-ms-client-principal');
 
@@ -66,7 +66,7 @@ export function getClientPrincipal(request) {
  * @param {import('@azure/functions').HttpRequest} request - The HTTP request
  * @returns {boolean} True if user is authenticated
  */
-export function isAuthenticated(request) {
+function isAuthenticated(request) {
     const principal = getClientPrincipal(request);
     return principal !== null && principal.userId !== undefined;
 }
@@ -77,7 +77,7 @@ export function isAuthenticated(request) {
  * @param {string|string[]} requiredRoles - Role(s) to check for
  * @returns {boolean} True if user has the required role
  */
-export function hasRole(request, requiredRoles) {
+function hasRole(request, requiredRoles) {
     const principal = getClientPrincipal(request);
 
     if (!principal || !principal.userRoles) {
@@ -93,7 +93,7 @@ export function hasRole(request, requiredRoles) {
  * @param {import('@azure/functions').HttpRequest} request - The HTTP request
  * @returns {boolean} True if user has admin role
  */
-export function isAdmin(request) {
+function isAdmin(request) {
     return hasRole(request, ['admin', 'administrator']);
 }
 
@@ -101,46 +101,64 @@ export function isAdmin(request) {
  * Middleware to require authentication
  * Returns an error response if not authenticated
  * @param {import('@azure/functions').HttpRequest} request - The HTTP request
- * @returns {Object|null} Error response or null if authenticated
+ * @returns {Promise<Object>} Object with authenticated status
  */
-export function requireAuth(request) {
+async function requireAuth(request) {
     if (!isAuthenticated(request)) {
         return {
+            authenticated: false,
             status: 401,
-            jsonBody: {
-                error: 'Authentication required',
-                message: 'You must be logged in to access this resource'
-            }
+            error: 'Authentication required',
+            message: 'You must be logged in to access this resource'
         };
     }
-    return null;
+    return { authenticated: true };
 }
 
 /**
  * Middleware to require admin role
  * Returns an error response if not admin
  * @param {import('@azure/functions').HttpRequest} request - The HTTP request
- * @returns {Object|null} Error response or null if user is admin
+ * @returns {Promise<Object>} Object with authenticated and isAdmin status
  */
-export function requireAdmin(request) {
+async function requireAdmin(request) {
     // First check if authenticated
-    const authError = requireAuth(request);
-    if (authError) {
-        return authError;
+    const authResult = await requireAuth(request);
+    if (!authResult.authenticated) {
+        return authResult;
     }
 
     // Then check for admin role
     if (!isAdmin(request)) {
         return {
+            authenticated: true,
+            isAdmin: false,
             status: 403,
-            jsonBody: {
-                error: 'Insufficient permissions',
-                message: 'Admin role required to access this resource'
-            }
+            error: 'Insufficient permissions',
+            message: 'Admin role required to access this resource'
         };
     }
 
-    return null;
+    return { authenticated: true, isAdmin: true };
+}
+
+/**
+ * Get current user information
+ * @param {import('@azure/functions').HttpRequest} request - The HTTP request
+ * @returns {Object|null} User information
+ */
+function getCurrentUser(request) {
+    const principal = getClientPrincipal(request);
+    if (!principal) return null;
+
+    return {
+        userId: principal.userId,
+        email: principal.userDetails,
+        userDetails: principal.userDetails,
+        identityProvider: principal.identityProvider,
+        userRoles: principal.userRoles || [],
+        claims: principal.claims || []
+    };
 }
 
 /**
@@ -148,7 +166,7 @@ export function requireAdmin(request) {
  * @param {import('@azure/functions').HttpRequest} request - The HTTP request
  * @returns {string|null} User email or null
  */
-export function getUserEmail(request) {
+function getUserEmail(request) {
     const principal = getClientPrincipal(request);
     return principal?.userDetails || null;
 }
@@ -158,7 +176,7 @@ export function getUserEmail(request) {
  * @param {import('@azure/functions').HttpRequest} request - The HTTP request
  * @returns {string|null} User ID or null
  */
-export function getUserId(request) {
+function getUserId(request) {
     const principal = getClientPrincipal(request);
     return principal?.userId || null;
 }
@@ -171,7 +189,7 @@ export function getUserId(request) {
  * @param {string} resource - Resource being accessed
  * @param {boolean} allowed - Whether access was allowed
  */
-export function logAuthEvent(context, request, action, resource, allowed) {
+function logAuthEvent(context, request, action, resource, allowed) {
     const principal = getClientPrincipal(request);
     const userEmail = principal?.userDetails || 'anonymous';
     const userId = principal?.userId || 'N/A';
@@ -190,3 +208,17 @@ export function logAuthEvent(context, request, action, resource, allowed) {
         ip: request.headers.get('x-forwarded-for') || 'unknown'
     });
 }
+
+// Export functions
+module.exports = {
+    getClientPrincipal,
+    isAuthenticated,
+    hasRole,
+    isAdmin,
+    requireAuth,
+    requireAdmin,
+    getCurrentUser,
+    getUserEmail,
+    getUserId,
+    logAuthEvent
+};
