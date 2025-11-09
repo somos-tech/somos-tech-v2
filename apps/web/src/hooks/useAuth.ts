@@ -64,33 +64,8 @@ export function useAuth(): AuthState {
                     const user = data.clientPrincipal;
                     const userEmail = user.userDetails?.toLowerCase() || '';
                     
-                    // Check if user is from somos.tech domain
-                    const isSomosTech = userEmail.endsWith('@somos.tech');
-                    
-                    // Check admin status from API (only for somos.tech users)
-                    let isAdminUser = false;
-                    if (isSomosTech) {
-                        // TEMPORARY: Hardcode jcruz@somos.tech as admin while debugging Cosmos DB issue
-                        if (userEmail === 'jcruz@somos.tech') {
-                            isAdminUser = true;
-                            console.log('Admin access granted via hardcoded check');
-                        } else {
-                            try {
-                                // Call the Static Web App's local API endpoint which has access to auth headers
-                                const adminCheckUrl = `/api/check-admin`;
-                                
-                                const adminResponse = await fetch(adminCheckUrl);
-                                
-                                if (adminResponse.ok) {
-                                    const adminCheck = await adminResponse.json();
-                                    isAdminUser = adminCheck.isAdmin === true;
-                                }
-                            } catch (err) {
-                                console.error('Error checking admin status:', err);
-                                // If API call fails, default to false for security
-                            }
-                        }
-                    }
+                    // Check if user is from somos.tech domain - that's all we need for admin access
+                    const isAdminUser = userEmail.endsWith('@somos.tech');
                     
                     setAuthState({
                         user,
