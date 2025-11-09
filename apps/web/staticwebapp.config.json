@@ -46,6 +46,7 @@
     "navigationFallback": {
         "rewrite": "/index.html",
         "exclude": [
+            "/.auth/*",
             "/api/*",
             "/images/*",
             "/assets/*",
