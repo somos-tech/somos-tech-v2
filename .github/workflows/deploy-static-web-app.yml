@@ -1,6 +1,11 @@
-name: Deploy Static Web App (Manual Only)
+name: Deploy Static Web App
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/web/**'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
@@ -22,9 +27,11 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  # Deploy to dev (manual dispatch only)
+  # Deploy to dev (automatic on push to main or manual dispatch)
   deploy-dev:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev'
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
     runs-on: ubuntu-latest
     environment: dev
     name: Deploy to Dev
