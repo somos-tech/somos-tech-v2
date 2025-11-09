@@ -70,19 +70,25 @@ export function useAuth(): AuthState {
                     // Check admin status from API (only for somos.tech users)
                     let isAdminUser = false;
                     if (isSomosTech) {
-                        try {
-                            // Call the Static Web App's local API endpoint which has access to auth headers
-                            const adminCheckUrl = `/api/check-admin`;
-                            
-                            const adminResponse = await fetch(adminCheckUrl);
-                            
-                            if (adminResponse.ok) {
-                                const adminCheck = await adminResponse.json();
-                                isAdminUser = adminCheck.isAdmin === true;
+                        // TEMPORARY: Hardcode jcruz@somos.tech as admin while debugging Cosmos DB issue
+                        if (userEmail === 'jcruz@somos.tech') {
+                            isAdminUser = true;
+                            console.log('Admin access granted via hardcoded check');
+                        } else {
+                            try {
+                                // Call the Static Web App's local API endpoint which has access to auth headers
+                                const adminCheckUrl = `/api/check-admin`;
+                                
+                                const adminResponse = await fetch(adminCheckUrl);
+                                
+                                if (adminResponse.ok) {
+                                    const adminCheck = await adminResponse.json();
+                                    isAdminUser = adminCheck.isAdmin === true;
+                                }
+                            } catch (err) {
+                                console.error('Error checking admin status:', err);
+                                // If API call fails, default to false for security
                             }
-                        } catch (err) {
-                            console.error('Error checking admin status:', err);
-                            // If API call fails, default to false for security
                         }
                     }
                     
