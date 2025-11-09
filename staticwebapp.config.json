@@ -19,9 +19,9 @@
             ]
         },
         {
-            "route": "/admin*",
+            "route": "/admin/*",
             "allowedRoles": [
-                "anonymous"
+                "authenticated"
             ]
         },
         {
@@ -54,6 +54,10 @@
         ]
     },
     "responseOverrides": {
+        "401": {
+            "redirect": "/.auth/login/aad?post_login_redirect_uri=/admin",
+            "statusCode": 302
+        },
         "403": {
             "redirect": "/unauthorized",
             "statusCode": 302
@@ -65,26 +69,9 @@
     },
     "auth": {
         "identityProviders": {
-            "customOpenIdConnectProviders": {
-                "externalId": {
-                    "registration": {
-                        "clientIdSettingName": "EXTERNAL_ID_CLIENT_ID",
-                        "clientCredential": {
-                            "clientSecretSettingName": "EXTERNAL_ID_CLIENT_SECRET"
-                        },
-                        "openIdConnectConfiguration": {
-                            "wellKnownOpenIdConfiguration": "https://somostechus.ciamlogin.com/somostechus.onmicrosoft.com/v2.0/.well-known/openid-configuration?appid=9816b7f9-9578-4130-a356-5159484c545f"
-                        }
-                    },
-                    "login": {
-                        "nameClaimType": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
-                        "scopes": ["openid", "profile", "email"]
-                    }
-                }
-            },
             "azureActiveDirectory": {
                 "registration": {
-                    "openIdIssuer": "https://login.microsoftonline.com/cff2ae9c-4810-4a92-a3e8-46e649cbdbe4/v2.0",
+                    "openIdIssuer": "https://login.microsoftonline.com/common/v2.0",
                     "clientIdSettingName": "AZURE_CLIENT_ID",
                     "clientSecretSettingName": "AZURE_CLIENT_SECRET"
                 },
