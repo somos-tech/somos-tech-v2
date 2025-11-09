@@ -12,16 +12,23 @@ if (!endpoint) {
     throw new Error('COSMOS_ENDPOINT must be configured');
 }
 
-const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
-    process.env.NODE_ENV === 'development';
-const credential = isLocal
-    ? new DefaultAzureCredential()
-    : new ManagedIdentityCredential();
-
-const client = new CosmosClient({ endpoint, aadCredentials: credential });
-
 const databaseId = process.env.COSMOS_DATABASE_NAME || 'somostech';
 const containerId = 'admin-users';
+
+// Lazy initialization to avoid cold start issues with Flex Consumption
+let cosmosClient = null;
+function getCosmosClient() {
+    if (!cosmosClient) {
+        const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
+            process.env.NODE_ENV === 'development';
+        const credential = isLocal
+            ? new DefaultAzureCredential()
+            : new ManagedIdentityCredential();
+        
+        cosmosClient = new CosmosClient({ endpoint, aadCredentials: credential });
+    }
+    return cosmosClient;
+}
 
 /**
  * Admin Users Management API
@@ -36,6 +43,7 @@ app.http('adminUsers', {
             const action = request.params.action || 'list';
             const method = request.method;
 
+            const client = getCosmosClient();
             const database = client.database(databaseId);
             const container = database.container(containerId);
 
