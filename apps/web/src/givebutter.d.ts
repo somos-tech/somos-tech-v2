@@ -1,9 +1,12 @@
 // TypeScript declarations for Givebutter widget custom element
-declare namespace JSX {
-  interface IntrinsicElements {
-    'givebutter-widget': {
-      id: string;
-      children?: never;
-    };
+import 'react';
+
+declare module 'react' {
+  namespace JSX {
+    interface IntrinsicElements {
+      'givebutter-widget': {
+        id: string;
+      };
+    }
   }
 }
