@@ -15,8 +15,8 @@ export default function Register() {
     }, [isAuthenticated, isLoading, navigate]);
 
     const handleRegister = () => {
-        // Redirect to admin login (External ID disabled for now)
-        navigate('/admin/login');
+        // Use member provider for user signup/login
+        window.location.href = `/.auth/login/member?post_login_redirect_uri=${encodeURIComponent('/profile')}`;
     };
 
     if (isLoading) {
@@ -62,7 +62,7 @@ export default function Register() {
                     style={{ backgroundColor: '#00FF91', color: '#051323' }}
                 >
                     <UserPlus className="mr-2 h-5 w-5" />
-                    Sign in with Microsoft (@somos.tech)
+                    Sign Up with Microsoft
                 </Button>
 
                 <div className="mt-8 text-center">

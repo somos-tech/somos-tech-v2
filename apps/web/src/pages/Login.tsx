@@ -16,8 +16,8 @@ export default function Login() {
     }, [isAuthenticated, isLoading, navigate, returnUrl]);
 
     const handleLogin = () => {
-        // Redirect to admin login (External ID disabled for now)
-        navigate('/admin/login');
+        // Use member provider for regular user login
+        window.location.href = `/.auth/login/member?post_login_redirect_uri=${encodeURIComponent(returnUrl)}`;
     };
 
     if (isLoading) {
@@ -52,7 +52,7 @@ export default function Login() {
                         className="w-full rounded-full py-6 text-lg font-semibold transition-all hover:scale-105"
                         style={{ backgroundColor: '#00FF91', color: '#051323' }}
                     >
-                        Sign in with Microsoft (@somos.tech)
+                        Sign in with Microsoft
                     </Button>
                 </div>
 
