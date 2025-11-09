@@ -436,6 +436,21 @@ resource functionAppStorageRoleAssignment 'Microsoft.Authorization/roleAssignmen
   }
 }
 
+// Disable authentication on Function App to allow public admin check endpoint
+resource functionAppAuthSettings 'Microsoft.Web/sites/config@2023-12-01' = {
+  parent: functionApp
+  name: 'authsettingsV2'
+  properties: {
+    platform: {
+      enabled: false
+    }
+    globalValidation: {
+      requireAuthentication: false
+      unauthenticatedClientAction: 'AllowAnonymous'
+    }
+  }
+}
+
 // Role assignment for Function App to access Cosmos DB
 resource functionAppCosmosDbRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-05-15' = {
   parent: cosmosDbAccount
