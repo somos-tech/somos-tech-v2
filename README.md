@@ -24,13 +24,16 @@ Modern event management platform built with React, Azure Functions, and Azure St
 Somos Tech is a full-stack event management application featuring:
 - Modern React frontend with TypeScript and Vite
 - Serverless API backend with Azure Functions
-- NoSQL data storage with Azure Table Storage
+- NoSQL data storage with Azure Cosmos DB
+- **Dual Authentication**: Separate flows for admins and members
+- **Donation Integration**: Direct Givebutter integration
 - Global CDN distribution via Azure Static Web Apps
 - Automated CI/CD with GitHub Actions
 
-**Live URLs** (after deployment):
-- **Frontend**: `https://swa-somos-tech-{env}-{hash}.azurestaticapps.net`
-- **API**: `https://func-somos-tech-{env}-{hash}.azurewebsites.net`
+**Live URLs**:
+- **Production**: `https://somos.tech` (custom domain)
+- **Development**: `https://dev.somos.tech` (custom domain)
+- **API (Dev)**: `https://func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net`
 
 ---
 
@@ -49,13 +52,15 @@ Somos Tech is a full-stack event management application featuring:
 ### Backend
 - **Node.js 20** - Runtime
 - **Azure Functions v4** - Serverless framework
-- **Azure Table Storage** - NoSQL database
+- **Azure Cosmos DB** - NoSQL database (serverless)
+- **Azure OpenAI** - AI-powered agents for content generation
 - **Application Insights** - Monitoring
 
 ### Infrastructure
-- **Azure Static Web Apps** - Frontend hosting
+- **Azure Static Web Apps** (Standard) - Frontend hosting with custom domains
 - **Azure Functions** (Flex Consumption) - API hosting
-- **Azure Storage Account** - Data & function storage
+- **Azure Cosmos DB** (Serverless) - NoSQL database
+- **Azure Storage Account** - Function storage and site images
 - **Application Insights** - Monitoring & analytics
 - **Bicep** - Infrastructure as Code
 
@@ -86,10 +91,14 @@ Somos Tech is a full-stack event management application featuring:
     └────────────────────┘          └──────────┬──────────┘
                                                 │
                                      ┌──────────▼──────────┐
+                                     │  Azure Cosmos DB    │
+                                     │    (NoSQL)          │
+                                     │  - Serverless       │
+                                     └─────────┬───────────┘
+                                               │
+                                     ┌─────────▼───────────┐
                                      │  Azure Storage      │
                                      │    Account          │
-                                     │                     │
-                                     │  - Table Storage    │
                                      │  - Blob Storage     │
                                      └─────────┬───────────┘
                                                │
@@ -107,8 +116,8 @@ User Browser
 Azure Static Web App (React SPA)
     ↓ (API Calls via Backend Link)
 Azure Function App (REST API)
-    ↓ (Managed Identity Auth)
-Azure Table Storage (Data)
+    ↓ (Cosmos DB SDK)
+Azure Cosmos DB (NoSQL Data)
     ↓ (Telemetry)
 Application Insights (Monitoring)
 ```
@@ -305,11 +314,24 @@ somos-tech-v2/
 │   ├── api/                    # Azure Functions backend
 │   │   ├── functions/          # HTTP trigger functions
 │   │   │   ├── events.js       # Events CRUD operations
-│   │   │   ├── sponsors.js     # Sponsors endpoint
-│   │   │   └── venues.js       # Venues endpoint
+│   │   │   ├── adminUsers.js   # Admin user management
+│   │   │   ├── agent.js        # AI agent endpoints
+│   │   │   ├── groups.js       # Community groups
+│   │   │   ├── GetUserRoles.js # User role verification
+│   │   │   ├── notifications.js # Notification system
+│   │   │   └── register.js     # User registration
 │   │   ├── shared/             # Shared modules
 │   │   │   ├── httpResponse.js # Response helpers
+│   │   │   ├── authMiddleware.js # Authentication middleware
+│   │   │   ├── rateLimiter.js  # Rate limiting
+│   │   │   ├── validation.js   # Input validation
+│   │   │   ├── prompts/        # AI agent prompts
 │   │   │   └── services/       # Business logic
+│   │   │       ├── agentService.js # AI agent orchestration
+│   │   │       ├── eventService.js # Event management
+│   │   │       ├── notificationService.js # Notifications
+│   │   │       ├── socialMediaService.js  # Social media
+│   │   │       └── venueAgentService.js   # Venue agents
 │   │   ├── host.json           # Function App configuration
 │   │   ├── local.settings.json # Local development settings
 │   │   └── package.json
@@ -317,219 +339,159 @@ somos-tech-v2/
 │   └── web/                    # React frontend
 │       ├── src/
 │       │   ├── api/            # API service layer
+│       │   │   ├── adminUsersService.ts
+│       │   │   ├── eventService.ts
+│       │   │   └── notificationsService.ts
 │       │   ├── components/     # React components
 │       │   │   ├── admin-events/ # Event management
-│       │   │   └── ui/         # Reusable UI components
+│       │   │   ├── EventbriteWidget.tsx
+│       │   │   ├── Navigation.tsx
+│       │   │   ├── NotificationPanel.tsx
+│       │   │   ├── ProtectedRoute.tsx
+│       │   │   ├── SideBar.tsx
+│       │   │   └── ui/         # Reusable UI components (shadcn/ui)
+│       │   ├── hooks/          # React hooks
+│       │   │   └── useAuth.ts  # Authentication hook
 │       │   ├── lib/            # Utility functions
 │       │   ├── pages/          # Page components
-│       │   └── shared/         # Types & interfaces
-│       ├── staticwebapp.config.json # Static Web App config
+│       │   │   ├── AdminDashboard.tsx
+│       │   │   ├── Donate.tsx  # Givebutter redirect
+│       │   │   └── ...
+│       │   ├── shared/         # Types & interfaces
+│       │   ├── types/          # TypeScript type definitions
+│       │   └── givebutter.d.ts # Givebutter widget declarations
+│       ├── staticwebapp.config.json # Static Web App config (dual auth)
+│       ├── vite.config.ts      # Vite build configuration
 │       └── package.json
 │
 ├── infra/                      # Infrastructure as Code
 │   ├── main.bicep              # Main Bicep template
+│   ├── main.bicepparam         # Base parameters
 │   ├── main.dev.bicepparam     # Dev environment parameters
-│   ├── main.prod.bicepparam    # Prod environment parameters
-│   ├── deploy.sh               # Deployment script
-│   └── deploy-environment.sh   # Multi-env deployment script
+│   └── main.prod.bicepparam    # Prod environment parameters
 │
-└── .github/
-    └── workflows/
-        ├── deploy-static-web-app.yml  # Frontend CI/CD
-        └── deploy-function-app.yml    # API CI/CD
+├── scripts/                    # Deployment & utility scripts
+│   ├── add-admin-user.ps1      # Add admin users
+│   ├── configure-dual-auth.ps1 # Dual auth setup
+│   ├── deploy-api.ps1          # API deployment
+│   ├── populate-groups.ps1     # Populate community groups
+│   └── ...
+│
+├── .github/
+│   └── workflows/
+│       ├── deploy-static-web-app.yml  # Frontend CI/CD (with EXTERNAL_* vars)
+│       └── deploy-function-app.yml    # API CI/CD
+│
+└── Documentation files
+    ├── README.md               # This file
+    ├── DUAL_AUTH_SETUP.md      # Dual authentication configuration
+    ├── GITHUB_SECRETS_SETUP.md # Required GitHub secrets
+    ├── AUTH_DEBUG_FINDINGS.md  # Authentication troubleshooting
+    ├── DEPLOYMENT_GUIDE.md     # Deployment procedures
+    ├── NOTIFICATIONS_GUIDE.md  # Notification system setup
+    └── SECURITY_REVIEW.md      # Security audit results
 ```
 
 ---
 
 ## Authentication Setup
 
-The application uses Azure AD (Entra ID) for admin authentication with optional GitHub OAuth support.
+The application uses **dual authentication** with separate flows for administrators and members:
 
-### Configure Azure AD Authentication
+### Authentication Architecture
 
-#### 1. Register Application in Azure AD
+1. **Admin Portal** - Azure AD (somos.tech tenant)
+   - Purpose: Administrative access for @somos.tech staff
+   - Route: `/admin/login`
+   - Provider: Azure Active Directory
+   - Domain: @somos.tech only
 
-1. Go to **Azure Portal** → **Azure Active Directory** → **App registrations**
-2. Click **New registration**
-3. Fill in:
-   - **Name**: `SOMOS.tech Admin Portal`
-   - **Supported account types**: `Accounts in this organizational directory only`
-   - **Redirect URI**:
-     - Platform: `Web`
-     - URI: `https://your-swa-name.azurestaticapps.net/.auth/login/aad/callback`
-4. Click **Register**
+2. **Member Portal** - External ID CIAM
+   - Purpose: Public member registration and access
+   - Routes: `/login`, `/register`
+   - Provider: Microsoft External ID (CIAM)
+   - Tenant: somostechus.onmicrosoft.com
+   - Supports: Microsoft accounts, Google accounts
+   - Self-service signup enabled
 
-#### 2. Configure Authentication Settings
+### Required GitHub Secrets
 
-1. Go to **Authentication** in your app registration
-2. Under **Implicit grant and hybrid flows**, enable:
-   - ✅ ID tokens
-3. Click **Save**
+**Critical**: These secrets must be added to prevent authentication from breaking during deployments.
 
-#### 3. Create Client Secret
+Go to: `https://github.com/somos-tech/somos-tech-v2/settings/secrets/actions`
 
-1. Go to **Certificates & secrets**
-2. Click **New client secret**
-3. Add description: `SWA Auth Secret`
-4. Choose expiration (recommend 24 months)
-5. Click **Add**
-6. **⚠️ COPY THE SECRET VALUE** immediately (cannot view again)
+Add the following secrets (see `GITHUB_SECRETS_SETUP.md` for values):
 
-#### 4. Configure API Permissions
+1. `EXTERNAL_TENANT_ID` - Azure AD tenant ID
+2. `EXTERNAL_ADMIN_CLIENT_ID` - Admin portal app registration ID
+3. `EXTERNAL_ADMIN_CLIENT_SECRET` - Admin portal client secret
+4. `EXTERNAL_MEMBER_CLIENT_ID` - Member portal app registration ID
+5. `EXTERNAL_MEMBER_CLIENT_SECRET` - Member portal client secret
 
-1. Go to **API permissions**
-2. Ensure these Microsoft Graph permissions exist:
-   - `openid` (delegated)
-   - `profile` (delegated)
-   - `email` (delegated)
-3. Click **Grant admin consent** if required
+**Why this is critical**: The GitHub Actions workflow passes these as environment variables during deployment. Without them, deployments will clear the authentication configuration and break login functionality.
 
-#### 5. Get Configuration Values
+### Quick Setup (Development)
 
-From your app registration **Overview** page, copy:
-- **Application (client) ID**
-- **Directory (tenant) ID**
+1. **Add GitHub Secrets** (see above)
+2. **Deploy Infrastructure**:
+   ```bash
+   # Via GitHub Actions
+   Actions → Deploy Infrastructure → Run workflow → Select 'dev'
+   ```
 
-#### 6. Add to GitHub Secrets
+3. **Verify Authentication**:
+   ```bash
+   # Test admin login
+   curl -I https://dev.somos.tech/.auth/login/aad
+   # Should return: HTTP/1.1 302 Found
 
-The Azure AD client secret is required for infrastructure deployment. Add it to GitHub:
-
-**Go to**: Settings → Secrets and variables → Actions → New repository secret
-
-- **Name**: `AZURE_AD_CLIENT_SECRET`
-- **Value**: The client secret you copied in step 3
-
-This secret is used by the infrastructure deployment workflow to configure your Static Web App with Azure AD authentication automatically.
-
-#### 7. Update staticwebapp.config.json
-
-In `apps/web/staticwebapp.config.json`, replace `<YOUR_TENANT_ID>` with your actual tenant ID:
-
-```json
-"openIdIssuer": "https://login.microsoftonline.com/YOUR-TENANT-ID/v2.0"
-```
-
-Commit and push this change:
-
-```bash
-git add apps/web/staticwebapp.config.json
-git commit -m "Configure Azure AD tenant ID"
-git push origin main
-```
-
-#### 8. Deploy Infrastructure
-
-After adding the secret, deploy or redeploy your infrastructure:
-
-1. Go to **Actions** → **Deploy Infrastructure (Manual Only)**
-2. Click **Run workflow**
-3. Select environment
-4. Click **Run workflow**
-
-The workflow will automatically configure your Static Web App with:
-- `AZURE_CLIENT_ID` - From your app registration
-- `AZURE_CLIENT_SECRET` - From the GitHub secret
-- `AZURE_TENANT_ID` - From your Azure AD tenant
-
-### Verify Authentication Configuration
-
-After deployment, verify the settings in Azure Portal:
-
-1. Go to your **Static Web App** → **Configuration**
-2. Confirm these settings exist:
-   - ✅ `AZURE_CLIENT_ID`
-   - ✅ `AZURE_CLIENT_SECRET` (value hidden)
-   - ✅ `AZURE_TENANT_ID`
-
-### Optional: Configure GitHub OAuth
-
-#### 1. Create GitHub OAuth App
-
-1. Go to **GitHub** → **Settings** → **Developer settings** → **OAuth Apps**
-2. Click **New OAuth App**
-3. Fill in:
-   - **Application name**: `SOMOS.tech`
-   - **Homepage URL**: `https://your-swa-name.azurestaticapps.net`
-   - **Authorization callback URL**: `https://your-swa-name.azurestaticapps.net/.auth/login/github/callback`
-4. Click **Register application**
-5. Copy the **Client ID** and generate a **Client Secret**
-
-#### 2. Add GitHub Settings to Static Web App
-
-```
-GITHUB_CLIENT_ID=<your-github-client-id>
-GITHUB_CLIENT_SECRET=<your-github-client-secret>
-```
-
-### Assign Admin Roles
-
-#### Method 1: Azure Portal
-
-1. Go to **Static Web App** → **Role management**
-2. Click **Invitations** → **Invite**
-3. Fill in:
-   - **Domain**: Your Azure AD domain
-   - **Email**: Admin user's email
-   - **Role**: `admin`
-   - **Hours until expiration**: 24
-4. Send invitation to user
-
-#### Method 2: Configuration File
-
-Create `staticwebapp.database.config.json`:
-
-```json
-{
-  "$schema": "https://github.com/Azure/static-web-apps/schemas/latest/invitations.schema.json",
-  "roles": {
-    "admin": [
-      "admin@yourdomain.com"
-    ],
-    "member": []
-  }
-}
-```
+   # Test member login
+   curl -I https://dev.somos.tech/.auth/login/member
+   # Should return: HTTP/1.1 302 Found
+   ```
 
 ### Authentication Flow
 
 ```
-Public Pages (/, /register)
+Public Pages (/, /events, /groups)
     ↓
     Anyone can access
+
+Member Pages (/profile)
+    ↓
+    Check authentication (useAuth hook)
+    ↓
+    ├─→ Not authenticated → Redirect to /login
+    │                        ↓
+    │                        External ID CIAM login
+    │                        (Microsoft or Google)
+    │                        ↓
+    │                        Success → Return to /profile
+    │
+    └─→ Authenticated → Allow access
 
 Admin Pages (/admin/*)
     ↓
     Check authentication (useAuth hook)
     ↓
-    ├─→ Not authenticated → Redirect to /.auth/login/aad
+    ├─→ Not authenticated → Redirect to /admin/login
     │                        ↓
-    │                        Microsoft Sign-In
+    │                        Azure AD login (@somos.tech)
     │                        ↓
-    │                        Success → Return to page
+    │                        Success → Return to admin dashboard
     │
-    └─→ Authenticated → Check role
+    └─→ Authenticated → Check domain
         ↓
-        ├─→ Has 'admin' role → Allow access
-        └─→ No 'admin' role → /unauthorized
+        ├─→ @somos.tech domain → Allow access
+        └─→ Other domain → /unauthorized
 ```
 
-### Test Authentication
+### Detailed Setup Instructions
 
-1. Navigate to `/admin/events`
-2. Should redirect to Microsoft login
-3. Sign in with admin account
-4. Should see admin dashboard after successful login
-
-### Troubleshooting Authentication
-
-**Issue: Redirect loop on admin pages**
-- Verify redirect URI matches exactly: `https://your-site.azurestaticapps.net/.auth/login/aad/callback`
-
-**Issue: "User is not authorized"**
-- Verify user has 'admin' role in Role Management
-
-**Issue: Cannot see user info**
-- Ensure API permissions include openid, profile, and email
+For complete setup instructions including app registrations and configuration, see:
+- `DUAL_AUTH_SETUP.md` - Detailed dual authentication configuration
+- `GITHUB_SECRETS_SETUP.md` - GitHub secrets setup guide
+- `AUTH_DEBUG_FINDINGS.md` - Common authentication issues and solutions
 
 ---
 
@@ -665,15 +627,22 @@ All deployments are automated via GitHub Actions workflows. No manual deployment
 
 **Configuration Required:**
 - **Secret**: `AZURE_STATIC_WEB_APPS_API_TOKEN`
+- **Secret**: `EXTERNAL_TENANT_ID` - Azure AD tenant ID for dual auth
+- **Secret**: `EXTERNAL_ADMIN_CLIENT_ID` - Admin portal app registration
+- **Secret**: `EXTERNAL_ADMIN_CLIENT_SECRET` - Admin portal secret
+- **Secret**: `EXTERNAL_MEMBER_CLIENT_ID` - Member portal app registration
+- **Secret**: `EXTERNAL_MEMBER_CLIENT_SECRET` - Member portal secret
 - **Variable**: `VITE_API_URL`
 - **Variable**: `VITE_ENVIRONMENT` (optional)
+
+**Critical**: The EXTERNAL_* secrets are required for authentication. Without them, deployments will clear the authentication configuration. See `GITHUB_SECRETS_SETUP.md` for setup instructions.
 
 **Steps:**
 1. Checkout code
 2. Setup Node.js 20
 3. Install dependencies (`npm ci`)
 4. Build React app with environment variables
-5. Deploy to Azure Static Web Apps
+5. Deploy to Azure Static Web Apps with authentication environment variables
 6. Create unique staging URL for PRs
 
 **Duration:** ~2-3 minutes
@@ -854,9 +823,10 @@ npm install
 - P99 Latency: < 500ms
 
 **Data Layer:**
-- Table Read: < 10ms
-- Table Write: < 20ms
-- Query: < 100ms (small datasets)
+- Cosmos DB Point Read: < 10ms (single-digit milliseconds)
+- Cosmos DB Write: < 15ms
+- Cosmos DB Query: < 50ms (indexed queries)
+- Serverless Mode: Auto-scales with usage
 
 ---
 
@@ -993,4 +963,14 @@ Built with ❤️ by the Somos Tech team
 
 ---
 
-**Last Updated**: October 28, 2025
+**Last Updated**: November 9, 2025
+
+## Recent Updates
+
+### November 2025
+- ✅ **Dual Authentication**: Separate auth flows for admins (@somos.tech) and members (External ID CIAM)
+- ✅ **Givebutter Integration**: Direct donation links to https://givebutter.com/somostech
+- ✅ **Payment Capability Detection**: Apple Pay and Google Pay support indicators
+- ✅ **Cosmos DB Migration**: Moved from Azure Table Storage to Cosmos DB for better performance
+- ✅ **Automated Deployments**: Restored automatic deployments on push to main branch
+
