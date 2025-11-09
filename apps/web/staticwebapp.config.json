@@ -65,36 +65,22 @@
     },
     "auth": {
         "identityProviders": {
-            "customOpenIdConnectProviders": {
-                "externalId": {
-                    "registration": {
-                        "clientIdSettingName": "EXTERNAL_ID_CLIENT_ID",
-                        "clientCredential": {
-                            "clientSecretSettingName": "EXTERNAL_ID_CLIENT_SECRET"
-                        },
-                        "openIdConnectConfiguration": {
-                            "wellKnownOpenIdConfiguration": "https://somostechus.ciamlogin.com/somostechus.onmicrosoft.com/v2.0/.well-known/openid-configuration?appid=9816b7f9-9578-4130-a356-5159484c545f"
-                        }
-                    },
-                    "login": {
-                        "nameClaimType": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
-                        "scopes": ["openid", "profile", "email"]
-                    }
-                }
-            },
             "azureActiveDirectory": {
                 "registration": {
                     "openIdIssuer": "https://login.microsoftonline.com/cff2ae9c-4810-4a92-a3e8-46e649cbdbe4/v2.0",
                     "clientIdSettingName": "AZURE_CLIENT_ID",
                     "clientSecretSettingName": "AZURE_CLIENT_SECRET"
-                },
-                "login": {
-                    "loginParameters": [
-                        "scope=openid profile email"
-                    ]
                 }
             }
         }
+    },
+    "forwardingGateway": {
+        "backend": {
+            "backendResourceId": "/subscriptions/8a61b9f5-71c9-420a-b42a-6daa8b1a3c94/resourceGroups/rg-somos-tech-dev/providers/Microsoft.Web/sites/func-somos-tech-dev-64qb73pzvgekw"
+        },
+        "allowedForwardedHosts": [
+            "func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net"
+        ]
     },
     "globalHeaders": {
         "X-SWA-Debug": "config-active",
