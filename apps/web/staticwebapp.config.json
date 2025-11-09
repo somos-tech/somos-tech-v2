@@ -1,6 +1,12 @@
 {
     "routes": [
         {
+            "route": "/",
+            "allowedRoles": [
+                "anonymous"
+            ]
+        },
+        {
             "route": "/login",
             "allowedRoles": [
                 "anonymous"
@@ -21,7 +27,13 @@
         {
             "route": "/admin*",
             "allowedRoles": [
-                "anonymous"
+                "authenticated"
+            ]
+        },
+        {
+            "route": "/profile",
+            "allowedRoles": [
+                "authenticated"
             ]
         },
         {
@@ -54,6 +66,10 @@
         ]
     },
     "responseOverrides": {
+        "401": {
+            "statusCode": 302,
+            "redirect": "/.auth/login/aad?post_login_redirect_uri=.referrer"
+        },
         "403": {
             "redirect": "/unauthorized",
             "statusCode": 302
