@@ -72,7 +72,7 @@
                             "clientSecretSettingName": "EXTERNAL_ID_CLIENT_SECRET"
                         },
                         "openIdConnectConfiguration": {
-                            "wellKnownOpenIdConfiguration": "https://login.microsoftonline.com/ea315caf-5fa1-4348-a3f8-e50867ae19d4/v2.0/.well-known/openid-configuration"
+                            "wellKnownOpenIdConfiguration": "https://somostechus.ciamlogin.com/somostechus.onmicrosoft.com/v2.0/.well-known/openid-configuration?appid=9816b7f9-9578-4130-a356-5159484c545f"
                         }
                     },
                     "login": {
