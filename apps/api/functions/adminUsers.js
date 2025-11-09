@@ -39,13 +39,22 @@ app.http('adminUsers', {
     authLevel: 'anonymous',
     route: 'admin-users/{action?}',
     handler: async (request, context) => {
+        context.log('[adminUsers] Function invoked');
+        context.log('[adminUsers] Method:', request.method);
+        context.log('[adminUsers] Action:', request.params.action);
+        context.log('[adminUsers] URL:', request.url);
+        
         try {
             const action = request.params.action || 'list';
             const method = request.method;
-
+            
+            context.log('[adminUsers] Getting Cosmos client...');
             const client = getCosmosClient();
+            context.log('[adminUsers] Getting database...');
             const database = client.database(databaseId);
+            context.log('[adminUsers] Getting container...');
             const container = database.container(containerId);
+            context.log('[adminUsers] Container obtained successfully');
 
             // GET: Get specific admin user by email (public endpoint for checking admin status)
             // This endpoint does NOT require authentication to allow the SWA check-admin API to call it
@@ -291,7 +300,9 @@ app.http('adminUsers', {
             return errorResponse(400, 'Invalid action or method');
 
         } catch (error) {
-            context.log.error('Error in adminUsers function:', error);
+            context.log.error('[adminUsers] ERROR:', error);
+            context.log.error('[adminUsers] Error stack:', error.stack);
+            context.log.error('[adminUsers] Error message:', error.message);
             return errorResponse(500, 'Internal server error', error.message);
         }
     }
