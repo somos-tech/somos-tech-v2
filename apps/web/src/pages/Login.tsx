@@ -16,8 +16,8 @@ export default function Login() {
     }, [isAuthenticated, isLoading, navigate, returnUrl]);
 
     const handleLogin = () => {
-        // Use External ID provider for regular users (Microsoft/Google accounts)
-        window.location.href = `/.auth/login/externalId?post_login_redirect_uri=${encodeURIComponent(returnUrl)}`;
+        // Redirect to admin login (External ID disabled for now)
+        navigate('/admin/login');
     };
 
     if (isLoading) {
@@ -52,7 +52,7 @@ export default function Login() {
                         className="w-full rounded-full py-6 text-lg font-semibold transition-all hover:scale-105"
                         style={{ backgroundColor: '#00FF91', color: '#051323' }}
                     >
-                        Sign in with Microsoft or Google
+                        Sign in with Microsoft (@somos.tech)
                     </Button>
                 </div>
 

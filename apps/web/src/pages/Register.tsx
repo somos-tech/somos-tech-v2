@@ -15,8 +15,8 @@ export default function Register() {
     }, [isAuthenticated, isLoading, navigate]);
 
     const handleRegister = () => {
-        // Redirect to External ID signup (Microsoft/Google only, no username/password)
-        window.location.href = `/.auth/login/externalId?post_login_redirect_uri=${encodeURIComponent('/profile')}`;
+        // Redirect to admin login (External ID disabled for now)
+        navigate('/admin/login');
     };
 
     if (isLoading) {
@@ -62,7 +62,7 @@ export default function Register() {
                     style={{ backgroundColor: '#00FF91', color: '#051323' }}
                 >
                     <UserPlus className="mr-2 h-5 w-5" />
-                    Sign Up with Microsoft or Google
+                    Sign in with Microsoft (@somos.tech)
                 </Button>
 
                 <div className="mt-8 text-center">
