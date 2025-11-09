@@ -1,8 +1,9 @@
-// TypeScript declarations for Givebutter widget
+// TypeScript declarations for Givebutter widget custom element
 declare namespace JSX {
   interface IntrinsicElements {
-    'givebutter-widget': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+    'givebutter-widget': {
       id: string;
+      children?: never;
     };
   }
 }
