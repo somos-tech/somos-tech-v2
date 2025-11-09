@@ -19,9 +19,9 @@
             ]
         },
         {
-            "route": "/admin/*",
+            "route": "/admin*",
             "allowedRoles": [
-                "authenticated"
+                "anonymous"
             ]
         },
         {
@@ -53,10 +53,6 @@
         ]
     },
     "responseOverrides": {
-        "401": {
-            "redirect": "/.auth/login/aad?post_login_redirect_uri=/admin",
-            "statusCode": 302
-        },
         "403": {
             "redirect": "/unauthorized",
             "statusCode": 302
@@ -70,14 +66,9 @@
         "identityProviders": {
             "azureActiveDirectory": {
                 "registration": {
-                    "openIdIssuer": "https://login.microsoftonline.com/common/v2.0",
+                    "openIdIssuer": "https://login.microsoftonline.com/cff2ae9c-4810-4a92-a3e8-46e649cbdbe4/v2.0",
                     "clientIdSettingName": "AZURE_CLIENT_ID",
                     "clientSecretSettingName": "AZURE_CLIENT_SECRET"
-                },
-                "login": {
-                    "loginParameters": [
-                        "scope=openid profile email"
-                    ]
                 }
             }
         }
