@@ -13,9 +13,15 @@
             ]
         },
         {
-            "route": "/admin/*",
+            "route": "/admin/login",
             "allowedRoles": [
-                "authenticated"
+                "anonymous"
+            ]
+        },
+        {
+            "route": "/admin*",
+            "allowedRoles": [
+                "anonymous"
             ]
         },
         {
@@ -47,10 +53,6 @@
         ]
     },
     "responseOverrides": {
-        "401": {
-            "redirect": "/login",
-            "statusCode": 302
-        },
         "403": {
             "redirect": "/unauthorized",
             "statusCode": 302
@@ -62,18 +64,6 @@
     },
     "auth": {
         "identityProviders": {
-            "azureActiveDirectory": {
-                "registration": {
-                    "openIdIssuer": "https://login.microsoftonline.com/common/v2.0",
-                    "clientIdSettingName": "AZURE_CLIENT_ID",
-                    "clientSecretSettingName": "AZURE_CLIENT_SECRET"
-                },
-                "login": {
-                    "loginParameters": [
-                        "scope=openid profile email"
-                    ]
-                }
-            },
             "customOpenIdConnectProviders": {
                 "externalId": {
                     "registration": {
@@ -89,6 +79,18 @@
                         "nameClaimType": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
                         "scopes": ["openid", "profile", "email"]
                     }
+                }
+            },
+            "azureActiveDirectory": {
+                "registration": {
+                    "openIdIssuer": "https://login.microsoftonline.com/common/v2.0",
+                    "clientIdSettingName": "AZURE_CLIENT_ID",
+                    "clientSecretSettingName": "AZURE_CLIENT_SECRET"
+                },
+                "login": {
+                    "loginParameters": [
+                        "scope=openid profile email"
+                    ]
                 }
             }
         }
