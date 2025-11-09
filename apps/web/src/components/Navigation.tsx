@@ -68,13 +68,17 @@ export default function Navigation() {
                         ))}
                     </div>
 
-                    {/* Right Section: Welcome/Signup + Donate + Admin + Mobile Menu Toggle */}
+                    {/* Right Section: Welcome/Signup + Donate + Profile/Admin + Mobile Menu Toggle */}
                     <div className="flex items-center gap-4">
                         {isAuthenticated ? (
-                            <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full" style={{
-                                backgroundColor: 'rgba(0, 255, 145, 0.1)',
-                                border: '1px solid rgba(0, 255, 145, 0.3)',
-                            }}>
+                            <div 
+                                className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer hover:opacity-80 transition-opacity" 
+                                style={{
+                                    backgroundColor: 'rgba(0, 255, 145, 0.1)',
+                                    border: '1px solid rgba(0, 255, 145, 0.3)',
+                                }}
+                                onClick={() => navigate('/profile')}
+                            >
                                 <User size={16} style={{ color: '#00FF91' }} />
                                 <span style={{ color: '#FFFFFF', fontSize: '14px' }}>
                                     Welcome, <span style={{ color: '#00FF91', fontWeight: '600' }}>{getDisplayName()}</span>
@@ -140,10 +144,17 @@ export default function Navigation() {
                     >
                         <div className="flex flex-col space-y-2">
                             {isAuthenticated ? (
-                                <div className="px-4 py-3 rounded-lg mb-2" style={{
-                                    backgroundColor: 'rgba(0, 255, 145, 0.1)',
-                                    border: '1px solid rgba(0, 255, 145, 0.3)',
-                                }}>
+                                <div 
+                                    className="px-4 py-3 rounded-lg mb-2 cursor-pointer hover:opacity-80 transition-opacity" 
+                                    style={{
+                                        backgroundColor: 'rgba(0, 255, 145, 0.1)',
+                                        border: '1px solid rgba(0, 255, 145, 0.3)',
+                                    }}
+                                    onClick={() => {
+                                        navigate('/profile');
+                                        setIsMobileMenuOpen(false);
+                                    }}
+                                >
                                     <div className="flex items-center gap-2">
                                         <User size={16} style={{ color: '#00FF91' }} />
                                         <span style={{ color: '#FFFFFF', fontSize: '14px' }}>

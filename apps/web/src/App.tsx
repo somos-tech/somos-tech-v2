@@ -6,7 +6,9 @@ import AdminEvents from './pages/AdminEvents'
 import AdminGroups from './pages/AdminGroups'
 import AdminUsers from './pages/AdminUsers'
 import Login from './pages/Login'
+import AdminLogin from './pages/AdminLogin'
 import Register from './pages/Register'
+import Profile from './pages/Profile'
 import Unauthorized from './pages/Unauthorized'
 import Donate from './pages/Donate'
 import Navigation from './components/Navigation'
@@ -16,7 +18,9 @@ import './index.css'
 function AppContent() {
   const location = useLocation();
   const isAdminPage = location.pathname.startsWith('/admin');
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isAuthPage = location.pathname === '/login' || 
+                     location.pathname === '/register' || 
+                     location.pathname === '/admin/login';
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: isAdminPage ? '#0a1f35' : '#051323' }}>
@@ -29,13 +33,22 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/register" element={<Register />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/donate" element={<Donate />} />
           <Route 
-            path="/admin" 
+            path="/profile" 
             element={
               <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
                 <AdminDashboard />
               </ProtectedRoute>
             } 
@@ -43,7 +56,7 @@ function AppContent() {
           <Route 
             path="/admin/events" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin={true}>
                 <AdminEvents />
               </ProtectedRoute>
             } 
@@ -51,7 +64,7 @@ function AppContent() {
           <Route 
             path="/admin/groups" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin={true}>
                 <AdminGroups />
               </ProtectedRoute>
             } 

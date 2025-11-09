@@ -48,7 +48,7 @@
     },
     "responseOverrides": {
         "401": {
-            "redirect": "/.auth/login/aad?post_login_redirect_uri=/admin",
+            "redirect": "/login",
             "statusCode": 302
         },
         "403": {
@@ -72,6 +72,23 @@
                     "loginParameters": [
                         "scope=openid profile email"
                     ]
+                }
+            },
+            "customOpenIdConnectProviders": {
+                "externalId": {
+                    "registration": {
+                        "clientIdSettingName": "EXTERNAL_ID_CLIENT_ID",
+                        "clientCredential": {
+                            "clientSecretSettingName": "EXTERNAL_ID_CLIENT_SECRET"
+                        },
+                        "openIdConnectConfiguration": {
+                            "wellKnownOpenIdConfiguration": "https://login.microsoftonline.com/ea315caf-5fa1-4348-a3f8-e50867ae19d4/v2.0/.well-known/openid-configuration"
+                        }
+                    },
+                    "login": {
+                        "nameClaimType": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+                        "scopes": ["openid", "profile", "email"]
+                    }
                 }
             }
         }

@@ -14,9 +14,15 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
 
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
-            // Redirect to login with return URL
+            // Redirect to appropriate login page
             const currentPath = window.location.pathname;
-            window.location.href = `/.auth/login/aad?post_login_redirect_uri=${encodeURIComponent(currentPath)}`;
+            if (requireAdmin) {
+                // Admin routes -> admin login
+                navigate(`/admin/login?returnUrl=${encodeURIComponent(currentPath)}`);
+            } else {
+                // Regular routes -> regular login
+                navigate(`/login?returnUrl=${encodeURIComponent(currentPath)}`);
+            }
         }
 
         if (!isLoading && isAuthenticated && requireAdmin && !isAdmin) {

@@ -15,8 +15,9 @@ export default function Login() {
         }
     }, [isAuthenticated, isLoading, navigate, returnUrl]);
 
-    const handleLogin = (provider: 'aad' | 'github') => {
-        window.location.href = `/.auth/login/${provider}?post_login_redirect_uri=${encodeURIComponent(returnUrl)}`;
+    const handleLogin = () => {
+        // Use External ID provider for regular users (Microsoft/Google accounts)
+        window.location.href = `/.auth/login/externalId?post_login_redirect_uri=${encodeURIComponent(returnUrl)}`;
     };
 
     if (isLoading) {
@@ -47,19 +48,11 @@ export default function Login() {
 
                 <div className="space-y-4">
                     <Button
-                        onClick={() => handleLogin('aad')}
+                        onClick={handleLogin}
                         className="w-full rounded-full py-6 text-lg font-semibold transition-all hover:scale-105"
                         style={{ backgroundColor: '#00FF91', color: '#051323' }}
                     >
-                        Sign in with Microsoft
-                    </Button>
-
-                    <Button
-                        onClick={() => handleLogin('github')}
-                        className="w-full rounded-full py-6 text-lg font-semibold transition-all hover:scale-105"
-                        style={{ backgroundColor: '#8394A7', color: '#051323' }}
-                    >
-                        Sign in with GitHub
+                        Sign in with Microsoft or Google
                     </Button>
                 </div>
 
@@ -71,6 +64,18 @@ export default function Login() {
                             style={{ color: '#00FF91', textDecoration: 'underline' }}
                         >
                             Become a member
+                        </a>
+                    </p>
+                </div>
+
+                <div className="mt-6 text-center">
+                    <p className="text-xs" style={{ color: '#8394A7' }}>
+                        Are you a staff member?{' '}
+                        <a 
+                            href="/admin/login" 
+                            style={{ color: '#00FF91', textDecoration: 'underline' }}
+                        >
+                            Admin Login
                         </a>
                     </p>
                 </div>
