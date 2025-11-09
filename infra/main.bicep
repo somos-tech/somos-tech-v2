@@ -448,6 +448,11 @@ resource functionAppAuthSettings 'Microsoft.Web/sites/config@2023-12-01' = {
       requireAuthentication: false
       unauthenticatedClientAction: 'AllowAnonymous'
     }
+    identityProviders: {
+      azureStaticWebApps: {
+        enabled: false
+      }
+    }
   }
 }
 
