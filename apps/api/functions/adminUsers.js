@@ -45,6 +45,8 @@ app.http('adminUsers', {
                 const email = decodeURIComponent(action).toLowerCase();
                 
                 context.log(`[Admin Check] Looking up admin user: ${email}`);
+                context.log(`[Admin Check] Original action parameter: ${action}`);
+                context.log(`[Admin Check] Decoded email: ${email}`);
                 
                 // Only allow checking @somos.tech emails
                 if (!email.endsWith('@somos.tech')) {
@@ -58,22 +60,40 @@ app.http('adminUsers', {
                 };
 
                 context.log(`[Admin Check] Executing query:`, JSON.stringify(querySpec));
+                context.log(`[Admin Check] Container: ${containerId}, Database: ${databaseId}`);
 
-                const { resources: users } = await container.items
-                    .query(querySpec)
-                    .fetchAll();
+                try {
+                    const { resources: users } = await container.items
+                        .query(querySpec)
+                        .fetchAll();
 
-                context.log(`[Admin Check] Query returned ${users.length} results`);
+                    context.log(`[Admin Check] Query returned ${users.length} results`);
+                    
+                    if (users.length > 0) {
+                        context.log(`[Admin Check] First result:`, JSON.stringify(users[0]));
+                    }
 
-                if (users.length === 0) {
-                    context.log(`[Admin Check] No admin user found for ${email}`);
-                    return errorResponse(404, 'Admin user not found');
+                    if (users.length === 0) {
+                        context.log(`[Admin Check] No admin user found for ${email}`);
+                        
+                        // Try querying without filter to see all documents
+                        const { resources: allUsers } = await container.items
+                            .query('SELECT c.email, c.id FROM c')
+                            .fetchAll();
+                        context.log(`[Admin Check] Total documents in container: ${allUsers.length}`);
+                        context.log(`[Admin Check] Sample emails:`, JSON.stringify(allUsers.slice(0, 5)));
+                        
+                        return errorResponse(404, 'Admin user not found');
+                    }
+
+                    // Log the check for audit purposes
+                    context.log(`[Admin Check] Admin user found: ${email}, status: ${users[0].status}, roles: ${JSON.stringify(users[0].roles)}`);
+
+                    return successResponse(users[0]);
+                } catch (queryError) {
+                    context.log.error(`[Admin Check] Query error:`, queryError);
+                    return errorResponse(500, 'Database query failed', queryError.message);
                 }
-
-                // Log the check for audit purposes
-                context.log(`[Admin Check] Admin user found: ${email}, status: ${users[0].status}, roles: ${JSON.stringify(users[0].roles)}`);
-
-                return successResponse(users[0]);
             }
 
             // All other endpoints require admin role
