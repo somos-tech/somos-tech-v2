@@ -51,9 +51,13 @@ jobs:
           api_location: 'apps/web/api'
           output_location: 'dist'
         env:
-          VITE_API_URL: ''
+          VITE_API_URL: 'https://func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net'
           VITE_ENVIRONMENT: dev
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          EXTERNAL_TENANT_ID: ${{ secrets.EXTERNAL_TENANT_ID }}
+          EXTERNAL_ADMIN_CLIENT_ID: ${{ secrets.EXTERNAL_ADMIN_CLIENT_ID }}
+          EXTERNAL_ADMIN_CLIENT_SECRET: ${{ secrets.EXTERNAL_ADMIN_CLIENT_SECRET }}
+          EXTERNAL_MEMBER_CLIENT_ID: ${{ secrets.EXTERNAL_MEMBER_CLIENT_ID }}
+          EXTERNAL_MEMBER_CLIENT_SECRET: ${{ secrets.EXTERNAL_MEMBER_CLIENT_SECRET }}
 
   # Deploy to production (manual approval required via environment protection rules)
   deploy-prod:
