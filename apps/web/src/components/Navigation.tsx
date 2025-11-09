@@ -159,7 +159,7 @@ export default function Navigation() {
                                 backgroundColor: '#00FF91',
                                 color: '#051323',
                             }}
-                            onClick={() => navigate('/donate')}
+                            onClick={() => window.open('https://givebutter.com/somostech', '_blank')}
                         >
                             Donate
                         </Button>
@@ -299,7 +299,7 @@ export default function Navigation() {
                                     color: '#051323',
                                 }}
                                 onClick={() => {
-                                    navigate('/donate');
+                                    window.open('https://givebutter.com/somostech', '_blank');
                                     setIsMobileMenuOpen(false);
                                 }}
                             >
