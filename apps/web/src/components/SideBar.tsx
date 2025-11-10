@@ -1,4 +1,4 @@
-import { Building2, Calendar, ChevronDown, ChevronRight, Handshake, Inbox, Settings, Shield, Sparkles, Ticket, Users } from "lucide-react";
+import { Building2, Calendar, ChevronDown, ChevronRight, Handshake, Inbox, Settings, Shield, Sparkles, Ticket, Users, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
@@ -14,7 +14,8 @@ export default function Sidebar() {
 
     const adminSubItems = [
         { label: "Events", icon: <Calendar className="h-4 w-4" />, path: "/admin/events" },
-        { label: "Admin Users", icon: <Shield className="h-4 w-4" />, path: "/admin/users" }
+        { label: "Admin Users", icon: <Shield className="h-4 w-4" />, path: "/admin/users" },
+        { label: "API Health", icon: <Activity className="h-4 w-4" />, path: "/admin/health" }
     ];
 
     return (

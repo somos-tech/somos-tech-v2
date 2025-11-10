@@ -5,6 +5,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import AdminEvents from './pages/AdminEvents'
 import AdminGroups from './pages/AdminGroups'
 import AdminUsers from './pages/AdminUsers'
+import APIHealthDashboard from './pages/APIHealthDashboard'
 import Login from './pages/Login'
 import AdminLogin from './pages/AdminLogin'
 import Register from './pages/Register'
@@ -13,6 +14,7 @@ import Unauthorized from './pages/Unauthorized'
 import Donate from './pages/Donate'
 import Navigation from './components/Navigation'
 import ProtectedRoute from './components/ProtectedRoute'
+import { HealthBanner } from './components/HealthBanner'
 import './index.css'
 
 function AppContent() {
@@ -24,6 +26,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: isAdminPage ? '#0a1f35' : '#051323' }}>
+      {isAdminPage && !isAuthPage && <HealthBanner />}
       {!isAuthPage && (
         <div style={{ position: 'relative', zIndex: 50 }}>
           <Navigation />
@@ -74,6 +77,22 @@ function AppContent() {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <AdminUsers />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/health" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <APIHealthDashboard />
+              </ProtectedRoute>
+            } 
+          />
+        </Routes>
+            path="/admin/health" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <APIHealthDashboard />
               </ProtectedRoute>
             } 
           />
