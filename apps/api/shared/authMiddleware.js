@@ -210,7 +210,7 @@ function logAuthEvent(context, request, action, resource, allowed) {
 }
 
 // Export functions
-module.exports = {
+export {
     getClientPrincipal,
     isAuthenticated,
     hasRole,

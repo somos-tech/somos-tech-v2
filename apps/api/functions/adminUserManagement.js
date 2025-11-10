@@ -1,7 +1,7 @@
-const { app } = require('@azure/functions');
-const userService = require('../shared/services/userService');
-const { createSuccessResponse, createErrorResponse } = require('../shared/httpResponse');
-const { requireAuth, requireAdmin, getCurrentUser } = require('../shared/authMiddleware');
+import { app } from '@azure/functions';
+import * as userService from '../shared/services/userService.js';
+import { createSuccessResponse, createErrorResponse } from '../shared/httpResponse.js';
+import { requireAuth, requireAdmin, getCurrentUser } from '../shared/authMiddleware.js';
 
 /**
  * GET /api/admin/users - List all users with pagination and filtering
