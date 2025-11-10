@@ -4,9 +4,11 @@
  */
 
 // SECURITY: Development mode authentication should ONLY be enabled in local development
-// This is controlled by NODE_ENV environment variable
+// This is controlled by NODE_ENV or AZURE_FUNCTIONS_ENVIRONMENT environment variable
 // Never enable this in production
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = process.env.NODE_ENV === 'development' || 
+                      process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
+                      process.env.NODE_ENV === 'dev';
 
 /**
  * Get mock client principal for local development
@@ -40,14 +42,17 @@ function getClientPrincipal(request) {
             // SECURITY: In local development, use mock authentication
             // This matches the frontend's mock auth behavior
             if (isDevelopment) {
+                console.log('[Auth] Using mock authentication (dev mode)');
                 return getMockClientPrincipal();
             }
+            console.log('[Auth] No client principal header found');
             return null;
         }
 
         // Decode the base64 encoded client principal
         const decoded = Buffer.from(clientPrincipalHeader, 'base64').toString('utf-8');
         const clientPrincipal = JSON.parse(decoded);
+        console.log('[Auth] Client principal found:', clientPrincipal.userDetails);
 
         return clientPrincipal;
     } catch (error) {
