@@ -1,7 +1,7 @@
 import type { AdminUser, CreateAdminUserDto, UpdateAdminUserDto } from '@/shared/types';
 
 const API_BASE_URL = import.meta.env?.VITE_API_URL || '';
-const API_PATH = API_BASE_URL ? `${API_BASE_URL}/adminusers` : '/api/adminusers';
+const API_PATH = API_BASE_URL ? `${API_BASE_URL}/admin-users` : '/api/admin-users';
 
 export const adminUsersService = {
     /**
