@@ -140,17 +140,19 @@ export default function Navigation() {
                         {isAuthenticated && (
                             <>
                                 <NotificationPanel />
-                                <Button
-                                    className="hidden md:flex items-center gap-2 rounded-full px-6 transition-all hover:scale-105"
-                                    style={{
-                                        backgroundColor: '#00D4FF',
-                                        color: '#051323',
-                                    }}
-                                    onClick={() => navigate('/admin')}
-                                >
-                                    <Settings size={16} />
-                                    Admin
-                                </Button>
+                                {user?.userDetails?.toLowerCase().endsWith('@somos.tech') && (
+                                    <Button
+                                        className="hidden md:flex items-center gap-2 rounded-full px-6 transition-all hover:scale-105"
+                                        style={{
+                                            backgroundColor: '#00D4FF',
+                                            color: '#051323',
+                                        }}
+                                        onClick={() => navigate('/admin')}
+                                    >
+                                        <Settings size={16} />
+                                        Admin
+                                    </Button>
+                                )}
                             </>
                         )}
                         <Button
@@ -276,20 +278,22 @@ export default function Navigation() {
                                     <div className="px-4 py-2">
                                         <NotificationPanel />
                                     </div>
-                                    <Button
-                                        className="w-full rounded-full flex items-center justify-center gap-2"
-                                        style={{
-                                            backgroundColor: '#00D4FF',
-                                            color: '#051323',
-                                        }}
-                                        onClick={() => {
-                                            navigate('/admin');
-                                            setIsMobileMenuOpen(false);
-                                        }}
-                                    >
-                                        <Settings size={16} />
-                                        Admin
-                                    </Button>
+                                    {user?.userDetails?.toLowerCase().endsWith('@somos.tech') && (
+                                        <Button
+                                            className="w-full rounded-full flex items-center justify-center gap-2"
+                                            style={{
+                                                backgroundColor: '#00D4FF',
+                                                color: '#051323',
+                                            }}
+                                            onClick={() => {
+                                                navigate('/admin');
+                                                setIsMobileMenuOpen(false);
+                                            }}
+                                        >
+                                            <Settings size={16} />
+                                            Admin
+                                        </Button>
+                                    )}
                                 </>
                             )}
                             <Button
