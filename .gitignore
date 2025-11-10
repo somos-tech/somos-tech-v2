@@ -46,4 +46,4 @@ Thumbs.db
 
 # Testing
 coverage
-*.test.local
+*.test.localapps/api/*.zip
