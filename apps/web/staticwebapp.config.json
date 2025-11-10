@@ -1,10 +1,6 @@
 {
     "routes": [
         {
-            "route": "/api/*",
-            "allowedRoles": ["authenticated", "anonymous"]
-        },
-        {
             "route": "/",
             "allowedRoles": [
                 "anonymous"
@@ -41,22 +37,8 @@
             ]
         },
         {
-            "route": "/api/GetUserRoles",
-            "allowedRoles": [
-                "anonymous"
-            ]
-        },
-        {
-            "route": "/api/register",
-            "allowedRoles": [
-                "anonymous"
-            ]
-        },
-        {
             "route": "/api/*",
-            "allowedRoles": [
-                "authenticated"
-            ]
+            "allowedRoles": ["authenticated", "anonymous"]
         }
     ],
     "navigationFallback": {
