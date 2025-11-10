@@ -1,12 +1,20 @@
 import { CosmosClient } from '@azure/cosmos';
+import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity';
 
-// Initialize Cosmos DB client
-const client = new CosmosClient({
-  endpoint: process.env.COSMOS_ENDPOINT,
-  key: process.env.COSMOS_KEY
-});
+// Initialize Cosmos DB client with managed identity
+const endpoint = process.env.COSMOS_ENDPOINT;
+const databaseName = process.env.COSMOS_DATABASE_NAME || 'somostech';
 
-const database = client.database(process.env.COSMOS_DATABASE_NAME || 'somostech');
+if (!endpoint) {
+  throw new Error('COSMOS_ENDPOINT environment variable is required');
+}
+
+const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' || 
+                process.env.NODE_ENV === 'development';
+const credential = isLocal ? new DefaultAzureCredential() : new ManagedIdentityCredential();
+
+const client = new CosmosClient({ endpoint, aadCredentials: credential });
+const database = client.database(databaseName);
 const container = database.container('users');
 
 /**

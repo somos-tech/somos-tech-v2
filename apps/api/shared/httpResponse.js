@@ -25,6 +25,10 @@ export function errorResponse(error, statusCode = 500) {
     });
 }
 
+// Aliases for compatibility
+export const createSuccessResponse = successResponse;
+export const createErrorResponse = errorResponse;
+
 export function notFoundResponse(message = 'Resource not found') {
     return errorResponse(message, 404);
 }
