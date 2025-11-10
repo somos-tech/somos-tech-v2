@@ -67,9 +67,29 @@
         "identityProviders": {
             "azureActiveDirectory": {
                 "registration": {
-                    "openIdIssuer": "https://login.microsoftonline.com/cff2ae9c-4810-4a92-a3e8-46e649cbdbe4/v2.0",
-                    "clientIdSettingName": "AZURE_CLIENT_ID",
-                    "clientSecretSettingName": "AZURE_CLIENT_SECRET"
+                    "openIdIssuer": "https://login.microsoftonline.com/ea315caf-5fa1-4348-a3f8-e50867ae19d4/v2.0",
+                    "clientIdSettingName": "EXTERNAL_ADMIN_CLIENT_ID",
+                    "clientSecretSettingName": "EXTERNAL_ADMIN_CLIENT_SECRET"
+                },
+                "login": {
+                    "loginParameters": ["scope=openid profile email"]
+                }
+            },
+            "customOpenIdConnectProviders": {
+                "member": {
+                    "registration": {
+                        "clientIdSettingName": "EXTERNAL_MEMBER_CLIENT_ID",
+                        "clientCredential": {
+                            "clientSecretSettingName": "EXTERNAL_MEMBER_CLIENT_SECRET"
+                        },
+                        "openIdConnectConfiguration": {
+                            "wellKnownOpenIdConfiguration": "https://somostechus.ciamlogin.com/somostechus.onmicrosoft.com/v2.0/.well-known/openid-configuration?appid=2be101c5-90d9-4764-b30c-0ba3fa3b4a27"
+                        }
+                    },
+                    "login": {
+                        "nameClaimType": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+                        "scopes": ["openid", "profile", "email"]
+                    }
                 }
             }
         }
