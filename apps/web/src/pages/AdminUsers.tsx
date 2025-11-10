@@ -21,6 +21,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { AdminNav } from '@/components/AdminNav';
 import type { AdminUser } from '@/shared/types';
 import type { UserProfile } from '@/types/user';
 import { adminUsersService } from '@/api/adminUsersService';
@@ -187,6 +188,9 @@ export default function AdminUsers() {
     return (
         <div className="min-h-screen p-8" style={{ backgroundColor: '#051323' }}>
             <div className="max-w-6xl mx-auto">
+                {/* Admin Navigation */}
+                <AdminNav />
+                
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">

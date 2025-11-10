@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type React from 'react';
 import { Activity, AlertCircle, CheckCircle, AlertTriangle, RefreshCw, Clock, Server, Database, Settings, Zap } from 'lucide-react';
+import { AdminNav } from '@/components/AdminNav';
 import { 
   getHealthCheck, 
   type HealthCheckResponse, 
@@ -91,8 +92,11 @@ export default function APIHealthDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen py-8" style={{ backgroundColor: '#051323' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Admin Navigation */}
+        <AdminNav />
+        
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
