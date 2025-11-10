@@ -24,7 +24,7 @@ function getCosmosClient() {
 app.http('adminUsersSimple', {
     methods: ['GET'],
     authLevel: 'anonymous',
-    route: 'admin-users/{action?}',
+    route: 'adminusers/{action?}',
     handler: async (request, context) => {
         try {
             const action = request.params.action || 'list';
