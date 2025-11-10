@@ -40,6 +40,23 @@ param azureAdClientId string
 @secure()
 param azureAdClientSecret string
 
+@description('External ID Tenant ID for CIAM authentication')
+param externalTenantId string = ''
+
+@description('External ID Admin Client ID for CIAM authentication')
+param externalAdminClientId string = ''
+
+@description('External ID Admin Client Secret for CIAM authentication')
+@secure()
+param externalAdminClientSecret string = ''
+
+@description('External ID Member Client ID for CIAM authentication')
+param externalMemberClientId string = ''
+
+@description('External ID Member Client Secret for CIAM authentication')
+@secure()
+param externalMemberClientSecret string = ''
+
 @description('GitHub OAuth Client ID (optional)')
 param githubClientId string = ''
 
@@ -261,6 +278,59 @@ resource adminUserContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/
   }
 }
 
+// Cosmos DB Container for Users
+resource userContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15' = {
+  parent: cosmosDatabase
+  name: 'users'
+  properties: {
+    resource: {
+      id: 'users'
+      partitionKey: {
+        paths: [
+          '/id'
+        ]
+        kind: 'Hash'
+        version: 2
+      }
+      indexingPolicy: {
+        indexingMode: 'consistent'
+        automatic: true
+        includedPaths: [
+          {
+            path: '/*'
+          }
+        ]
+        excludedPaths: [
+          {
+            path: '/"_etag"/?'
+          }
+        ]
+        compositeIndexes: [
+          [
+            {
+              path: '/status'
+              order: 'ascending'
+            }
+            {
+              path: '/createdAt'
+              order: 'descending'
+            }
+          ]
+        ]
+      }
+      uniqueKeyPolicy: {
+        uniqueKeys: [
+          {
+            paths: [
+              '/email'
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
+
 // Cosmos DB Container for Notifications
 resource notificationContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15' = {
   parent: cosmosDatabase
@@ -381,6 +451,10 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'COSMOS_ENDPOINT'
           value: cosmosDbAccount.properties.documentEndpoint
+        }
+        {
+          name: 'COSMOS_KEY'
+          value: cosmosDbAccount.listKeys().primaryMasterKey
         }
         {
           name: 'COSMOS_DATABASE_NAME'
@@ -517,6 +591,15 @@ resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2023-01-01' = {
       AZURE_CLIENT_SECRET: azureAdClientSecret
       AZURE_TENANT_ID: azureAdTenantId
     },
+    !empty(externalTenantId) && !empty(externalAdminClientId) && !empty(externalMemberClientId)
+      ? {
+          EXTERNAL_TENANT_ID: externalTenantId
+          EXTERNAL_ADMIN_CLIENT_ID: externalAdminClientId
+          EXTERNAL_ADMIN_CLIENT_SECRET: externalAdminClientSecret
+          EXTERNAL_MEMBER_CLIENT_ID: externalMemberClientId
+          EXTERNAL_MEMBER_CLIENT_SECRET: externalMemberClientSecret
+        }
+      : {},
     !empty(githubClientId)
       ? {
           GITHUB_CLIENT_ID: githubClientId
