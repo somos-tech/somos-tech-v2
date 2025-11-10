@@ -2,7 +2,8 @@ import { app } from '@azure/functions';
 import { CosmosClient } from '@azure/cosmos';
 import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity';
 
-// Simple admin users endpoint without complex dependencies
+// Simple admin users endpoint without complex dependencies  
+// Updated to ensure deployment propagation
 const endpoint = process.env.COSMOS_ENDPOINT;
 const databaseId = process.env.COSMOS_DATABASE_NAME || 'somostech';
 const containerId = 'admin-users';
