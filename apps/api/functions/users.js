@@ -190,13 +190,18 @@ app.http('syncUserProfile', {
   route: 'users/sync',
   handler: async (request, context) => {
     try {
+      context.log('[syncUserProfile] Starting sync...');
+      
       // Check authentication
       const authResult = await requireAuth(request);
+      context.log('[syncUserProfile] Auth result:', authResult);
+      
       if (!authResult.authenticated) {
         return errorResponse('Authentication required', 401);
       }
 
       const currentUser = getCurrentUser(request);
+      context.log('[syncUserProfile] Current user:', currentUser?.userDetails);
       
       // Get or create user profile
       const user = await userService.getOrCreateUser({
@@ -206,6 +211,8 @@ app.http('syncUserProfile', {
         identityProvider: currentUser.identityProvider,
         emailVerified: currentUser.claims?.find(c => c.typ === 'email_verified')?.val === 'true'
       });
+
+      context.log('[syncUserProfile] User synced successfully');
 
       // Check if user is blocked
       if (user.status === 'blocked') {
@@ -217,8 +224,8 @@ app.http('syncUserProfile', {
         isNewUser: user.metadata?.firstLogin || false
       });
     } catch (error) {
-      context.error('Error syncing user profile:', error);
-      return errorResponse('Failed to sync user profile', 500);
+      context.error('[syncUserProfile] Error:', error.message, error.stack);
+      return errorResponse(`Failed to sync user profile: ${error.message}`, 500);
     }
   }
 });
