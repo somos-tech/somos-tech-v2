@@ -1,6 +1,12 @@
 {
     "routes": [
         {
+            "route": "/api/*",
+            "allowedRoles": ["authenticated", "anonymous"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+            "rewrite": "https://func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net{uri}"
+        },
+        {
             "route": "/",
             "allowedRoles": [
                 "anonymous"
