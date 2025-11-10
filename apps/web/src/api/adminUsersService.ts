@@ -16,7 +16,8 @@ export const adminUsersService = {
             throw new Error(`Failed to fetch admin users: ${response.statusText}`);
         }
 
-        return response.json();
+        const result = await response.json();
+        return result.data;
     },
 
     /**
@@ -31,7 +32,8 @@ export const adminUsersService = {
             throw new Error(`Failed to fetch admin user: ${response.statusText}`);
         }
 
-        return response.json();
+        const result = await response.json();
+        return result.data;
     },
 
     /**
@@ -52,7 +54,8 @@ export const adminUsersService = {
             throw new Error(error.message || `Failed to create admin user: ${response.statusText}`);
         }
 
-        return response.json();
+        const result = await response.json();
+        return result.data;
     },
 
     /**
@@ -73,7 +76,8 @@ export const adminUsersService = {
             throw new Error(error.message || `Failed to update admin user: ${response.statusText}`);
         }
 
-        return response.json();
+        const result = await response.json();
+        return result.data;
     },
 
     /**

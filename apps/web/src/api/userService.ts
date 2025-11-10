@@ -103,7 +103,7 @@ export async function listUsers(options: {
   if (options.status) params.append('status', options.status);
   if (options.search) params.append('search', options.search);
 
-  const response = await fetch(`${API_URL}/api/admin-users/list?${params}`, {
+  const response = await fetch(`${API_URL}/api/admin/users?${params}`, {
     credentials: 'include',
   });
 
@@ -120,7 +120,7 @@ export async function listUsers(options: {
  * Get user by ID (admin only - returns full profile)
  */
 export async function getAdminUserById(userId: string): Promise<UserProfile> {
-  const response = await fetch(`${API_URL}/api/admin-users/${userId}`, {
+  const response = await fetch(`${API_URL}/api/admin/users/${userId}`, {
     credentials: 'include',
   });
 
@@ -140,7 +140,7 @@ export async function updateUserStatus(
   userId: string,
   statusUpdate: UserStatusUpdate
 ): Promise<UserProfile> {
-  const response = await fetch(`${API_URL}/api/admin-users/${userId}/status`, {
+  const response = await fetch(`${API_URL}/api/admin/users/${userId}/status`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -162,7 +162,7 @@ export async function updateUserStatus(
  * Get user statistics (admin only)
  */
 export async function getUserStats(): Promise<UserStats> {
-  const response = await fetch(`${API_URL}/api/admin-users/stats`, {
+  const response = await fetch(`${API_URL}/api/admin/users/stats`, {
     credentials: 'include',
   });
 
@@ -179,7 +179,7 @@ export async function getUserStats(): Promise<UserStats> {
  * Delete user (admin only - soft delete by blocking)
  */
 export async function deleteUser(userId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/api/admin-users/${userId}`, {
+  const response = await fetch(`${API_URL}/api/admin/users/${userId}`, {
     method: 'DELETE',
     credentials: 'include',
   });

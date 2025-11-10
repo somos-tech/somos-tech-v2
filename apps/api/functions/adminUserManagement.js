@@ -4,12 +4,12 @@ import { successResponse, errorResponse } from '../shared/httpResponse.js';
 import { requireAuth, requireAdmin, getCurrentUser } from '../shared/authMiddleware.js';
 
 /**
- * GET /api/admin-users/list - List all users with pagination and filtering
+ * GET /api/admin/users - List all users with pagination and filtering
  */
 app.http('adminListUsers', {
   methods: ['GET'],
   authLevel: 'anonymous',
-  route: 'admin-users/list',
+  route: 'admin/users',
   handler: async (request, context) => {
     try {
       // Check admin authentication
@@ -55,12 +55,12 @@ app.http('adminListUsers', {
 });
 
 /**
- * GET /api/admin-users/:id - Get user details by ID
+ * GET /api/admin/users/:id - Get user details by ID
  */
 app.http('adminGetUser', {
   methods: ['GET'],
   authLevel: 'anonymous',
-  route: 'admin-users/{id}',
+  route: 'admin/users/{id}',
   handler: async (request, context) => {
     try {
       // Check admin authentication
@@ -93,12 +93,12 @@ app.http('adminGetUser', {
 });
 
 /**
- * PUT /api/admin-users/:id/status - Update user status (block/allow)
+ * PUT /api/admin/users/:id/status - Update user status (block/allow)
  */
 app.http('adminUpdateUserStatus', {
   methods: ['PUT'],
   authLevel: 'anonymous',
-  route: 'admin-users/{id}/status',
+  route: 'admin/users/{id}/status',
   handler: async (request, context) => {
     try {
       // Check admin authentication
@@ -157,12 +157,12 @@ app.http('adminUpdateUserStatus', {
 });
 
 /**
- * GET /api/admin-users/stats - Get user statistics
+ * GET /api/admin/users/stats - Get user statistics
  */
 app.http('adminGetUserStats', {
   methods: ['GET'],
   authLevel: 'anonymous',
-  route: 'admin-users/stats',
+  route: 'admin/users/stats',
   handler: async (request, context) => {
     try {
       // Check admin authentication
@@ -185,12 +185,12 @@ app.http('adminGetUserStats', {
 });
 
 /**
- * DELETE /api/admin-users/:id - Delete user (soft delete by blocking)
+ * DELETE /api/admin/users/:id - Delete user (soft delete by blocking)
  */
 app.http('adminDeleteUser', {
   methods: ['DELETE'],
   authLevel: 'anonymous',
-  route: 'admin-users/{id}',
+  route: 'admin/users/{id}',
   handler: async (request, context) => {
     try {
       // Check admin authentication
