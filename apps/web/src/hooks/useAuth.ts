@@ -73,6 +73,17 @@ export function useAuth(): AuthState {
                         isAdmin: isAdminUser,
                         isLoading: false,
                     });
+
+                    // Sync user to database (creates user profile if doesn't exist)
+                    try {
+                        await fetch('/api/users/sync', {
+                            method: 'POST',
+                            credentials: 'include',
+                        });
+                    } catch (error) {
+                        console.error('Failed to sync user profile:', error);
+                        // Don't block authentication if sync fails
+                    }
                 } else {
                     setAuthState({
                         user: null,
