@@ -89,14 +89,6 @@ function AppContent() {
             } 
           />
         </Routes>
-            path="/admin/health" 
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <APIHealthDashboard />
-              </ProtectedRoute>
-            } 
-          />
-        </Routes>
       </main>
     </div>
   );
