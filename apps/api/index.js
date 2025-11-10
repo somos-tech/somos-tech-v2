@@ -7,5 +7,6 @@ import "./functions/notifications.js";
 import "./functions/users.js";
 import "./functions/health.js";
 import "./functions/healthCheck.js";
+import "./functions/testAdmin.js";
 import "./functions/adminUsers.js";
 import "./functions/adminUserManagement.js";
