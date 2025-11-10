@@ -16,8 +16,8 @@ app.http('healthCheck', {
     try {
       // Check if user is admin
       const authResult = await requireAdmin(request);
-      if (!authResult.authenticated) {
-        return errorResponse('Admin access required', 403);
+      if (!authResult.authenticated || !authResult.isAdmin) {
+        return errorResponse(authResult.message || 'Admin access required', authResult.status || 403);
       }
 
       const checks = [];

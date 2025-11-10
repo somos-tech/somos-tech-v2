@@ -114,9 +114,9 @@ app.http('adminUsers', {
             }
 
             // All other endpoints require admin role
-            const adminError = requireAdmin(request);
-            if (adminError) {
-                return adminError;
+            const authResult = await requireAdmin(request);
+            if (!authResult.authenticated || !authResult.isAdmin) {
+                return errorResponse(authResult.status || 403, authResult.error || 'Admin access required', authResult.message);
             }
 
             // GET: List all admin users

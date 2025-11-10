@@ -1,23 +1,32 @@
 import { useEffect, useState } from 'react';
 import { AlertCircle, X } from 'lucide-react';
 import { getHealthCheck, type HealthCheckResponse, getCriticalFailures } from '../api/healthService';
+import { useAuth } from '../hooks/useAuth';
 
 /**
  * Health Banner Component
  * Displays a red banner at the top of the admin portal when APIs are unhealthy
  */
 export function HealthBanner() {
+  const { user } = useAuth();
   const [healthData, setHealthData] = useState<HealthCheckResponse | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
 
+  // Only check health if user is an admin
+  const isAdmin = user?.userRoles?.includes('admin') || user?.userRoles?.includes('administrator');
+
   useEffect(() => {
+    if (!isAdmin) {
+      return;
+    }
+
     // Check health on mount and every 60 seconds
     checkHealth();
     const interval = setInterval(checkHealth, 60000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     // Show banner if system is unhealthy and not dismissed
