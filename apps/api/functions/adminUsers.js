@@ -128,6 +128,22 @@ app.http('adminUsers', {
                 return successResponse(users);
             }
 
+            // GET: Get admin users statistics
+            if (method === 'GET' && action === 'stats') {
+                const { resources: users } = await container.items
+                    .query('SELECT * FROM c')
+                    .fetchAll();
+
+                const stats = {
+                    total: users.length,
+                    active: users.filter(u => u.status === 'active').length,
+                    inactive: users.filter(u => u.status === 'inactive').length,
+                    blocked: users.filter(u => u.status === 'blocked').length
+                };
+
+                return successResponse(stats);
+            }
+
             // POST: Create/Add new admin user
             if (method === 'POST') {
                 const body = await request.json();
