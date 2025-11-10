@@ -1,4 +1,4 @@
-const { CosmosClient } = require('@azure/cosmos');
+import { CosmosClient } from '@azure/cosmos';
 
 // Initialize Cosmos DB client
 const client = new CosmosClient({
@@ -325,7 +325,7 @@ function determineAuthProvider(userData) {
   return AuthProvider.EXTERNAL_ID;
 }
 
-module.exports = {
+export {
   UserStatus,
   AuthProvider,
   createUser,

@@ -1,7 +1,7 @@
-const { app } = require('@azure/functions');
-const userService = require('../shared/services/userService');
-const { createSuccessResponse, createErrorResponse } = require('../shared/httpResponse');
-const { requireAuth, getCurrentUser } = require('../shared/authMiddleware');
+import { app } from '@azure/functions';
+import * as userService from '../shared/services/userService.js';
+import { successResponse, errorResponse } from '../shared/httpResponse.js';
+import { requireAuth, getCurrentUser } from '../shared/authMiddleware.js';
 
 /**
  * GET /api/users/me - Get current user profile
@@ -15,7 +15,7 @@ app.http('getUserProfile', {
       // Check authentication
       const authResult = await requireAuth(request);
       if (!authResult.authenticated) {
-        return createErrorResponse('Authentication required', 401);
+        return errorResponse('Authentication required', 401);
       }
 
       const currentUser = getCurrentUser(request);
@@ -29,17 +29,17 @@ app.http('getUserProfile', {
       });
 
       // Check if user is blocked
-      if (user.status === userService.UserStatus.BLOCKED) {
-        return createErrorResponse('Your account has been blocked. Please contact support.', 403);
+      if (user.status === 'blocked') {
+        return errorResponse('Your account has been blocked. Please contact support.', 403);
       }
 
       // Remove sensitive fields
       const { statusChangedBy, ...safeUser } = user;
 
-      return createSuccessResponse(safeUser);
+      return successResponse(safeUser);
     } catch (error) {
       context.error('Error getting user profile:', error);
-      return createErrorResponse('Failed to get user profile', 500);
+      return errorResponse('Failed to get user profile', 500);
     }
   }
 });
@@ -56,7 +56,7 @@ app.http('updateUserProfile', {
       // Check authentication
       const authResult = await requireAuth(request);
       if (!authResult.authenticated) {
-        return createErrorResponse('Authentication required', 401);
+        return errorResponse('Authentication required', 401);
       }
 
       const currentUser = getCurrentUser(request);
@@ -64,7 +64,7 @@ app.http('updateUserProfile', {
       // Check if user is blocked
       const isBlocked = await userService.isUserBlocked(currentUser.userId);
       if (isBlocked) {
-        return createErrorResponse('Your account has been blocked', 403);
+        return errorResponse('Your account has been blocked', 403);
       }
 
       // Parse request body
@@ -75,16 +75,16 @@ app.http('updateUserProfile', {
       const invalidFields = Object.keys(updates).filter(key => !allowedFields.includes(key));
       
       if (invalidFields.length > 0) {
-        return createErrorResponse(`Invalid fields: ${invalidFields.join(', ')}`, 400);
+        return errorResponse(`Invalid fields: ${invalidFields.join(', ')}`, 400);
       }
 
       // Validate displayName
       if (updates.displayName !== undefined) {
         if (typeof updates.displayName !== 'string' || updates.displayName.trim().length === 0) {
-          return createErrorResponse('Display name cannot be empty', 400);
+          return errorResponse('Display name cannot be empty', 400);
         }
         if (updates.displayName.length > 100) {
-          return createErrorResponse('Display name must be 100 characters or less', 400);
+          return errorResponse('Display name must be 100 characters or less', 400);
         }
         updates.displayName = updates.displayName.trim();
       }
@@ -92,50 +92,50 @@ app.http('updateUserProfile', {
       // Validate profilePicture URL
       if (updates.profilePicture !== undefined && updates.profilePicture !== null) {
         if (typeof updates.profilePicture !== 'string') {
-          return createErrorResponse('Profile picture must be a URL string', 400);
+          return errorResponse('Profile picture must be a URL string', 400);
         }
         // Basic URL validation
         try {
           new URL(updates.profilePicture);
         } catch {
-          return createErrorResponse('Invalid profile picture URL', 400);
+          return errorResponse('Invalid profile picture URL', 400);
         }
       }
 
       // Validate bio
       if (updates.bio !== undefined && updates.bio !== null) {
         if (typeof updates.bio !== 'string') {
-          return createErrorResponse('Bio must be a string', 400);
+          return errorResponse('Bio must be a string', 400);
         }
         if (updates.bio.length > 500) {
-          return createErrorResponse('Bio must be 500 characters or less', 400);
+          return errorResponse('Bio must be 500 characters or less', 400);
         }
       }
 
       // Validate website
       if (updates.website !== undefined && updates.website !== null) {
         if (typeof updates.website !== 'string') {
-          return createErrorResponse('Website must be a URL string', 400);
+          return errorResponse('Website must be a URL string', 400);
         }
         try {
           new URL(updates.website);
         } catch {
-          return createErrorResponse('Invalid website URL', 400);
+          return errorResponse('Invalid website URL', 400);
         }
       }
 
       // Update user
       const updatedUser = await userService.updateUser(currentUser.userId, updates);
 
-      return createSuccessResponse(updatedUser);
+      return successResponse(updatedUser);
     } catch (error) {
       context.error('Error updating user profile:', error);
       
       if (error.message === 'User not found') {
-        return createErrorResponse('User not found', 404);
+        return errorResponse('User not found', 404);
       }
       
-      return createErrorResponse('Failed to update user profile', 500);
+      return errorResponse('Failed to update user profile', 500);
     }
   }
 });
@@ -152,13 +152,13 @@ app.http('getUserById', {
       const userId = request.params.id;
 
       if (!userId) {
-        return createErrorResponse('User ID is required', 400);
+        return errorResponse('User ID is required', 400);
       }
 
       const user = await userService.getUserById(userId);
 
       if (!user) {
-        return createErrorResponse('User not found', 404);
+        return errorResponse('User not found', 404);
       }
 
       // Return only public fields
@@ -172,10 +172,10 @@ app.http('getUserById', {
         createdAt: user.createdAt
       };
 
-      return createSuccessResponse(publicUser);
+      return successResponse(publicUser);
     } catch (error) {
       context.error('Error getting user by ID:', error);
-      return createErrorResponse('Failed to get user', 500);
+      return errorResponse('Failed to get user', 500);
     }
   }
 });
@@ -193,7 +193,7 @@ app.http('syncUserProfile', {
       // Check authentication
       const authResult = await requireAuth(request);
       if (!authResult.authenticated) {
-        return createErrorResponse('Authentication required', 401);
+        return errorResponse('Authentication required', 401);
       }
 
       const currentUser = getCurrentUser(request);
@@ -208,17 +208,17 @@ app.http('syncUserProfile', {
       });
 
       // Check if user is blocked
-      if (user.status === userService.UserStatus.BLOCKED) {
-        return createErrorResponse('Your account has been blocked', 403);
+      if (user.status === 'blocked') {
+        return errorResponse('Your account has been blocked', 403);
       }
 
-      return createSuccessResponse({
+      return successResponse({
         user,
         isNewUser: user.metadata?.firstLogin || false
       });
     } catch (error) {
       context.error('Error syncing user profile:', error);
-      return createErrorResponse('Failed to sync user profile', 500);
+      return errorResponse('Failed to sync user profile', 500);
     }
   }
 });
