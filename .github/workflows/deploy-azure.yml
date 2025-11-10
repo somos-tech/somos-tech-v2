@@ -172,5 +172,6 @@ jobs:
           output_location: 'dist'
           skip_app_build: false
         env:
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          # Do NOT set VITE_API_URL - let the Static Web App proxy handle API routing
+          # VITE_API_URL: ${{ vars.VITE_API_URL }}
           VITE_ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
