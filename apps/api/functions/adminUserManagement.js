@@ -5,6 +5,7 @@ import { requireAuth, requireAdmin, getCurrentUser } from '../shared/authMiddlew
 
 /**
  * GET /api/admin/users - List all users with pagination and filtering
+ * GET /api/admin/users?stats=true - Get user statistics
  */
 app.http('adminListUsers', {
   methods: ['GET'],
@@ -23,6 +24,14 @@ app.http('adminListUsers', {
 
       // Parse query parameters
       const url = new URL(request.url);
+      const statsParam = url.searchParams.get('stats');
+      
+      // If stats=true, return user statistics instead of list
+      if (statsParam === 'true') {
+        const stats = await userService.getUserStats();
+        return successResponse(stats);
+      }
+
       const limit = parseInt(url.searchParams.get('limit') || '50');
       const continuationToken = url.searchParams.get('continuationToken') || null;
       const status = url.searchParams.get('status') || null;
@@ -49,7 +58,7 @@ app.http('adminListUsers', {
       return successResponse(result);
     } catch (error) {
       context.error('Error listing users:', error);
-      return errorResponse(500, 'Failed to list users');
+      return errorResponse(500, 'Failed to list users or stats');
     }
   }
 });
@@ -152,34 +161,6 @@ app.http('adminUpdateUserStatus', {
       }
       
       return errorResponse(500, 'Failed to update user status');
-    }
-  }
-});
-
-/**
- * GET /api/admin/users/stats - Get user statistics
- */
-app.http('adminGetUserStats', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'admin/users/stats',
-  handler: async (request, context) => {
-    try {
-      // Check admin authentication
-      const authResult = await requireAdmin(request);
-      if (!authResult.authenticated) {
-        return errorResponse(401, 'Authentication required');
-      }
-      if (!authResult.isAdmin) {
-        return errorResponse(403, 'Admin access required');
-      }
-
-      const stats = await userService.getUserStats();
-
-      return successResponse(stats);
-    } catch (error) {
-      context.error('Error getting user stats:', error);
-      return errorResponse(500, 'Failed to get user stats');
     }
   }
 });

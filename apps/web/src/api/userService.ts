@@ -162,7 +162,7 @@ export async function updateUserStatus(
  * Get user statistics (admin only)
  */
 export async function getUserStats(): Promise<UserStats> {
-  const response = await fetch(`${API_URL}/api/admin/users/stats`, {
+  const response = await fetch(`${API_URL}/api/admin/users?stats=true`, {
     credentials: 'include',
   });
 
