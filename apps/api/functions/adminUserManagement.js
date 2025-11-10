@@ -1,6 +1,6 @@
 import { app } from '@azure/functions';
 import * as userService from '../shared/services/userService.js';
-import { createSuccessResponse, createErrorResponse } from '../shared/httpResponse.js';
+import { successResponse, errorResponse } from '../shared/httpResponse.js';
 import { requireAuth, requireAdmin, getCurrentUser } from '../shared/authMiddleware.js';
 
 /**
@@ -15,10 +15,10 @@ app.http('adminListUsers', {
       // Check admin authentication
       const authResult = await requireAdmin(request);
       if (!authResult.authenticated) {
-        return createErrorResponse('Authentication required', 401);
+        return errorResponse(401, 'Authentication required');
       }
       if (!authResult.isAdmin) {
-        return createErrorResponse('Admin access required', 403);
+        return errorResponse(403, 'Admin access required');
       }
 
       // Parse query parameters
@@ -30,12 +30,12 @@ app.http('adminListUsers', {
 
       // Validate limit
       if (limit < 1 || limit > 100) {
-        return createErrorResponse('Limit must be between 1 and 100', 400);
+        return errorResponse(400, 'Limit must be between 1 and 100');
       }
 
       // Validate status
       if (status && !Object.values(userService.UserStatus).includes(status)) {
-        return createErrorResponse('Invalid status value', 400);
+        return errorResponse(400, 'Invalid status value');
       }
 
       // Get users
@@ -46,10 +46,10 @@ app.http('adminListUsers', {
         search
       });
 
-      return createSuccessResponse(result);
+      return successResponse(result);
     } catch (error) {
       context.error('Error listing users:', error);
-      return createErrorResponse('Failed to list users', 500);
+      return errorResponse(500, 'Failed to list users');
     }
   }
 });
@@ -66,28 +66,28 @@ app.http('adminGetUser', {
       // Check admin authentication
       const authResult = await requireAdmin(request);
       if (!authResult.authenticated) {
-        return createErrorResponse('Authentication required', 401);
+        return errorResponse(401, 'Authentication required');
       }
       if (!authResult.isAdmin) {
-        return createErrorResponse('Admin access required', 403);
+        return errorResponse(403, 'Admin access required');
       }
 
       const userId = request.params.id;
 
       if (!userId) {
-        return createErrorResponse('User ID is required', 400);
+        return errorResponse(400, 'User ID is required');
       }
 
       const user = await userService.getUserById(userId);
 
       if (!user) {
-        return createErrorResponse('User not found', 404);
+        return errorResponse(404, 'User not found');
       }
 
-      return createSuccessResponse(user);
+      return successResponse(user);
     } catch (error) {
       context.error('Error getting user:', error);
-      return createErrorResponse('Failed to get user', 500);
+      return errorResponse(500, 'Failed to get user');
     }
   }
 });
@@ -104,34 +104,34 @@ app.http('adminUpdateUserStatus', {
       // Check admin authentication
       const authResult = await requireAdmin(request);
       if (!authResult.authenticated) {
-        return createErrorResponse('Authentication required', 401);
+        return errorResponse(401, 'Authentication required');
       }
       if (!authResult.isAdmin) {
-        return createErrorResponse('Admin access required', 403);
+        return errorResponse(403, 'Admin access required');
       }
 
       const userId = request.params.id;
       const currentUser = getCurrentUser(request);
 
       if (!userId) {
-        return createErrorResponse('User ID is required', 400);
+        return errorResponse(400, 'User ID is required');
       }
 
       // Parse request body
       const { status, reason } = await request.json();
 
       if (!status) {
-        return createErrorResponse('Status is required', 400);
+        return errorResponse(400, 'Status is required');
       }
 
       // Validate status
       if (!Object.values(userService.UserStatus).includes(status)) {
-        return createErrorResponse(`Invalid status. Must be one of: ${Object.values(userService.UserStatus).join(', ')}`, 400);
+        return errorResponse(400, `Invalid status. Must be one of: ${Object.values(userService.UserStatus).join(', ')}`);
       }
 
       // Prevent admin from blocking themselves
       if (userId === currentUser.userId) {
-        return createErrorResponse('You cannot change your own status', 400);
+        return errorResponse(400, 'You cannot change your own status');
       }
 
       // Update status
@@ -140,7 +140,7 @@ app.http('adminUpdateUserStatus', {
       // Log the action
       context.log(`Admin ${currentUser.userDetails} changed user ${userId} status to ${status}. Reason: ${reason || 'None provided'}`);
 
-      return createSuccessResponse({
+      return successResponse({
         user: updatedUser,
         message: `User status updated to ${status}`
       });
@@ -148,10 +148,10 @@ app.http('adminUpdateUserStatus', {
       context.error('Error updating user status:', error);
       
       if (error.message === 'User not found') {
-        return createErrorResponse('User not found', 404);
+        return errorResponse(404, 'User not found');
       }
       
-      return createErrorResponse('Failed to update user status', 500);
+      return errorResponse(500, 'Failed to update user status');
     }
   }
 });
@@ -168,18 +168,18 @@ app.http('adminGetUserStats', {
       // Check admin authentication
       const authResult = await requireAdmin(request);
       if (!authResult.authenticated) {
-        return createErrorResponse('Authentication required', 401);
+        return errorResponse(401, 'Authentication required');
       }
       if (!authResult.isAdmin) {
-        return createErrorResponse('Admin access required', 403);
+        return errorResponse(403, 'Admin access required');
       }
 
       const stats = await userService.getUserStats();
 
-      return createSuccessResponse(stats);
+      return successResponse(stats);
     } catch (error) {
       context.error('Error getting user stats:', error);
-      return createErrorResponse('Failed to get user stats', 500);
+      return errorResponse(500, 'Failed to get user stats');
     }
   }
 });
@@ -196,22 +196,22 @@ app.http('adminDeleteUser', {
       // Check admin authentication
       const authResult = await requireAdmin(request);
       if (!authResult.authenticated) {
-        return createErrorResponse('Authentication required', 401);
+        return errorResponse(401, 'Authentication required');
       }
       if (!authResult.isAdmin) {
-        return createErrorResponse('Admin access required', 403);
+        return errorResponse(403, 'Admin access required');
       }
 
       const userId = request.params.id;
       const currentUser = getCurrentUser(request);
 
       if (!userId) {
-        return createErrorResponse('User ID is required', 400);
+        return errorResponse(400, 'User ID is required');
       }
 
       // Prevent admin from deleting themselves
       if (userId === currentUser.userId) {
-        return createErrorResponse('You cannot delete your own account', 400);
+        return errorResponse(400, 'You cannot delete your own account');
       }
 
       // Soft delete by blocking
@@ -219,7 +219,7 @@ app.http('adminDeleteUser', {
 
       context.log(`Admin ${currentUser.userDetails} deleted (blocked) user ${userId}`);
 
-      return createSuccessResponse({
+      return successResponse({
         message: 'User has been blocked (soft deleted)',
         user: updatedUser
       });
@@ -227,10 +227,10 @@ app.http('adminDeleteUser', {
       context.error('Error deleting user:', error);
       
       if (error.message === 'User not found') {
-        return createErrorResponse('User not found', 404);
+        return errorResponse(404, 'User not found');
       }
       
-      return createErrorResponse('Failed to delete user', 500);
+      return errorResponse(500, 'Failed to delete user');
     }
   }
 });

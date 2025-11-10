@@ -9,4 +9,5 @@ import "./functions/health.js";
 import "./functions/healthCheck.js";
 //import "./functions/adminUsersSimple.js";
 import "./functions/adminUsers.js";
+import "./functions/adminUserManagement.js";
 import "./functions/testAdmin.js";
