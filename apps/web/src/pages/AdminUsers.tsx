@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Shield, Plus, Trash2, Edit2, UserCheck, UserX } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Shield, Plus, Trash2, Edit2, UserCheck, UserX, Users, MapPin, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -12,15 +12,28 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import type { AdminUser } from '@/shared/types';
+import type { UserProfile } from '@/types/user';
 import { adminUsersService } from '@/api/adminUsersService';
+import { listUsers, getUserStats } from '@/api/userService';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function AdminUsers() {
     const { user } = useAuth();
     const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+    const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+    const [userStats, setUserStats] = useState({ total: 0, active: 0, blocked: 0 });
     const [loading, setLoading] = useState(true);
+    const [loadingAllUsers, setLoadingAllUsers] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showAddDialog, setShowAddDialog] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
@@ -34,6 +47,7 @@ export default function AdminUsers() {
 
     useEffect(() => {
         loadAdminUsers();
+        loadAllUsers();
     }, []);
 
     const loadAdminUsers = async () => {
@@ -49,6 +63,22 @@ export default function AdminUsers() {
             setLoading(false);
         }
     };
+
+    const loadAllUsers = useCallback(async () => {
+        try {
+            setLoadingAllUsers(true);
+            const [usersResult, stats] = await Promise.all([
+                listUsers({ limit: 100, status: null, search: null, continuationToken: null }),
+                getUserStats()
+            ]);
+            setAllUsers(usersResult.users);
+            setUserStats(stats);
+        } catch (err) {
+            console.error('Error loading all users:', err);
+        } finally {
+            setLoadingAllUsers(false);
+        }
+    }, []);
 
     const handleAddUser = async () => {
         try {
@@ -126,10 +156,22 @@ export default function AdminUsers() {
             case 'inactive':
                 return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
             case 'suspended':
+            case 'blocked':
                 return 'bg-red-500/20 text-red-400 border-red-500/50';
             default:
                 return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
         }
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
     };
 
     if (loading) {
@@ -463,6 +505,147 @@ export default function AdminUsers() {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+
+                {/* All Users Section */}
+                <div className="mt-12">
+                    <div className="flex items-center gap-3 mb-6">
+                        <Users className="h-8 w-8" style={{ color: '#00D4FF' }} />
+                        <h2 className="text-2xl font-bold" style={{ color: '#FFFFFF' }}>
+                            All Users
+                        </h2>
+                    </div>
+
+                    {/* User Stats */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <Card style={{ backgroundColor: '#0A1929', borderColor: '#1E3A5F' }}>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm" style={{ color: '#8394A7' }}>Total Users</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold" style={{ color: '#FFFFFF' }}>
+                                    {userStats.total}
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card style={{ backgroundColor: '#0A1929', borderColor: '#1E3A5F' }}>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm" style={{ color: '#8394A7' }}>Active</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold" style={{ color: '#00FF91' }}>
+                                    {userStats.active}
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card style={{ backgroundColor: '#0A1929', borderColor: '#1E3A5F' }}>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm" style={{ color: '#8394A7' }}>Blocked</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold" style={{ color: '#FF4444' }}>
+                                    {userStats.blocked}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Users Table */}
+                    <Card style={{ backgroundColor: '#0A1929', borderColor: '#1E3A5F' }}>
+                        <div className="p-6">
+                            {loadingAllUsers ? (
+                                <div className="text-center py-8">
+                                    <p style={{ color: '#8394A7' }}>Loading users...</p>
+                                </div>
+                            ) : allUsers.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <Users className="h-12 w-12 mx-auto mb-4" style={{ color: '#8394A7' }} />
+                                    <p style={{ color: '#8394A7' }}>No users found.</p>
+                                    <p className="text-sm mt-2" style={{ color: '#8394A7' }}>
+                                        Users will appear here after they sign in.
+                                    </p>
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow style={{ borderColor: '#1E3A5F' }}>
+                                            <TableHead style={{ color: '#8394A7' }}>User</TableHead>
+                                            <TableHead style={{ color: '#8394A7' }}>Email</TableHead>
+                                            <TableHead style={{ color: '#8394A7' }}>Provider</TableHead>
+                                            <TableHead style={{ color: '#8394A7' }}>Status</TableHead>
+                                            <TableHead style={{ color: '#8394A7' }}>Last Login</TableHead>
+                                            <TableHead style={{ color: '#8394A7' }}>Location</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {allUsers.map((userProfile) => (
+                                            <TableRow key={userProfile.id} style={{ borderColor: '#1E3A5F' }}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-3">
+                                                        {userProfile.profilePicture ? (
+                                                            <img
+                                                                src={userProfile.profilePicture}
+                                                                alt={userProfile.displayName}
+                                                                className="w-8 h-8 rounded-full"
+                                                            />
+                                                        ) : (
+                                                            <div
+                                                                className="w-8 h-8 rounded-full flex items-center justify-center"
+                                                                style={{ backgroundColor: '#1E3A5F' }}
+                                                            >
+                                                                <span style={{ color: '#00FF91' }}>
+                                                                    {userProfile.displayName.charAt(0).toUpperCase()}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        <span style={{ color: '#FFFFFF' }}>
+                                                            {userProfile.displayName}
+                                                        </span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell style={{ color: '#8394A7' }}>
+                                                    {userProfile.email}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant="outline"
+                                                        style={{
+                                                            borderColor: '#00D4FF',
+                                                            color: '#00D4FF',
+                                                            backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                                                        }}
+                                                    >
+                                                        {userProfile.authProvider}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge className={getStatusColor(userProfile.status)}>
+                                                        {userProfile.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2" style={{ color: '#8394A7' }}>
+                                                        <Clock className="h-4 w-4" />
+                                                        <span className="text-sm">
+                                                            {new Date(userProfile.lastLoginAt).toLocaleDateString()} {new Date(userProfile.lastLoginAt).toLocaleTimeString()}
+                                                        </span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2" style={{ color: '#8394A7' }}>
+                                                        <MapPin className="h-4 w-4" />
+                                                        <span className="text-sm">
+                                                            {userProfile.location || userProfile.metadata?.signupIp || 'Unknown'}
+                                                        </span>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </div>
+                    </Card>
+                </div>
             </div>
         </div>
     );
