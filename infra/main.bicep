@@ -428,6 +428,9 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         allowedOrigins: [
           'https://${staticWebApp.properties.defaultHostname}'
           'https://portal.azure.com'
+          'https://dev.somos.tech'
+          'http://localhost:5173'
+          'https://localhost:5173'
         ]
         supportCredentials: true
       }
