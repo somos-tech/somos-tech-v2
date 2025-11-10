@@ -4,12 +4,12 @@ import { createSuccessResponse, createErrorResponse } from '../shared/httpRespon
 import { requireAuth, requireAdmin, getCurrentUser } from '../shared/authMiddleware.js';
 
 /**
- * GET /api/admin-users - List all users with pagination and filtering
+ * GET /api/admin-users/list - List all users with pagination and filtering
  */
 app.http('adminListUsers', {
   methods: ['GET'],
   authLevel: 'anonymous',
-  route: 'admin-users',
+  route: 'admin-users/list',
   handler: async (request, context) => {
     try {
       // Check admin authentication
