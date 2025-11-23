@@ -28,8 +28,20 @@ app.http('adminListUsers', {
       
       // If stats=true, return user statistics instead of list
       if (statsParam === 'true') {
-        const stats = await userService.getUserStats();
-        return successResponse(stats);
+        context.log('[adminListUsers] Getting user statistics');
+        try {
+          const stats = await userService.getUserStats();
+          context.log('[adminListUsers] Stats retrieved successfully');
+          return successResponse(stats);
+        } catch (statsError) {
+          context.error('[adminListUsers] Error getting stats:', statsError);
+          context.error('[adminListUsers] Stats error details:', {
+            message: statsError.message,
+            code: statsError.code,
+            statusCode: statsError.statusCode
+          });
+          throw statsError;
+        }
       }
 
       const limit = parseInt(url.searchParams.get('limit') || '50');
@@ -48,17 +60,35 @@ app.http('adminListUsers', {
       }
 
       // Get users
-      const result = await userService.listUsers({
-        limit,
-        continuationToken,
-        status,
-        search
-      });
-
-      return successResponse(result);
+      context.log('[adminListUsers] Listing users with params:', { limit, status, search });
+      try {
+        const result = await userService.listUsers({
+          limit,
+          continuationToken,
+          status,
+          search
+        });
+        context.log(`[adminListUsers] Retrieved ${result.users?.length || 0} users`);
+        return successResponse(result);
+      } catch (listError) {
+        context.error('[adminListUsers] Error listing users:', listError);
+        context.error('[adminListUsers] List error details:', {
+          message: listError.message,
+          code: listError.code,
+          statusCode: listError.statusCode
+        });
+        throw listError;
+      }
     } catch (error) {
-      context.error('Error listing users:', error);
-      return errorResponse(500, 'Failed to list users or stats');
+      context.error('[adminListUsers] CRITICAL ERROR:', error);
+      context.error('[adminListUsers] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        statusCode: error.statusCode,
+        body: error.body
+      });
+      return errorResponse(500, 'Failed to list users or stats', error.message);
     }
   }
 });

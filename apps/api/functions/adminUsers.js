@@ -93,11 +93,23 @@ app.http('adminUsers', {
 
             // GET: List all admin users
             if (method === 'GET' && action === 'list') {
-                const { resources: users } = await container.items
-                    .query('SELECT * FROM c ORDER BY c.createdAt DESC')
-                    .fetchAll();
-
-                return successResponse(users);
+                context.log('[adminUsers] Listing all admin users');
+                try {
+                    const { resources: users } = await container.items
+                        .query('SELECT * FROM c ORDER BY c.createdAt DESC')
+                        .fetchAll();
+                    context.log(`[adminUsers] Found ${users.length} admin users`);
+                    return successResponse(users);
+                } catch (queryError) {
+                    context.error('[adminUsers] Error listing admin users:', queryError);
+                    context.error('[adminUsers] Error details:', {
+                        message: queryError.message,
+                        code: queryError.code,
+                        statusCode: queryError.statusCode,
+                        body: queryError.body
+                    });
+                    return errorResponse(500, 'Failed to list admin users', queryError.message);
+                }
             }
 
             // GET: Get admin users statistics
