@@ -2,20 +2,28 @@ import { CosmosClient } from '@azure/cosmos';
 import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity';
 
 // Initialize Cosmos DB client with managed identity
-const endpoint = process.env.COSMOS_ENDPOINT;
 const databaseName = process.env.COSMOS_DATABASE_NAME || 'somostech';
 
-if (!endpoint) {
-  throw new Error('COSMOS_ENDPOINT environment variable is required');
+let client = null;
+let container = null;
+
+function getContainer() {
+  if (!container) {
+    const endpoint = process.env.COSMOS_ENDPOINT;
+    if (!endpoint) {
+      throw new Error('COSMOS_ENDPOINT environment variable is required');
+    }
+
+    const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' || 
+                    process.env.NODE_ENV === 'development';
+    const credential = isLocal ? new DefaultAzureCredential() : new ManagedIdentityCredential();
+
+    client = new CosmosClient({ endpoint, aadCredentials: credential });
+    const database = client.database(databaseName);
+    container = database.container('users');
+  }
+  return container;
 }
-
-const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' || 
-                process.env.NODE_ENV === 'development';
-const credential = isLocal ? new DefaultAzureCredential() : new ManagedIdentityCredential();
-
-const client = new CosmosClient({ endpoint, aadCredentials: credential });
-const database = client.database(databaseName);
-const container = database.container('users');
 
 /**
  * User Status Enum
@@ -61,7 +69,7 @@ async function createUser(userData) {
     }
   };
 
-  const { resource } = await container.items.create(user);
+  const { resource } = await getContainer().items.create(user);
   return resource;
 }
 
@@ -72,7 +80,7 @@ async function createUser(userData) {
  */
 async function getUserById(userId) {
   try {
-    const { resource } = await container.item(userId, userId).read();
+    const { resource } = await getContainer().item(userId, userId).read();
     return resource;
   } catch (error) {
     if (error.code === 404) {
@@ -95,7 +103,7 @@ async function getUserByEmail(email) {
     ]
   };
 
-  const { resources } = await container.items.query(querySpec).fetchAll();
+  const { resources } = await getContainer().items.query(querySpec).fetchAll();
   return resources.length > 0 ? resources[0] : null;
 }
 
@@ -128,7 +136,7 @@ async function updateUser(userId, updates) {
     updatedAt: new Date().toISOString()
   };
 
-  const { resource } = await container.item(userId, userId).replace(updatedUser);
+  const { resource } = await getContainer().item(userId, userId).replace(updatedUser);
   return resource;
 }
 
@@ -150,7 +158,7 @@ async function updateLastLogin(userId) {
     'metadata.firstLogin': false
   };
 
-  await container.item(userId, userId).replace(updatedUser);
+  await getContainer().item(userId, userId).replace(updatedUser);
 }
 
 /**
@@ -179,7 +187,7 @@ async function updateUserStatus(userId, status, adminId) {
     statusChangedAt: new Date().toISOString()
   };
 
-  const { resource } = await container.item(userId, userId).replace(updatedUser);
+  const { resource } = await getContainer().item(userId, userId).replace(updatedUser);
   return resource;
 }
 
@@ -223,7 +231,7 @@ async function listUsers(options = {}) {
     parameters
   };
 
-  const queryIterator = container.items.query(querySpec, {
+  const queryIterator = getContainer().items.query(querySpec, {
     maxItemCount: limit,
     continuationToken
   });
@@ -290,6 +298,7 @@ async function getUserStats() {
     parameters: [{ name: '@status', value: UserStatus.BLOCKED }]
   };
 
+  const container = getContainer();
   const [totalResult, activeResult, blockedResult] = await Promise.all([
     container.items.query(totalQuery).fetchAll(),
     container.items.query(activeQuery).fetchAll(),

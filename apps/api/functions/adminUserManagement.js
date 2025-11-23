@@ -10,7 +10,7 @@ import { requireAuth, requireAdmin, getCurrentUser } from '../shared/authMiddlew
 app.http('adminListUsers', {
   methods: ['GET'],
   authLevel: 'anonymous',
-  route: 'admin/users',
+  route: 'dashboard/users',
   handler: async (request, context) => {
     try {
       // Check admin authentication
@@ -64,12 +64,12 @@ app.http('adminListUsers', {
 });
 
 /**
- * GET /api/admin/users/:id - Get user details by ID
+ * GET/DELETE /api/admin/users/:id - Get or Delete user
  */
-app.http('adminGetUser', {
-  methods: ['GET'],
+app.http('adminUserById', {
+  methods: ['GET', 'DELETE'],
   authLevel: 'anonymous',
-  route: 'admin/users/{id}',
+  route: 'dashboard/users/{id}',
   handler: async (request, context) => {
     try {
       // Check admin authentication
@@ -82,21 +82,46 @@ app.http('adminGetUser', {
       }
 
       const userId = request.params.id;
-
       if (!userId) {
         return errorResponse(400, 'User ID is required');
       }
 
-      const user = await userService.getUserById(userId);
-
-      if (!user) {
-        return errorResponse(404, 'User not found');
+      // GET: Get user details
+      if (request.method === 'GET') {
+        const user = await userService.getUserById(userId);
+        if (!user) {
+          return errorResponse(404, 'User not found');
+        }
+        return successResponse(user);
       }
 
-      return successResponse(user);
+      // DELETE: Soft delete user
+      if (request.method === 'DELETE') {
+        const currentUser = getCurrentUser(request);
+        
+        // Prevent admin from deleting themselves
+        if (userId === currentUser.userId) {
+          return errorResponse(400, 'You cannot delete your own account');
+        }
+
+        // Soft delete by blocking
+        const updatedUser = await userService.updateUserStatus(userId, userService.UserStatus.BLOCKED, currentUser.userId);
+
+        context.log(`Admin ${currentUser.userDetails} deleted (blocked) user ${userId}`);
+
+        return successResponse({
+          message: 'User has been blocked (soft deleted)',
+          user: updatedUser
+        });
+      }
     } catch (error) {
-      context.error('Error getting user:', error);
-      return errorResponse(500, 'Failed to get user');
+      context.error(`Error handling user request (${request.method}):`, error);
+      
+      if (error.message === 'User not found') {
+        return errorResponse(404, 'User not found');
+      }
+      
+      return errorResponse(500, 'Failed to process request');
     }
   }
 });
@@ -107,7 +132,7 @@ app.http('adminGetUser', {
 app.http('adminUpdateUserStatus', {
   methods: ['PUT'],
   authLevel: 'anonymous',
-  route: 'admin/users/{id}/status',
+  route: 'dashboard/users/{id}/status',
   handler: async (request, context) => {
     try {
       // Check admin authentication
@@ -161,57 +186,6 @@ app.http('adminUpdateUserStatus', {
       }
       
       return errorResponse(500, 'Failed to update user status');
-    }
-  }
-});
-
-/**
- * DELETE /api/admin/users/:id - Delete user (soft delete by blocking)
- */
-app.http('adminDeleteUser', {
-  methods: ['DELETE'],
-  authLevel: 'anonymous',
-  route: 'admin/users/{id}',
-  handler: async (request, context) => {
-    try {
-      // Check admin authentication
-      const authResult = await requireAdmin(request);
-      if (!authResult.authenticated) {
-        return errorResponse(401, 'Authentication required');
-      }
-      if (!authResult.isAdmin) {
-        return errorResponse(403, 'Admin access required');
-      }
-
-      const userId = request.params.id;
-      const currentUser = getCurrentUser(request);
-
-      if (!userId) {
-        return errorResponse(400, 'User ID is required');
-      }
-
-      // Prevent admin from deleting themselves
-      if (userId === currentUser.userId) {
-        return errorResponse(400, 'You cannot delete your own account');
-      }
-
-      // Soft delete by blocking
-      const updatedUser = await userService.updateUserStatus(userId, userService.UserStatus.BLOCKED, currentUser.userId);
-
-      context.log(`Admin ${currentUser.userDetails} deleted (blocked) user ${userId}`);
-
-      return successResponse({
-        message: 'User has been blocked (soft deleted)',
-        user: updatedUser
-      });
-    } catch (error) {
-      context.error('Error deleting user:', error);
-      
-      if (error.message === 'User not found') {
-        return errorResponse(404, 'User not found');
-      }
-      
-      return errorResponse(500, 'Failed to delete user');
     }
   }
 });

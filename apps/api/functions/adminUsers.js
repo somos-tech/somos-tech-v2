@@ -6,12 +6,6 @@ import { successResponse, errorResponse } from '../shared/httpResponse.js';
 import { notifyAdminRoleAssigned, notifyAdminRoleRemoved } from '../shared/services/notificationService.js';
 
 // Initialize Cosmos DB client
-const endpoint = process.env.COSMOS_ENDPOINT;
-
-if (!endpoint) {
-    throw new Error('COSMOS_ENDPOINT must be configured');
-}
-
 const databaseId = process.env.COSMOS_DATABASE_NAME || 'somostech';
 const containerId = 'admin-users';
 
@@ -19,6 +13,11 @@ const containerId = 'admin-users';
 let cosmosClient = null;
 function getCosmosClient() {
     if (!cosmosClient) {
+        const endpoint = process.env.COSMOS_ENDPOINT;
+        if (!endpoint) {
+            throw new Error('COSMOS_ENDPOINT must be configured');
+        }
+
         const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
             process.env.NODE_ENV === 'development';
         const credential = isLocal
@@ -37,7 +36,7 @@ function getCosmosClient() {
 app.http('adminUsers', {
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     authLevel: 'anonymous',
-    route: 'admin-users/{action?}',
+    route: 'dashboard-users/{action?}',
     handler: async (request, context) => {
         context.log('[adminUsers] Function invoked');
         context.log('[adminUsers] Method:', request.method);

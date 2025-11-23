@@ -7,16 +7,29 @@ import { CosmosClient } from '@azure/cosmos';
 import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity';
 
 // Initialize Cosmos DB client
-const endpoint = process.env.COSMOS_ENDPOINT;
-const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
-    process.env.NODE_ENV === 'development';
-const credential = isLocal
-    ? new DefaultAzureCredential()
-    : new ManagedIdentityCredential();
-
-const client = new CosmosClient({ endpoint, aadCredentials: credential });
 const databaseId = process.env.COSMOS_DATABASE_NAME || 'somostech';
-const notificationContainer = client.database(databaseId).container('notifications');
+
+let client = null;
+let notificationContainer = null;
+
+function getNotificationContainer() {
+    if (!notificationContainer) {
+        const endpoint = process.env.COSMOS_ENDPOINT;
+        if (!endpoint) {
+            throw new Error('COSMOS_ENDPOINT environment variable is required');
+        }
+
+        const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
+            process.env.NODE_ENV === 'development';
+        const credential = isLocal
+            ? new DefaultAzureCredential()
+            : new ManagedIdentityCredential();
+
+        client = new CosmosClient({ endpoint, aadCredentials: credential });
+        notificationContainer = client.database(databaseId).container('notifications');
+    }
+    return notificationContainer;
+}
 
 // Email settings
 const ADMIN_EMAIL = 'jcruz@somos.tech';
@@ -49,7 +62,7 @@ export async function createNotification({
             createdAt: new Date().toISOString()
         };
 
-        const { resource } = await notificationContainer.items.create(notification);
+        const { resource } = await getNotificationContainer().items.create(notification);
         return resource;
     } catch (error) {
         console.error('Error creating notification:', error);
@@ -269,7 +282,7 @@ export async function getUnreadNotifications(recipientEmail) {
             parameters: [{ name: '@email', value: recipientEmail }]
         };
 
-        const { resources } = await notificationContainer.items.query(querySpec).fetchAll();
+        const { resources } = await getNotificationContainer().items.query(querySpec).fetchAll();
         return resources;
     } catch (error) {
         console.error('Error getting unread notifications:', error);
@@ -290,7 +303,7 @@ export async function getAllNotifications(recipientEmail, limit = 50) {
             ]
         };
 
-        const { resources } = await notificationContainer.items.query(querySpec).fetchAll();
+        const { resources } = await getNotificationContainer().items.query(querySpec).fetchAll();
         return resources;
     } catch (error) {
         console.error('Error getting notifications:', error);
@@ -303,14 +316,15 @@ export async function getAllNotifications(recipientEmail, limit = 50) {
  */
 export async function markNotificationAsRead(notificationId, type) {
     try {
-        const { resource: notification } = await notificationContainer
+        const container = getNotificationContainer();
+        const { resource: notification } = await container
             .item(notificationId, type)
             .read();
         
         notification.read = true;
         notification.readAt = new Date().toISOString();
 
-        const { resource: updated } = await notificationContainer
+        const { resource: updated } = await container
             .item(notificationId, type)
             .replace(notification);
 
