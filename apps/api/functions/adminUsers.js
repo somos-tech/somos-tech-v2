@@ -1,33 +1,10 @@
 import { app } from '@azure/functions';
-import { CosmosClient } from '@azure/cosmos';
-import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity';
+import { getContainer } from '../shared/db.js';
 import { requireAdmin, requireAuth, getClientPrincipal, isAdmin } from '../shared/authMiddleware.js';
 import { successResponse, errorResponse } from '../shared/httpResponse.js';
 import { notifyAdminRoleAssigned, notifyAdminRoleRemoved } from '../shared/services/notificationService.js';
 
-// Initialize Cosmos DB client
-const databaseId = process.env.COSMOS_DATABASE_NAME || 'somostech';
 const containerId = 'admin-users';
-
-// Lazy initialization to avoid cold start issues with Flex Consumption
-let cosmosClient = null;
-function getCosmosClient() {
-    if (!cosmosClient) {
-        const endpoint = process.env.COSMOS_ENDPOINT;
-        if (!endpoint) {
-            throw new Error('COSMOS_ENDPOINT must be configured');
-        }
-
-        const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
-            process.env.NODE_ENV === 'development';
-        const credential = isLocal
-            ? new DefaultAzureCredential()
-            : new ManagedIdentityCredential();
-        
-        cosmosClient = new CosmosClient({ endpoint, aadCredentials: credential });
-    }
-    return cosmosClient;
-}
 
 /**
  * Admin Users Management API
@@ -47,12 +24,8 @@ app.http('adminUsers', {
             const action = request.params.action || 'list';
             const method = request.method;
             
-            context.log('[adminUsers] Getting Cosmos client...');
-            const client = getCosmosClient();
-            context.log('[adminUsers] Getting database...');
-            const database = client.database(databaseId);
             context.log('[adminUsers] Getting container...');
-            const container = database.container(containerId);
+            const container = getContainer(containerId);
             context.log('[adminUsers] Container obtained successfully');
 
             // GET: Get specific admin user by email (public endpoint for checking admin status)
