@@ -30,9 +30,9 @@ export function getCosmosClient() {
         console.log(`[CosmosDB]   Credential type: ${isLocal ? 'DefaultAzureCredential' : 'ManagedIdentityCredential'}`);
 
         try {
-            const credential = isLocal
-                ? new DefaultAzureCredential()
-                : new ManagedIdentityCredential();
+            // Use DefaultAzureCredential for all environments as it handles
+            // Managed Identity, CLI, VS Code, etc. automatically and robustly.
+            const credential = new DefaultAzureCredential();
             
             client = new CosmosClient({ endpoint, aadCredentials: credential });
             console.log('[CosmosDB] Client initialized successfully');

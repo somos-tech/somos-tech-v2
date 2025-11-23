@@ -86,7 +86,14 @@ app.http('adminUsers', {
             }
 
             // All other endpoints require admin role
-            const authResult = await requireAdmin(request);
+            let authResult;
+            try {
+                authResult = await requireAdmin(request);
+            } catch (authError) {
+                context.log.error('[adminUsers] Auth check failed:', authError);
+                return errorResponse(500, 'Authentication check failed', authError.message);
+            }
+
             if (!authResult.authenticated || !authResult.isAdmin) {
                 return errorResponse(authResult.status || 403, authResult.error || 'Admin access required', authResult.message);
             }

@@ -8,13 +8,15 @@ app.http('health', {
   authLevel: 'anonymous',
   route: 'health',
   handler: async (request, context) => {
-    const cosmosConfigured = !!(process.env.COSMOS_ENDPOINT && process.env.COSMOS_KEY && process.env.COSMOS_DATABASE_NAME);
+    // We now use Managed Identity, so COSMOS_KEY is not strictly required in prod
+    const cosmosConfigured = !!process.env.COSMOS_ENDPOINT;
     
     return {
       status: 200,
       jsonBody: {
         status: 'ok',
         timestamp: new Date().toISOString(),
+        version: '1.0.2-db-fix',
         environment: process.env.NODE_ENV || 'unknown',
         cosmos: {
           configured: cosmosConfigured,
