@@ -119,7 +119,7 @@ export async function listUsers(options: {
 /**
  * Get user by ID (admin only - returns full profile)
  */
-async function getUserById(userId: string): Promise<User> {
+export async function getUserDetails(userId: string): Promise<UserProfile> {
   const response = await fetch(`${API_URL}/api/dashboard/users/${userId}`, {
     credentials: 'include',
   });
