@@ -1,7 +1,7 @@
 # Deployment Guide - Security Fixes
 
 ## Overview
-This guide covers deploying the security fixes to production. Follow these steps carefully to ensure proper authentication and authorization controls are in place.
+This guide covers deploying the security fixes to production. Follow these steps carefully to ensure proper authentication and authorization controls are in place. The latest hardening requires all traffic to flow through an Azure Front Door Standard profile with a geo-filtering WAF policy so that only United States traffic reaches the Static Web App. The profile ($35/mo list price) plus one custom rule ($1/mo) keeps the monthly spend below the $40 cap while still enforcing regional compliance.
 
 ## Pre-Deployment Checklist
 
@@ -90,6 +90,21 @@ npm run lint
    - Verify no errors in deployment logs
 
 ### Option 2: Manual Deployment
+
+#### Deploy Azure Front Door + Geo WAF (Bicep)
+```bash
+# Ensure you are using the dev/prod parameter file you intend to deploy
+az deployment group create \
+  --resource-group <rg-name> \
+  --template-file infra/main.bicep \
+  --parameters @infra/main.dev.bicepparam \
+  --parameters frontDoorAllowedCountries:='["US"]'
+
+# Outputs now include frontDoorEndpointHostName so you can update DNS (e.g., dev.somos.tech)
+```
+- SKU is locked to `Standard_AzureFrontDoor` (currently $35/mo list) to meet the cost target.
+- The WAF policy includes one custom rule (`BlockNonUS`), adding ~$1/mo.
+- Update your DNS CNAME (e.g., `dev.somos.tech`) to the new Front Door host shown in the deployment output.
 
 #### Deploy Function App
 ```bash
@@ -208,6 +223,12 @@ Or in Azure Portal:
    ```
 
 ### 5. Verify Security Headers
+### 6. Validate Azure Front Door Enforcement
+1. Browse to `https://<frontdoor-endpoint>.azurefd.net` from a US IP (or VPN) and confirm the site renders normally.
+2. Test from a non-US IP (or use an external service such as vpn/GeoPeeker). Requests should return the custom WAF block page (HTTP 403) with the "Access restricted" message.
+3. Confirm that direct SWA access is no longer exposed publicly by pointing client DNS to Front Door only.
+4. Review the WAF metrics blade to ensure requests are flowing through the `BlockNonUS` rule and that only US traffic is allowed.
+
 
 ```bash
 # Check response headers

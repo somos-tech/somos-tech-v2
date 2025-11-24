@@ -85,6 +85,11 @@ param socialMediaAgentId string = ''
 @description('Venue Agent ID (defaults to main agent ID if not specified)')
 param venueAgentId string = ''
 
+@description('List of ISO 3166-1 alpha-2 country codes that are allowed through Azure Front Door (all other traffic is blocked). Defaults to United States only to satisfy compliance requirements.')
+param frontDoorAllowedCountries array = [
+  'US'
+]
+
 // Variables for resource naming
 var resourceSuffix = '${appName}-${environmentName}-${uniqueString(resourceGroup().id)}'
 var uniqueSuffix = uniqueString(resourceGroup().id)
@@ -96,6 +101,13 @@ var logAnalyticsName = 'log-${resourceSuffix}'
 var staticWebAppName = 'swa-${resourceSuffix}'
 var cosmosDbAccountName = 'cosmos-${resourceSuffix}'
 var cosmosDbDatabaseName = 'somostech'
+var frontDoorProfileName = 'afd-${resourceSuffix}'
+var frontDoorEndpointName = 'afd-endpoint-${resourceSuffix}'
+var frontDoorOriginGroupName = 'afd-origingroup-${resourceSuffix}'
+var frontDoorOriginName = 'afd-origin-${resourceSuffix}'
+var frontDoorRouteName = 'afd-route-${resourceSuffix}'
+var frontDoorWafPolicyName = 'afd-waf-${resourceSuffix}'
+var frontDoorSecurityPolicyName = 'afd-security-${resourceSuffix}'
 
 // Storage Blob Data Owner role definition ID
 var storageBlobDataOwnerRoleId = subscriptionResourceId(
@@ -628,6 +640,139 @@ resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2023-01-01' = {
   )
 }
 
+// Azure Front Door Standard profile to sit in front of the Static Web App
+resource frontDoorProfile 'Microsoft.Cdn/profiles@2023-05-01' = {
+  name: frontDoorProfileName
+  location: 'global'
+  tags: tags
+  sku: {
+    name: 'Standard_AzureFrontDoor'
+  }
+}
+
+resource frontDoorEndpoint 'Microsoft.Cdn/profiles/afdEndpoints@2023-05-01' = {
+  parent: frontDoorProfile
+  name: frontDoorEndpointName
+  location: 'global'
+  properties: {
+    enabledState: 'Enabled'
+  }
+}
+
+resource frontDoorOriginGroup 'Microsoft.Cdn/profiles/originGroups@2023-05-01' = {
+  parent: frontDoorProfile
+  name: frontDoorOriginGroupName
+  properties: {
+    loadBalancingSettings: {
+      sampleSize: 4
+      successfulSamplesRequired: 3
+    }
+    healthProbeSettings: {
+      probeIntervalInSeconds: 120
+      probePath: '/'
+      probeProtocol: 'Https'
+      probeRequestType: 'HEAD'
+    }
+  }
+}
+
+resource frontDoorOrigin 'Microsoft.Cdn/profiles/originGroups/origins@2023-05-01' = {
+  parent: frontDoorOriginGroup
+  name: frontDoorOriginName
+  properties: {
+    hostName: staticWebApp.properties.defaultHostname
+    httpPort: 80
+    httpsPort: 443
+    originHostHeader: staticWebApp.properties.defaultHostname
+    priority: 1
+    weight: 1000
+  }
+}
+
+resource frontDoorRoute 'Microsoft.Cdn/profiles/afdEndpoints/routes@2023-05-01' = {
+  parent: frontDoorEndpoint
+  name: frontDoorRouteName
+  dependsOn: [
+    frontDoorOrigin
+  ]
+  properties: {
+    originGroup: {
+      id: frontDoorOriginGroup.id
+    }
+    supportedProtocols: [
+      'Http'
+      'Https'
+    ]
+    patternsToMatch: [
+      '/*'
+    ]
+    httpsRedirect: 'Enabled'
+    forwardingProtocol: 'HttpsOnly'
+    linkToDefaultDomain: 'Enabled'
+  }
+}
+
+resource frontDoorWafPolicy 'Microsoft.Network/frontDoorWebApplicationFirewallPolicies@2022-05-01' = {
+  name: frontDoorWafPolicyName
+  location: 'global'
+  sku: {
+    name: 'Standard_AzureFrontDoor'
+  }
+  properties: {
+    policySettings: {
+      enabledState: 'Enabled'
+      mode: 'Prevention'
+      customBlockResponseStatusCode: 403
+      customBlockResponseBody: base64('<html><body><h1>Access restricted</h1><p>This application only accepts traffic from approved US regions.</p></body></html>')
+    }
+    customRules: {
+      rules: [
+        {
+          name: 'BlockNonUS'
+          priority: 100
+          enabledState: 'Enabled'
+          ruleType: 'MatchRule'
+          action: 'Block'
+          matchConditions: [
+            {
+              matchVariable: 'RemoteAddr'
+              operator: 'GeoMatch'
+              matchValue: frontDoorAllowedCountries
+              negateCondition: true
+              transforms: []
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+
+resource frontDoorSecurityPolicy 'Microsoft.Cdn/profiles/securityPolicies@2023-05-01' = {
+  parent: frontDoorProfile
+  name: frontDoorSecurityPolicyName
+  properties: {
+    parameters: {
+      type: 'WebApplicationFirewall'
+      wafPolicy: {
+        id: frontDoorWafPolicy.id
+      }
+      associations: [
+        {
+          domains: [
+            {
+              id: frontDoorEndpoint.id
+            }
+          ]
+          patternsToMatch: [
+            '/*'
+          ]
+        }
+      ]
+    }
+  }
+}
+
 // Link Function App as backend for Static Web App
 // Outputs
 output functionAppName string = functionApp.name
@@ -638,6 +783,9 @@ output appInsightsInstrumentationKey string = appInsights.properties.Instrumenta
 output appInsightsConnectionString string = appInsights.properties.ConnectionString
 output functionAppPrincipalId string = functionApp.identity.principalId
 output staticWebAppName string = staticWebApp.name
+output frontDoorEndpointHostName string = frontDoorEndpoint.properties.hostName
+output frontDoorWafPolicyId string = frontDoorWafPolicy.id
+output frontDoorProfileName string = frontDoorProfile.name
 output staticWebAppUrl string = 'https://${staticWebApp.properties.defaultHostname}'
 output cosmosDbAccountName string = cosmosDbAccount.name
 output cosmosDbEndpoint string = cosmosDbAccount.properties.documentEndpoint
