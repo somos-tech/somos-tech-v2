@@ -1,6 +1,11 @@
-name: Deploy Function App (Manual Only)
+name: Deploy Function App
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/api/**'
   workflow_dispatch:
     inputs:
       environment:
