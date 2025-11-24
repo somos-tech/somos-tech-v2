@@ -56,7 +56,13 @@ export async function getHealthCheck(): Promise<HealthCheckResponse> {
       throw new Error(`Health check failed: ${response.statusText}`);
     }
 
-    return await response.json();
+    const payload = await response.json();
+
+    if (!payload?.success || !payload?.data) {
+      throw new Error('Health check response missing data');
+    }
+
+    return payload.data as HealthCheckResponse;
   } catch (error) {
     console.error('Failed to fetch health check:', error);
     throw error;
@@ -79,7 +85,13 @@ export async function getHealthStatus(): Promise<HealthStatus> {
       throw new Error(`Health status failed: ${response.statusText}`);
     }
 
-    return await response.json();
+    const payload = await response.json();
+
+    if (!payload?.success || !payload?.data) {
+      throw new Error('Health status response missing data');
+    }
+
+    return payload.data as HealthStatus;
   } catch (error) {
     console.error('Failed to fetch health status:', error);
     throw error;
