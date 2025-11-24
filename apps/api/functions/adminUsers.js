@@ -20,6 +20,15 @@ app.http('adminUsers', {
         context.log('[adminUsers] Action:', request.params.action);
         context.log('[adminUsers] URL:', request.url);
         
+        // DEBUG: Log Auth Headers
+        const header = request.headers.get('x-ms-client-principal');
+        if (header) {
+            const decoded = Buffer.from(header, 'base64').toString('utf-8');
+            context.log('[adminUsers] DEBUG AUTH HEADER:', decoded);
+        } else {
+            context.log('[adminUsers] DEBUG AUTH HEADER: MISSING');
+        }
+
         try {
             const action = request.params.action || 'list';
             const method = request.method;
