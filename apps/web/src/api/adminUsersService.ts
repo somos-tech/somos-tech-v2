@@ -1,14 +1,14 @@
 import type { AdminUser, CreateAdminUserDto, UpdateAdminUserDto } from '@/shared/types';
+import { apiUrl } from './httpClient';
 
-const API_BASE_URL = import.meta.env?.VITE_API_URL || '';
-const API_PATH = API_BASE_URL ? `${API_BASE_URL}/dashboard-users` : '/api/dashboard-users';
+const adminUsersEndpoint = (path = '') => apiUrl(`/dashboard-users${path}`);
 
 export const adminUsersService = {
     /**
      * List all admin users
      */
     async listAdminUsers(): Promise<AdminUser[]> {
-        const response = await fetch(`${API_PATH}/list`, {
+        const response = await fetch(adminUsersEndpoint('/list'), {
             credentials: 'include',
         });
 
@@ -24,7 +24,7 @@ export const adminUsersService = {
      * Get a specific admin user by email
      */
     async getAdminUser(email: string): Promise<AdminUser> {
-        const response = await fetch(`${API_PATH}/${encodeURIComponent(email)}`, {
+        const response = await fetch(adminUsersEndpoint(`/${encodeURIComponent(email)}`), {
             credentials: 'include',
         });
 
@@ -40,7 +40,7 @@ export const adminUsersService = {
      * Create a new admin user
      */
     async createAdminUser(data: CreateAdminUserDto): Promise<AdminUser> {
-        const response = await fetch(`${API_PATH}`, {
+        const response = await fetch(adminUsersEndpoint(), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ export const adminUsersService = {
      * Update an admin user's roles or status
      */
     async updateAdminUser(data: UpdateAdminUserDto): Promise<AdminUser> {
-        const response = await fetch(`${API_PATH}`, {
+        const response = await fetch(adminUsersEndpoint(), {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ export const adminUsersService = {
      * Delete an admin user
      */
     async deleteAdminUser(email: string): Promise<void> {
-        const response = await fetch(`${API_PATH}`, {
+        const response = await fetch(adminUsersEndpoint(), {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

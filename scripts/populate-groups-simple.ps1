@@ -73,4 +73,5 @@ foreach ($json in $sampleGroups) {
 }
 
 Write-Host "`n✓ Done!" -ForegroundColor Green
-Write-Host "`nYou can view the groups at: https://happy-stone-070acff1e.3.azurestaticapps.net/admin/groups" -ForegroundColor Cyan
+Write-Host "`nYou can view the groups at: https://dev.somos.tech/admin/groups" -ForegroundColor Cyan
+

@@ -605,7 +605,6 @@ resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2023-01-01' = {
   name: 'appsettings'
   properties: union(
     {
-      VITE_API_URL: 'https://${functionApp.properties.defaultHostName}'
       VITE_ENVIRONMENT: environmentName
       AZURE_CLIENT_ID: azureAdClientId
       AZURE_CLIENT_SECRET: azureAdClientSecret

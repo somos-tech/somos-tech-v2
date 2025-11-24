@@ -31,7 +31,7 @@ Admin user management endpoints return 404 errors despite being registered in Az
 ### Static Web App Details
 - **Name:** swa-somos-tech-dev-64qb73pzvgekw
 - **Custom Domain:** dev.somos.tech
-- **Azure Domain:** happy-stone-070acff1e.3.azurestaticapps.net
+- **Azure Default Hostname:** (legacy) see Azure portal if needed
 - **SKU:** Standard
 
 ### Deployment Configuration

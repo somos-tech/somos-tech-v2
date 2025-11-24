@@ -59,4 +59,5 @@ foreach ($group in $groups) {
 Write-Host "`n================================" -ForegroundColor Cyan
 Write-Host "Created: $created | Skipped: $skipped" -ForegroundColor White
 Write-Host "✓ Done!" -ForegroundColor Green
-Write-Host "`nView at: https://happy-stone-070acff1e.3.azurestaticapps.net/admin/groups" -ForegroundColor Cyan
+Write-Host "`nView at: https://dev.somos.tech/admin/groups" -ForegroundColor Cyan
+

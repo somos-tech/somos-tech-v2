@@ -160,4 +160,5 @@ Write-Host "Groups skipped: $skipped" -ForegroundColor Gray
 Write-Host ""
 Write-Host "✓ Done!" -ForegroundColor Green
 Write-Host ""
-Write-Host "View at: https://happy-stone-070acff1e.3.azurestaticapps.net/admin/groups" -ForegroundColor Cyan
+Write-Host "View at: https://dev.somos.tech/admin/groups" -ForegroundColor Cyan
+

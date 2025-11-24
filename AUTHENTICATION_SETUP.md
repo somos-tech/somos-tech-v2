@@ -27,9 +27,9 @@ The authentication system includes:
 3. Fill in:
    - **Name**: `SOMOS.tech Admin Portal`
    - **Supported account types**: `Accounts in this organizational directory only`
-   - **Redirect URI**: 
-     - Platform: `Web`
-     - URI: `https://happy-stone-070acff1e.3.azurestaticapps.net/.auth/login/aad/callback`
+    - **Redirect URI**: 
+       - Platform: `Web`
+       - URI: `https://dev.somos.tech/.auth/login/aad/callback`
 4. Click **Register**
 
 ### 1.2 Configure Authentication
@@ -95,8 +95,8 @@ Replace `<YOUR_TENANT_ID>` in the config file with your actual tenant ID:
 2. Click **New OAuth App**
 3. Fill in:
    - **Application name**: `SOMOS.tech`
-   - **Homepage URL**: `https://happy-stone-070acff1e.3.azurestaticapps.net`
-   - **Authorization callback URL**: `https://happy-stone-070acff1e.3.azurestaticapps.net/.auth/login/github/callback`
+   - **Homepage URL**: `https://dev.somos.tech`
+   - **Authorization callback URL**: `https://dev.somos.tech/.auth/login/github/callback`
 4. Click **Register application**
 5. Copy the **Client ID**
 6. Generate a **Client Secret** and copy it
@@ -168,14 +168,14 @@ Create file `staticwebapp.database.config.json`:
 
 ### 6.1 Test Admin Login
 
-1. Navigate to: `https://happy-stone-070acff1e.3.azurestaticapps.net/admin/events`
+1. Navigate to: `https://dev.somos.tech/admin/events`
 2. You should be redirected to Microsoft login
 3. Sign in with an admin account
 4. After successful login, you should see the admin events page
 
 ### 6.2 Test Member Registration
 
-1. Navigate to: `https://happy-stone-070acff1e.3.azurestaticapps.net/register`
+1. Navigate to: `https://dev.somos.tech/register`
 2. Fill in the form
 3. Submit registration
 4. Check Cosmos DB to verify the member was created

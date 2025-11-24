@@ -30,13 +30,29 @@ module.exports = async function (context, req) {
             return;
         }
 
-        // Check if user is admin by calling the Azure Function API
+        // Check if user is admin by calling the Azure Function API through the SWA front door
         // The admin lookup endpoint is public and doesn't require authentication
-        const apiUrl = process.env.VITE_API_URL || 'https://func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net';
+        const resolveApiBase = () => {
+            const explicitBase = process.env.VITE_API_URL?.trim();
+            if (explicitBase) {
+                return explicitBase.replace(/\/$/, '');
+            }
+
+            const host = process.env.WEBSITE_HOSTNAME?.trim();
+            if (host) {
+                const normalizedHost = host.startsWith('http') ? host : `https://${host}`;
+                return normalizedHost.replace(/\/$/, '');
+            }
+
+            return 'https://dev.somos.tech';
+        };
+
+        const apiBase = resolveApiBase();
+        const adminLookupUrl = `${apiBase}/api/admin-users/${encodeURIComponent(email)}`;
         
-        context.log(`Checking admin status for ${email} via ${apiUrl}/api/admin-users/${encodeURIComponent(email)}`);
+        context.log(`Checking admin status for ${email} via ${adminLookupUrl}`);
         
-        const response = await fetch(`${apiUrl}/api/admin-users/${encodeURIComponent(email)}`);
+        const response = await fetch(adminLookupUrl);
         
         context.log(`Admin API response status: ${response.status}`);
         

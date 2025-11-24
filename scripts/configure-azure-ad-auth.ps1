@@ -70,7 +70,8 @@ Start-Process $portalUrl
 
 Write-Host ""
 Write-Host "After configuring in the Portal, test by visiting:" -ForegroundColor Yellow
-Write-Host "https://happy-stone-070acff1e.3.azurestaticapps.net/.auth/login/aad" -ForegroundColor Cyan
+Write-Host "https://dev.somos.tech/.auth/login/aad" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "It should redirect to Microsoft login, not show an HTML page." -ForegroundColor Yellow
 Write-Host ""
+

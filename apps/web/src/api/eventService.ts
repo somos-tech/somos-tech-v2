@@ -1,15 +1,15 @@
 // API client for making requests to the backend
 import { Event, CreateEventDto, UpdateEventDto, ApiResponse } from '@shared/types';
+import { apiUrl } from './httpClient';
 
-const apiBaseUrl = import.meta.env.VITE_API_URL?.trim();
+const eventsBase = apiUrl('/events');
 
 class ApiEventService {
     private baseUrl: string;
 
     constructor() {
-        // Prefer SWA reverse proxy (/api) so auth headers/cookies flow automatically
-        // Only fall back to absolute URL when explicitly provided
-        this.baseUrl = apiBaseUrl ? `${apiBaseUrl}/events` : '/api/events';
+        // Always honor the SWA reverse proxy so auth headers/cookies flow automatically
+        this.baseUrl = eventsBase;
     }
 
     async getEvents(): Promise<Event[]> {

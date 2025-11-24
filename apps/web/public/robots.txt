@@ -17,4 +17,4 @@ Disallow: /unauthorized
 Allow: /
 
 # Sitemap (optional - add when available)
-# Sitemap: https://happy-stone-070acff1e.3.azurestaticapps.net/sitemap.xml
+# Sitemap: https://dev.somos.tech/sitemap.xml

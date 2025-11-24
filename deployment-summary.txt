@@ -8,7 +8,7 @@
 📦 Resource Group: rg-somos-tech-dev (westus2)
 
 🌐 Static Web App: swa-somos-tech-dev-64qb73pzvgekw
-   URL: https://happy-stone-070acff1e.3.azurestaticapps.net
+   URL: https://dev.somos.tech
    Status: ✅ Deployed and configured
 
 ⚡ Function App: func-somos-tech-dev-64qb73pzvgekw
@@ -83,7 +83,7 @@
 
    cd infra
    ./configure-auth.ps1 \
-       -StaticWebAppUrl "https://happy-stone-070acff1e.3.azurestaticapps.net" \
+       -StaticWebAppUrl "https://dev.somos.tech" \
        -StaticWebAppName "swa-somos-tech-dev-64qb73pzvgekw" \
        -ResourceGroupName "rg-somos-tech-dev"
 
@@ -97,13 +97,13 @@
    Once GitHub Actions complete, test these URLs:
 
    🏠 Home Page:
-      https://happy-stone-070acff1e.3.azurestaticapps.net
+      https://dev.somos.tech
 
    📝 Registration Page:
-      https://happy-stone-070acff1e.3.azurestaticapps.net/register
+      https://dev.somos.tech/register
 
    🔐 Admin Login (will redirect to Azure AD):
-      https://happy-stone-070acff1e.3.azurestaticapps.net/admin/events
+      https://dev.somos.tech/admin/events
 
 3️⃣ TEST AUTHENTICATION
    • Try accessing /admin/events without login (should redirect)
@@ -198,4 +198,5 @@ You now have a fully functional, production-ready web application with:
 
 All infrastructure is using serverless/consumption-based pricing,
 so costs will be minimal during development!
+
 

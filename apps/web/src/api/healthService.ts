@@ -3,6 +3,8 @@
  * Provides health check functionality and monitoring for all API endpoints
  */
 
+import { apiUrl } from './httpClient';
+
 export interface HealthCheck {
   name: string;
   service: 'database' | 'api' | 'configuration' | 'external';
@@ -37,14 +39,14 @@ export interface HealthStatus {
   environment: string;
 }
 
-const API_BASE = '/api';
+const healthEndpoint = (path = '') => apiUrl(`/health${path}`);
 
 /**
  * Get comprehensive health check (admin only)
  */
 export async function getHealthCheck(): Promise<HealthCheckResponse> {
   try {
-    const response = await fetch(`${API_BASE}/health/check`, {
+    const response = await fetch(healthEndpoint('/check'), {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -74,7 +76,7 @@ export async function getHealthCheck(): Promise<HealthCheckResponse> {
  */
 export async function getHealthStatus(): Promise<HealthStatus> {
   try {
-    const response = await fetch(`${API_BASE}/health/status`, {
+    const response = await fetch(healthEndpoint('/status'), {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

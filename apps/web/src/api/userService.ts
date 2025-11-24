@@ -6,15 +6,17 @@ import type {
   UserStats,
   UserStatusUpdate
 } from '../types/user';
+import { apiUrl } from './httpClient';
 
-const API_URL = (import.meta as any).env.VITE_API_URL || '';
+const userEndpoint = (path = '') => apiUrl(`/users${path}`);
+const dashboardUsersEndpoint = (path = '') => apiUrl(`/dashboard/users${path}`);
 
 /**
  * Get current user profile
  * Creates profile automatically on first call if doesn't exist
  */
 export async function getCurrentUserProfile(): Promise<UserProfile> {
-  const response = await fetch(`${API_URL}/api/users/me`, {
+  const response = await fetch(userEndpoint('/me'), {
     credentials: 'include',
   });
 
@@ -31,7 +33,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile> {
  * Update current user profile
  */
 export async function updateCurrentUserProfile(updates: UserProfileUpdate): Promise<UserProfile> {
-  const response = await fetch(`${API_URL}/api/users/me`, {
+  const response = await fetch(userEndpoint('/me'), {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -53,7 +55,7 @@ export async function updateCurrentUserProfile(updates: UserProfileUpdate): Prom
  * Get public user profile by ID
  */
 export async function getUserById(userId: string): Promise<PublicUserProfile> {
-  const response = await fetch(`${API_URL}/api/users/${userId}`, {
+  const response = await fetch(userEndpoint(`/${userId}`), {
     credentials: 'include',
   });
 
@@ -71,7 +73,7 @@ export async function getUserById(userId: string): Promise<PublicUserProfile> {
  * Called automatically on login
  */
 export async function syncUserProfile(): Promise<{ user: UserProfile; isNewUser: boolean }> {
-  const response = await fetch(`${API_URL}/api/users/sync`, {
+  const response = await fetch(userEndpoint('/sync'), {
     method: 'POST',
     credentials: 'include',
   });
@@ -103,7 +105,8 @@ export async function listUsers(options: {
   if (options.status) params.append('status', options.status);
   if (options.search) params.append('search', options.search);
 
-  const response = await fetch(`${API_URL}/api/dashboard/users?${params}`, {
+  const query = params.toString();
+  const response = await fetch(dashboardUsersEndpoint(query ? `?${query}` : ''), {
     credentials: 'include',
   });
 
@@ -120,7 +123,7 @@ export async function listUsers(options: {
  * Get user by ID (admin only - returns full profile)
  */
 export async function getUserDetails(userId: string): Promise<UserProfile> {
-  const response = await fetch(`${API_URL}/api/dashboard/users/${userId}`, {
+  const response = await fetch(dashboardUsersEndpoint(`/${userId}`), {
     credentials: 'include',
   });
 
@@ -140,7 +143,7 @@ export async function updateUserStatus(
   userId: string,
   statusUpdate: UserStatusUpdate
 ): Promise<UserProfile> {
-  const response = await fetch(`${API_URL}/api/dashboard/users/${userId}/status`, {
+  const response = await fetch(dashboardUsersEndpoint(`/${userId}/status`), {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -162,7 +165,7 @@ export async function updateUserStatus(
  * Get user statistics (admin only)
  */
 export async function getUserStats(): Promise<UserStats> {
-  const response = await fetch(`${API_URL}/api/dashboard/users?stats=true`, {
+  const response = await fetch(dashboardUsersEndpoint('?stats=true'), {
     credentials: 'include',
   });
 
@@ -179,7 +182,7 @@ export async function getUserStats(): Promise<UserStats> {
  * Delete user (admin only - soft delete by blocking)
  */
 export async function deleteUser(userId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/api/dashboard/users/${userId}`, {
+  const response = await fetch(dashboardUsersEndpoint(`/${userId}`), {
     method: 'DELETE',
     credentials: 'include',
   });

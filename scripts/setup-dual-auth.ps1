@@ -15,7 +15,7 @@ Write-Host ""
 $STATIC_WEB_APP_NAME = "swa-somos-tech-dev-64qb73pzvgekw"
 $RESOURCE_GROUP = "rg-somos-tech-dev"
 $EXTERNAL_ID_TENANT = "ea315caf-5fa1-4348-a3f8-e50867ae19d4"
-$REDIRECT_URI = "https://happy-stone-070acff1e.3.azurestaticapps.net/.auth/login/externalId/callback"
+$REDIRECT_URI = "https://dev.somos.tech/.auth/login/externalId/callback"
 
 Write-Host "Configuration:" -ForegroundColor Yellow
 Write-Host "  Static Web App: $STATIC_WEB_APP_NAME" -ForegroundColor White
@@ -60,7 +60,7 @@ if ($existingApps.Count -gt 0) {
     
     $adminApp = az ad app create `
         --display-name "SOMOS.tech Admin Portal" `
-        --web-redirect-uris "https://happy-stone-070acff1e.3.azurestaticapps.net/.auth/login/aad/callback" `
+        --web-redirect-uris "https://dev.somos.tech/.auth/login/aad/callback" `
         --query "{appId:appId}" -o json | ConvertFrom-Json
     
     $AZURE_CLIENT_ID = $adminApp.appId
@@ -209,7 +209,7 @@ Write-Host "━━━━━━━━━━━━━━━━━━━━━━�
 Write-Host ""
 Write-Host "Admin Login (Azure AD):" -ForegroundColor Yellow
 Write-Host "  Client ID: $AZURE_CLIENT_ID" -ForegroundColor White
-Write-Host "  Redirect URI: https://happy-stone-070acff1e.3.azurestaticapps.net/.auth/login/aad/callback" -ForegroundColor White
+Write-Host "  Redirect URI: https://dev.somos.tech/.auth/login/aad/callback" -ForegroundColor White
 Write-Host ""
 Write-Host "Member Login (External ID):" -ForegroundColor Yellow
 Write-Host "  Client ID: $EXTERNAL_ID_CLIENT_ID" -ForegroundColor White
@@ -226,8 +226,8 @@ Write-Host "   • Add Microsoft and Google as identity providers" -ForegroundCo
 Write-Host "   • Disable password authentication" -ForegroundColor White
 Write-Host ""
 Write-Host "2. Test the flows:" -ForegroundColor Yellow
-Write-Host "   • Admin: https://happy-stone-070acff1e.3.azurestaticapps.net/admin/login" -ForegroundColor White
-Write-Host "   • Member: https://happy-stone-070acff1e.3.azurestaticapps.net/register" -ForegroundColor White
+Write-Host "   • Admin: https://dev.somos.tech/admin/login" -ForegroundColor White
+Write-Host "   • Member: https://dev.somos.tech/register" -ForegroundColor White
 Write-Host ""
 Write-Host "3. Wait for Static Web App deployment to complete (automatic from GitHub)" -ForegroundColor Yellow
 Write-Host ""
@@ -235,3 +235,4 @@ Write-Host ""
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Gray
 Write-Host "All done! 🎉" -ForegroundColor Green
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Gray
+

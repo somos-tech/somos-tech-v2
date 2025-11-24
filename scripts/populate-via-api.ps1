@@ -1,6 +1,6 @@
 # PowerShell script to populate groups using the API endpoint
 param(
-    [string]$ApiUrl = "https://happy-stone-070acff1e.3.azurestaticapps.net/api/groups"
+    [string]$ApiUrl = "https://dev.somos.tech/api/groups"
 )
 
 Write-Host "SOMOS.tech - Populate Groups via API" -ForegroundColor Cyan
@@ -41,4 +41,5 @@ Write-Host "======================================" -ForegroundColor Cyan
 Write-Host "Successfully created: $successCount" -ForegroundColor Green
 Write-Host "Errors: $errorCount" -ForegroundColor $(if ($errorCount -gt 0) { "Red" } else { "Green" })
 Write-Host ""
-Write-Host "✓ Done! View groups at: https://happy-stone-070acff1e.3.azurestaticapps.net/admin/groups" -ForegroundColor Cyan
+Write-Host "✓ Done! View groups at: https://dev.somos.tech/admin/groups" -ForegroundColor Cyan
+

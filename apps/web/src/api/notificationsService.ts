@@ -1,14 +1,14 @@
 import type { Notification } from '@/shared/types';
+import { apiUrl } from './httpClient';
 
-const API_BASE_URL = import.meta.env?.VITE_API_URL || '';
-const API_PATH = API_BASE_URL ? `${API_BASE_URL}/notifications` : '/api/notifications';
+const notificationsEndpoint = (path = '') => apiUrl(`/notifications${path}`);
 
 export const notificationsService = {
     /**
      * Get all notifications for the current user
      */
     async getNotifications(): Promise<Notification[]> {
-        const response = await fetch(`${API_PATH}/list`, {
+        const response = await fetch(notificationsEndpoint('/list'), {
             credentials: 'include',
         });
 
@@ -23,7 +23,7 @@ export const notificationsService = {
      * Get unread notifications
      */
     async getUnreadNotifications(): Promise<Notification[]> {
-        const response = await fetch(`${API_PATH}/unread`, {
+        const response = await fetch(notificationsEndpoint('/unread'), {
             credentials: 'include',
         });
 
@@ -38,7 +38,7 @@ export const notificationsService = {
      * Get unread notification count
      */
     async getUnreadCount(): Promise<number> {
-        const response = await fetch(`${API_PATH}/count`, {
+        const response = await fetch(notificationsEndpoint('/count'), {
             credentials: 'include',
         });
 
@@ -54,7 +54,7 @@ export const notificationsService = {
      * Mark a notification as read
      */
     async markAsRead(notificationId: string, type: string): Promise<Notification> {
-        const response = await fetch(`${API_PATH}/mark-read`, {
+        const response = await fetch(notificationsEndpoint('/mark-read'), {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -74,7 +74,7 @@ export const notificationsService = {
      * Mark all notifications as read
      */
     async markAllAsRead(): Promise<void> {
-        const response = await fetch(`${API_PATH}/mark-all-read`, {
+        const response = await fetch(notificationsEndpoint('/mark-all-read'), {
             method: 'PUT',
             credentials: 'include',
         });

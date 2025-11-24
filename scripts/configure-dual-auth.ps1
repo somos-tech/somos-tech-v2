@@ -62,7 +62,7 @@ if ($hasAdminApp -eq 'Y' -or $hasAdminApp -eq 'y') {
 } else {
     Write-Host "`nCreating new Azure AD app registration..." -ForegroundColor Cyan
     
-    $redirectUri = "https://happy-stone-070acff1e.3.azurestaticapps.net/.auth/login/aad/callback"
+    $redirectUri = "https://dev.somos.tech/.auth/login/aad/callback"
     
     # Get current tenant info
     $currentTenant = az account show --query tenantId -o tsv
@@ -151,9 +151,9 @@ try {
     Write-Host "═══════════════════════════════════════════════════════════════════`n" -ForegroundColor Cyan
     
     Write-Host "1. Wait 2-3 minutes for Static Web App to restart" -ForegroundColor Yellow
-    Write-Host "2. Test admin login at: https://happy-stone-070acff1e.3.azurestaticapps.net/admin/login" -ForegroundColor Yellow
-    Write-Host "3. Test member login at: https://happy-stone-070acff1e.3.azurestaticapps.net/login" -ForegroundColor Yellow
-    Write-Host "4. Test member signup at: https://happy-stone-070acff1e.3.azurestaticapps.net/register`n" -ForegroundColor Yellow
+    Write-Host "2. Test admin login at: https://dev.somos.tech/admin/login" -ForegroundColor Yellow
+    Write-Host "3. Test member login at: https://dev.somos.tech/login" -ForegroundColor Yellow
+    Write-Host "4. Test member signup at: https://dev.somos.tech/register`n" -ForegroundColor Yellow
     
     Write-Host "═══════════════════════════════════════════════════════════════════`n" -ForegroundColor Cyan
     
@@ -163,3 +163,4 @@ try {
 }
 
 Write-Host "Configuration complete! 🎉`n" -ForegroundColor Green
+
