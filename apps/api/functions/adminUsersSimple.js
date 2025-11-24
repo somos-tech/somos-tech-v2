@@ -1,26 +1,9 @@
 import { app } from '@azure/functions';
-import { CosmosClient } from '@azure/cosmos';
-import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity';
+import { getContainer } from '../shared/db.js';
 
 // Simple admin users endpoint without complex dependencies  
 // Updated to ensure deployment propagation
-const endpoint = process.env.COSMOS_ENDPOINT;
-const databaseId = process.env.COSMOS_DATABASE_NAME || 'somostech';
 const containerId = 'admin-users';
-
-let cosmosClient = null;
-function getCosmosClient() {
-    if (!cosmosClient) {
-        const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
-            process.env.NODE_ENV === 'development';
-        const credential = isLocal
-            ? new DefaultAzureCredential()
-            : new ManagedIdentityCredential();
-        
-        cosmosClient = new CosmosClient({ endpoint, aadCredentials: credential });
-    }
-    return cosmosClient;
-}
 
 app.http('adminUsersSimple', {
     methods: ['GET'],
@@ -31,9 +14,7 @@ app.http('adminUsersSimple', {
             const action = request.params.action || 'list';
             context.log(`[adminUsersSimple] Action: ${action}`);
             
-            const client = getCosmosClient();
-            const database = client.database(databaseId);
-            const container = database.container(containerId);
+            const container = getContainer(containerId);
 
             // GET: List all admin users
             if (action === 'list') {

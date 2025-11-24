@@ -1,27 +1,7 @@
 import { app } from '@azure/functions';
-import { CosmosClient } from '@azure/cosmos';
-import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity';
+import { getContainer } from '../shared/db.js';
 import { rateLimitMiddleware, getClientIdentifier } from '../shared/rateLimiter.js';
 
-// Initialize Cosmos DB client
-// Uses ManagedIdentity in deployed environments, DefaultAzureCredential locally
-const endpoint = process.env.COSMOS_ENDPOINT;
-
-if (!endpoint) {
-    throw new Error('COSMOS_ENDPOINT must be configured');
-}
-
-const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
-    process.env.NODE_ENV === 'development';
-const credential = isLocal
-    ? new DefaultAzureCredential()
-    : new ManagedIdentityCredential();
-
-console.log(`register function: Using ${isLocal ? 'DefaultAzureCredential (local)' : 'ManagedIdentityCredential (deployed)'}`);
-
-const client = new CosmosClient({ endpoint, aadCredentials: credential });
-
-const databaseId = 'somostech';
 const containerId = 'members';
 
 app.http('register', {
@@ -94,9 +74,8 @@ app.http('register', {
                 };
             }
 
-            // Get database and container
-            const database = client.database(databaseId);
-            const container = database.container(containerId);
+            // Get container
+            const container = getContainer(containerId);
 
             // Check if user already exists
             const querySpec = {

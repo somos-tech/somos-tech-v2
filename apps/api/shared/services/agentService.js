@@ -2,6 +2,13 @@ import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identi
 
 class AgentService {
     constructor() {
+        // Lazy initialization of config
+        this.initialized = false;
+    }
+
+    ensureInitialized() {
+        if (this.initialized) return;
+
         this.endpoint = process.env.AZURE_OPENAI_ENDPOINT;
         this.apiKey = process.env.AZURE_OPENAI_API_KEY;
         this.apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-05-01-preview';
@@ -9,16 +16,19 @@ class AgentService {
         this.deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
 
         if (!this.endpoint) {
-            throw new Error('AZURE_OPENAI_ENDPOINT environment variable is required');
+            console.warn('AZURE_OPENAI_ENDPOINT environment variable is not set');
         }
 
         if (!this.agentId) {
-            throw new Error('AZURE_OPENAI_AGENT_ID environment variable is required');
+            console.warn('AZURE_OPENAI_AGENT_ID environment variable is not set');
         }
+
+        this.initialized = true;
     }
 
     async getAuthHeader(userAccessToken = null) {
-        // Use ManagedIdentity in deployed environments, DefaultAzureCredential locally
+        this.ensureInitialized();
+        // ...existing code...
         const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
             process.env.NODE_ENV === 'development';
         const credential = isLocal

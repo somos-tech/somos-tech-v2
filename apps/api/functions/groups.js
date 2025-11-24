@@ -1,27 +1,7 @@
 import { app } from '@azure/functions';
-import { CosmosClient } from '@azure/cosmos';
-import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity';
 import { requireAuth, requireAdmin, logAuthEvent } from '../shared/authMiddleware.js';
+import { getContainer } from '../shared/db.js';
 
-// Initialize Cosmos DB client
-// Uses ManagedIdentity in deployed environments, DefaultAzureCredential locally
-const endpoint = process.env.COSMOS_ENDPOINT;
-
-if (!endpoint) {
-    throw new Error('COSMOS_ENDPOINT must be configured');
-}
-
-const isLocal = process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
-    process.env.NODE_ENV === 'development';
-const credential = isLocal
-    ? new DefaultAzureCredential()
-    : new ManagedIdentityCredential();
-
-console.log(`groups function: Using ${isLocal ? 'DefaultAzureCredential (local)' : 'ManagedIdentityCredential (deployed)'}`);
-
-const client = new CosmosClient({ endpoint, aadCredentials: credential });
-
-const databaseId = process.env.COSMOS_DATABASE_NAME || 'somostech';
 const containerId = 'groups';
 
 /**
@@ -60,8 +40,7 @@ app.http('groups', {
                 logAuthEvent(context, request, `${method}_GROUP`, `groups/${groupId || ''}`, true);
             }
 
-            const database = client.database(databaseId);
-            const container = database.container(containerId);
+            const container = getContainer(containerId);
 
             // GET - List all groups or get single group
             if (method === 'GET') {
