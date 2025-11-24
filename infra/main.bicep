@@ -434,7 +434,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         ]
         supportCredentials: true
       }
-      appSettings: [
+      appSettings: concat([
         {
           name: 'AzureWebJobsStorage__accountName'
           value: storageAccount.name
@@ -495,7 +495,24 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'VENUE_AGENT_ID'
           value: !empty(venueAgentId) ? venueAgentId : azureOpenAiAgentId
         }
-      ]
+      ],
+      !empty(externalTenantId) && !empty(externalAdminClientId) && !empty(externalMemberClientId)
+        ? [
+            {
+              name: 'EXTERNAL_TENANT_ID'
+              value: externalTenantId
+            }
+            {
+              name: 'EXTERNAL_ADMIN_CLIENT_ID'
+              value: externalAdminClientId
+            }
+            {
+              name: 'EXTERNAL_MEMBER_CLIENT_ID'
+              value: externalMemberClientId
+            }
+          ]
+        : []
+      )
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
     }
