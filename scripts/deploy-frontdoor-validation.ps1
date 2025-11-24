@@ -49,7 +49,8 @@ function Invoke-AzCli {
     )
 
     Write-Host "> az $Arguments" -ForegroundColor Cyan
-    $result = az $Arguments 2>&1
+    $command = "az $Arguments"
+    $result = Invoke-Expression $command 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "Azure CLI command failed:`nCommand: az $Arguments`n$result"
     }
@@ -62,7 +63,10 @@ function Invoke-AzCli {
 }
 
 Write-Host "Running group deployment via $BicepFile ..." -ForegroundColor Green
-$deploymentArgs = "deployment group create --name $DeploymentName --resource-group $ResourceGroupName --template-file `"$BicepFile`" --parameters @$ParameterFile"
+$isBicepParam = $ParameterFile.ToLower().EndsWith('.bicepparam')
+$templateSegment = $isBicepParam ? '' : " --template-file `"$BicepFile`""
+$parametersSegment = " --parameters @$ParameterFile"
+$deploymentArgs = "deployment group create --name $DeploymentName --resource-group $ResourceGroupName$templateSegment$parametersSegment"
 $deploymentResult = Invoke-AzCli -Arguments $deploymentArgs -AsJson
 $outputs = $deploymentResult.properties.outputs
 

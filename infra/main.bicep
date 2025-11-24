@@ -712,7 +712,7 @@ resource frontDoorRoute 'Microsoft.Cdn/profiles/afdEndpoints/routes@2023-05-01' 
   }
 }
 
-resource frontDoorWafPolicy 'Microsoft.Network/frontDoorWebApplicationFirewallPolicies@2022-05-01' = {
+resource frontDoorWafPolicy 'Microsoft.Cdn/cdnWebApplicationFirewallPolicies@2023-05-01' = {
   name: frontDoorWafPolicyName
   location: 'global'
   sku: {
@@ -722,8 +722,8 @@ resource frontDoorWafPolicy 'Microsoft.Network/frontDoorWebApplicationFirewallPo
     policySettings: {
       enabledState: 'Enabled'
       mode: 'Prevention'
-      customBlockResponseStatusCode: 403
-      customBlockResponseBody: base64('<html><body><h1>Access restricted</h1><p>This application only accepts traffic from approved US regions.</p></body></html>')
+      defaultCustomBlockResponseStatusCode: 403
+      defaultCustomBlockResponseBody: base64('<html><body><h1>Access restricted</h1><p>This application only accepts traffic from approved US regions.</p></body></html>')
     }
     customRules: {
       rules: [
@@ -731,7 +731,6 @@ resource frontDoorWafPolicy 'Microsoft.Network/frontDoorWebApplicationFirewallPo
           name: 'BlockNonUS'
           priority: 100
           enabledState: 'Enabled'
-          ruleType: 'MatchRule'
           action: 'Block'
           matchConditions: [
             {
