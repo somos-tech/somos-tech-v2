@@ -18,11 +18,31 @@ export function successResponse(data, statusCode = 200) {
     });
 }
 
-export function errorResponse(error, statusCode = 500) {
-    return createResponse(statusCode, {
+export function errorResponse(errorOrStatus, statusCodeOrMessage = 500, details = null) {
+    let status = 500;
+    let message = 'Unknown error';
+    let errorDetails = details;
+
+    if (typeof errorOrStatus === 'number') {
+        // Usage: errorResponse(status, message, details)
+        status = errorOrStatus;
+        message = statusCodeOrMessage;
+    } else {
+        // Usage: errorResponse(message/error, status)
+        message = (errorOrStatus && errorOrStatus.message) ? errorOrStatus.message : errorOrStatus;
+        status = statusCodeOrMessage;
+    }
+
+    const body = {
         success: false,
-        error: error.message || error
-    });
+        error: message
+    };
+
+    if (errorDetails) {
+        body.details = errorDetails;
+    }
+
+    return createResponse(status, body);
 }
 
 // Aliases for compatibility
