@@ -403,14 +403,22 @@ somos-tech-v2/
 │       ├── deploy-static-web-app.yml  # Frontend CI/CD (with EXTERNAL_* vars)
 │       └── deploy-function-app.yml    # API CI/CD
 │
-└── Documentation files
-    ├── README.md               # This file
-    ├── DUAL_AUTH_SETUP.md      # Dual authentication configuration
-    ├── GITHUB_SECRETS_SETUP.md # Required GitHub secrets
-    ├── AUTH_DEBUG_FINDINGS.md  # Authentication troubleshooting
-    ├── DEPLOYMENT_GUIDE.md     # Deployment procedures
-    ├── NOTIFICATIONS_GUIDE.md  # Notification system setup
-    └── SECURITY_REVIEW.md      # Security audit results
+└── docs/                       # Documentation directory
+    ├── README.md               # Documentation index
+    ├── deployment/             # Deployment documentation
+    │   ├── DEPLOYMENT_GUIDE.md
+    │   ├── DEPLOYMENT_INSTRUCTIONS.md
+    │   ├── GITHUB_SECRETS_SETUP.md
+    │   └── DEPLOYMENT_ADMIN_USERS.md
+    ├── guides/                 # Feature and setup guides
+    │   ├── DUAL_AUTH_SETUP.md
+    │   ├── USER_MANAGEMENT_GUIDE.md
+    │   ├── NOTIFICATIONS_GUIDE.md
+    │   └── ADMIN_USERS_IMPLEMENTATION.md
+    ├── security/               # Security documentation
+    │   ├── SECURITY_REVIEW.md
+    │   └── SECURITY_SUMMARY.md
+    └── archive/                # Historical/deprecated docs
 ```
 
 ---
@@ -510,9 +518,9 @@ Admin Pages (/admin/*)
 ### Detailed Setup Instructions
 
 For complete setup instructions including app registrations and configuration, see:
-- `DUAL_AUTH_SETUP.md` - Detailed dual authentication configuration
-- `GITHUB_SECRETS_SETUP.md` - GitHub secrets setup guide
-- `AUTH_DEBUG_FINDINGS.md` - Common authentication issues and solutions
+- [Dual Auth Setup](docs/guides/DUAL_AUTH_SETUP.md) - Detailed dual authentication configuration
+- [GitHub Secrets Setup](docs/deployment/GITHUB_SECRETS_SETUP.md) - GitHub secrets setup guide
+- [Documentation Index](docs/README.md) - Complete documentation reference
 
 ---
 
@@ -999,6 +1007,14 @@ az group delete --name rg-somos-tech-dev --yes --no-wait
 ## Additional Resources
 
 ### Documentation
+- **[Documentation Index](docs/README.md)** - Complete documentation guide
+- **[Deployment Guide](docs/deployment/DEPLOYMENT_GUIDE.md)** - Production deployment procedures
+- **[Dual Auth Setup](docs/guides/DUAL_AUTH_SETUP.md)** - Authentication configuration
+- **[User Management](docs/guides/USER_MANAGEMENT_GUIDE.md)** - User profile and management
+- **[Security Documentation](docs/security/)** - Security reviews and best practices
+- **[Contributing Guide](CONTRIBUTING.md)** - Development guidelines
+
+### External Documentation
 - [Azure Static Web Apps](https://docs.microsoft.com/azure/static-web-apps/)
 - [Azure Functions](https://docs.microsoft.com/azure/azure-functions/)
 - [Azure Bicep](https://docs.microsoft.com/azure/azure-resource-manager/bicep/)
