@@ -1052,4 +1052,131 @@ Built with ❤️ by the SOMOS.tech team
 - ✅ **Payment Capability Detection**: Apple Pay and Google Pay support indicators
 - ✅ **Cosmos DB Migration**: Moved from Azure Table Storage to Cosmos DB for better performance
 - ✅ **Automated Deployments**: Restored automatic deployments on push to main branch
+- ✅ **Front Door + SWA Lockdown**: Direct access to default SWA hostname blocked (see below)
+
+---
+
+## Front Door & Static Web App Security Configuration
+
+### Overview
+
+Traffic to the Static Web App is locked down so that only requests coming through Azure Front Door are accepted. Direct access to the default SWA hostname (`happy-stone-*.azurestaticapps.net` for dev, or similar for prod) is blocked.
+
+### Configuration Components
+
+#### 1. Front Door Origin Host Header
+
+The Front Door origin must be configured to forward the **custom domain** as the Host header, not the default SWA hostname:
+
+```bash
+# DEV environment
+az afd origin update \
+  --resource-group rg-somos-tech-dev \
+  --profile-name fd-somos-tech \
+  --origin-group-name default-origin-group \
+  --origin-name default-origin \
+  --origin-host-header dev.somos.tech
+
+# PROD environment (when ready)
+az afd origin update \
+  --resource-group rg-somos-tech-prod \
+  --profile-name fd-somos-tech-prod \
+  --origin-group-name default-origin-group \
+  --origin-name default-origin \
+  --origin-host-header somos.tech
+```
+
+> **Note**: This change can take 5-15 minutes to propagate across all Front Door edge nodes.
+
+#### 2. Static Web App Configuration (`staticwebapp.config.json`)
+
+The `apps/web/staticwebapp.config.json` file includes these security settings:
+
+```json
+{
+  "networking": {
+    "allowedIpRanges": ["AzureFrontDoor.Backend"]
+  },
+  "forwardingGateway": {
+    "requiredHeaders": {
+      "X-Azure-FDID": "<YOUR-FRONT-DOOR-ID>"
+    },
+    "allowedForwardedHosts": [
+      "dev.somos.tech",
+      "<YOUR-FRONT-DOOR-ENDPOINT>.azurefd.net"
+    ]
+  }
+}
+```
+
+**Key settings:**
+- `allowedIpRanges`: Restricts traffic to Azure Front Door IP ranges only
+- `requiredHeaders.X-Azure-FDID`: Validates the specific Front Door instance ID
+- `allowedForwardedHosts`: Specifies which hostnames are accepted in the `X-Forwarded-Host` header
+
+#### 3. Finding Your Front Door ID
+
+```bash
+# Get Front Door ID for DEV
+az afd profile show \
+  --resource-group rg-somos-tech-dev \
+  --profile-name fd-somos-tech \
+  --query "frontDoorId" -o tsv
+
+# Get Front Door ID for PROD (when ready)
+az afd profile show \
+  --resource-group rg-somos-tech-prod \
+  --profile-name fd-somos-tech-prod \
+  --query "frontDoorId" -o tsv
+```
+
+### Production Deployment Checklist
+
+When deploying to production, ensure you:
+
+- [ ] Create/verify Front Door profile exists for prod (`fd-somos-tech-prod`)
+- [ ] Configure origin host header to `somos.tech`
+- [ ] Get production Front Door ID
+- [ ] Update `staticwebapp.config.json` with prod Front Door ID
+- [ ] Add production allowed forwarded hosts
+- [ ] Deploy and verify direct SWA access is blocked
+- [ ] Add production callback URIs to Entra app registrations
+
+### Entra ID App Registration Redirect URIs
+
+Both the admin (AAD) and member (CIAM) app registrations need callback URIs for the custom domains:
+
+**Required redirect URIs:**
+```
+# DEV
+https://dev.somos.tech/.auth/login/aad/callback
+https://dev.somos.tech/.auth/login/member/callback
+
+# PROD
+https://somos.tech/.auth/login/aad/callback
+https://somos.tech/.auth/login/member/callback
+https://www.somos.tech/.auth/login/aad/callback
+https://www.somos.tech/.auth/login/member/callback
+```
+
+### Verifying the Lockdown
+
+```bash
+# Should work (through Front Door)
+curl -I https://dev.somos.tech/
+# Expected: HTTP/2 200
+
+# Should be blocked (direct to SWA)
+curl -I https://happy-stone-070acff1e.3.azurestaticapps.net/
+# Expected: HTTP/2 403
+```
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| 403 when accessing via custom domain | Verify Front Door ID matches in `staticwebapp.config.json` |
+| 502/503 after origin update | Wait 15 min for propagation; verify SWA has custom domain configured |
+| Auth redirects to wrong hostname | Check `allowedForwardedHosts` includes your custom domain |
+| Direct SWA access still works | Redeploy SWA to pick up config changes |
 
