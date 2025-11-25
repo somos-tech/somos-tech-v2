@@ -94,12 +94,16 @@
         }
     },
     "forwardingGateway": {
-        "backend": {
-            "backendResourceId": "/subscriptions/8a61b9f5-71c9-420a-b42a-6daa8b1a3c94/resourceGroups/rg-somos-tech-dev/providers/Microsoft.Web/sites/func-somos-tech-dev-64qb73pzvgekw"
+        "requiredHeaders": {
+            "X-Azure-FDID": "c405514c-606c-4bec-9669-576e25e0a549"
         },
         "allowedForwardedHosts": [
-            "func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net"
+            "dev.somos.tech",
+            "fd-somostech-ehgfhqcpa2bka7dt.z02.azurefd.net"
         ]
+    },
+    "networking": {
+        "allowedIpRanges": ["AzureFrontDoor.Backend"]
     },
     "globalHeaders": {
         "X-SWA-Debug": "config-active",
