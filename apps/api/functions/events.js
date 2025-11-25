@@ -33,10 +33,10 @@ app.http('CreateEvent', {
     handler: async (request, context) => {
         try {
             // Require admin authentication
-            const authError = requireAdmin(request);
-            if (authError) {
+            const authResult = await requireAdmin(request);
+            if (!authResult.authenticated) {
                 logAuthEvent(context, request, 'CREATE_EVENT', 'events', false);
-                return authError;
+                return authResult.error;
             }
 
             context.log('Creating new event');
@@ -95,10 +95,10 @@ app.http('DeleteEvent', {
     handler: async (request, context) => {
         try {
             // Require admin authentication
-            const authError = requireAdmin(request);
-            if (authError) {
+            const authResult = await requireAdmin(request);
+            if (!authResult.authenticated) {
                 logAuthEvent(context, request, 'DELETE_EVENT', `events/${request.params.id}`, false);
-                return authError;
+                return authResult.error;
             }
 
             const id = request.params.id;
@@ -121,10 +121,10 @@ app.http('GetAllEvents', {
     handler: async (request, context) => {
         try {
             // Require authentication for viewing events
-            const authError = requireAuth(request);
-            if (authError) {
+            const authResult = await requireAuth(request);
+            if (!authResult.authenticated) {
                 logAuthEvent(context, request, 'GET_EVENTS', 'events', false);
-                return authError;
+                return authResult.error;
             }
 
             context.log('Getting all events');
@@ -145,10 +145,10 @@ app.http('GetEventById', {
     handler: async (request, context) => {
         try {
             // Require authentication for viewing events
-            const authError = requireAuth(request);
-            if (authError) {
+            const authResult = await requireAuth(request);
+            if (!authResult.authenticated) {
                 logAuthEvent(context, request, 'GET_EVENT', `events/${request.params.id}`, false);
-                return authError;
+                return authResult.error;
             }
 
             const id = request.params.id;
@@ -176,10 +176,10 @@ app.http('UpdateEvent', {
     handler: async (request, context) => {
         try {
             // Require admin authentication
-            const authError = requireAdmin(request);
-            if (authError) {
+            const authResult = await requireAdmin(request);
+            if (!authResult.authenticated) {
                 logAuthEvent(context, request, 'UPDATE_EVENT', `events/${request.params.id}`, false);
-                return authError;
+                return authResult.error;
             }
 
             const id = request.params.id;
@@ -237,9 +237,9 @@ app.http('RegenerateSocialMediaPosts', {
     handler: async (request, context) => {
         try {
             // Require admin authentication
-            const authError = requireAdmin(request);
-            if (authError) {
-                return authError;
+            const authResult = await requireAdmin(request);
+            if (!authResult.authenticated) {
+                return authResult.error;
             }
 
             const id = request.params.id;
@@ -271,9 +271,9 @@ app.http('CheckSocialMediaPostsStatus', {
     handler: async (request, context) => {
         try {
             // Require authentication
-            const authError = requireAuth(request);
-            if (authError) {
-                return authError;
+            const authResult = await requireAuth(request);
+            if (!authResult.authenticated) {
+                return authResult.error;
             }
 
             const id = request.params.id;
@@ -320,9 +320,9 @@ app.http('GetVenueRecommendations', {
     handler: async (request, context) => {
         try {
             // Require authentication
-            const authError = requireAuth(request);
-            if (authError) {
-                return authError;
+            const authResult = await requireAuth(request);
+            if (!authResult.authenticated) {
+                return authResult.error;
             }
 
             const id = request.params.id;
@@ -349,9 +349,9 @@ app.http('RegenerateVenueRecommendations', {
     handler: async (request, context) => {
         try {
             // Require admin authentication
-            const authError = requireAdmin(request);
-            if (authError) {
-                return authError;
+            const authResult = await requireAdmin(request);
+            if (!authResult.authenticated) {
+                return authResult.error;
             }
 
             const id = request.params.id;
@@ -383,9 +383,9 @@ app.http('CheckVenueRecommendationsStatus', {
     handler: async (request, context) => {
         try {
             // Require authentication
-            const authError = requireAuth(request);
-            if (authError) {
-                return authError;
+            const authResult = await requireAuth(request);
+            if (!authResult.authenticated) {
+                return authResult.error;
             }
 
             const id = request.params.id;
