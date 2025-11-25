@@ -15,9 +15,19 @@ export default function Login() {
         }
     }, [isAuthenticated, isLoading, navigate, returnUrl]);
 
+    // SWA requires absolute post-login URLs or it falls back to default hostname
+    const buildAbsoluteRedirect = (target: string) => {
+        const normalized = target?.startsWith('http')
+            ? target
+            : `${window.location.origin}${target?.startsWith('/') ? target : `/${target}`}`;
+
+        return encodeURIComponent(normalized);
+    };
+
     const handleLogin = () => {
         // Use member provider for regular user login
-        window.location.href = `/.auth/login/member?post_login_redirect_uri=${encodeURIComponent(returnUrl)}`;
+        const redirect = buildAbsoluteRedirect(returnUrl);
+        window.location.href = `/.auth/login/member?post_login_redirect_uri=${redirect}`;
     };
 
     if (isLoading) {

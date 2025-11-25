@@ -20,10 +20,20 @@ export default function AdminLogin() {
         }
     }, [isAuthenticated, isAdmin, isLoading, navigate, returnUrl]);
 
+    // SWA requires absolute post-login URLs or it falls back to default hostname
+    const buildAbsoluteRedirect = (target: string) => {
+        const normalized = target?.startsWith('http')
+            ? target
+            : `${window.location.origin}${target?.startsWith('/') ? target : `/${target}`}`;
+
+        return encodeURIComponent(normalized);
+    };
+
     const handleAdminLogin = () => {
         // Login with AAD for somos.tech accounts only
         // Add domain_hint to ensure only somos.tech accounts can sign in
-        window.location.href = `/.auth/login/aad?post_login_redirect_uri=${encodeURIComponent(returnUrl)}&domain_hint=somos.tech`;
+        const redirect = buildAbsoluteRedirect(returnUrl);
+        window.location.href = `/.auth/login/aad?post_login_redirect_uri=${redirect}&domain_hint=somos.tech`;
     };
 
     if (isLoading) {
