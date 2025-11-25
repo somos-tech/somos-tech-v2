@@ -1,0 +1,182 @@
+{
+  "customRules": {
+    "rules": [
+      {
+        "name": "BlockAnonymousNetworks",
+        "priority": 100,
+        "ruleType": "MatchRule",
+        "action": "Block",
+        "matchConditions": [
+          {
+            "matchVariable": "RemoteAddr",
+            "operator": "GeoMatch",
+            "negateCondition": true,
+            "matchValue": [
+              "US",
+              "CA",
+              "MX",
+              "GB"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "BlockMaliciousUserAgents",
+        "priority": 200,
+        "ruleType": "MatchRule",
+        "action": "Block",
+        "matchConditions": [
+          {
+            "matchVariable": "RequestHeader",
+            "selector": "User-Agent",
+            "operator": "Contains",
+            "negateCondition": false,
+            "transforms": ["Lowercase"],
+            "matchValue": [
+              "curl",
+              "wget",
+              "python-requests",
+              "python-urllib",
+              "go-http-client",
+              "nikto",
+              "sqlmap",
+              "nessus",
+              "masscan",
+              "nmap"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "BlockScriptExtensions",
+        "priority": 300,
+        "ruleType": "MatchRule",
+        "action": "Block",
+        "matchConditions": [
+          {
+            "matchVariable": "RequestUri",
+            "operator": "EndsWith",
+            "negateCondition": false,
+            "transforms": ["Lowercase"],
+            "matchValue": [
+              ".php",
+              ".php3",
+              ".aspx",
+              ".jsp",
+              ".sh",
+              ".pl",
+              ".cgi",
+              ".exe",
+              ".dll",
+              ".jar"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "BlockCommonInjectionPatterns",
+        "priority": 400,
+        "ruleType": "MatchRule",
+        "action": "Block",
+        "matchConditions": [
+          {
+            "matchVariable": "QueryString",
+            "operator": "Contains",
+            "negateCondition": false,
+            "transforms": ["Lowercase", "UrlDecode"],
+            "matchValue": [
+              "<script>",
+              "</script>",
+              "javascript:",
+              "../",
+              "..\\",
+              "%2e%2e/",
+              "%2e%2e\\",
+              "%27",
+              "union select",
+              "information_schema"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "BlockInjectionInRequestBody",
+        "priority": 500,
+        "ruleType": "MatchRule",
+        "action": "Block",
+        "matchConditions": [
+          {
+            "matchVariable": "RequestBody",
+            "operator": "Contains",
+            "negateCondition": false,
+            "transforms": ["Lowercase", "UrlDecode"],
+            "matchValue": [
+              "<script>",
+              "javascript:",
+              "union select",
+              "information_schema",
+              "exec(",
+              "xp_cmdshell",
+              "../",
+              "..\\",
+              "' or '1'='1",
+              "' or 1=1--"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "BlockSuspiciousFileUploads",
+        "priority": 600,
+        "ruleType": "MatchRule",
+        "action": "Block",
+        "matchConditions": [
+          {
+            "matchVariable": "RequestHeader",
+            "selector": "Content-Type",
+            "operator": "Contains",
+            "negateCondition": false,
+            "transforms": ["Lowercase"],
+            "matchValue": [
+              "application/x-msdownload",
+              "application/x-executable",
+              "application/x-sharedlib",
+              "application/x-sh",
+              "application/x-shellscript"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "RateLimitExcessiveRequests",
+        "priority": 700,
+        "ruleType": "RateLimitRule",
+        "rateLimitDurationInMinutes": 1,
+        "rateLimitThreshold": 100,
+        "action": "Block",
+        "matchConditions": [
+          {
+            "matchVariable": "RemoteAddr",
+            "operator": "IPMatch",
+            "negateCondition": true,
+            "matchValue": ["0.0.0.0/0"]
+          }
+        ]
+      }
+    ]
+  },
+  "managedRules": {
+    "managedRuleSets": [
+      {
+        "ruleSetType": "Microsoft_DefaultRuleSet",
+        "ruleSetVersion": "2.1",
+        "ruleSetAction": "Block"
+      },
+      {
+        "ruleSetType": "Microsoft_BotManagerRuleSet",
+        "ruleSetVersion": "1.0",
+        "ruleSetAction": "Block"
+      }
+    ]
+  }
+}
