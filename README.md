@@ -1,4 +1,4 @@
-# Somos Tech v2
+# SOMOS.tech V2 🐦‍🔥
 
 Modern event management platform built with React, Azure Functions, and Azure Static Web Apps.
 
