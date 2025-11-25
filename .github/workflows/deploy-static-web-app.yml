@@ -48,7 +48,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: 'upload'
           app_location: 'apps/web'
-          api_location: 'apps/web/api'
+          api_location: ''  # Empty - using linked Azure Function App backend
           output_location: 'dist'
         env:
           VITE_API_URL: 'https://func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net'
@@ -78,7 +78,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: 'upload'
           app_location: 'apps/web'
-          api_location: 'apps/web/api'
+          api_location: ''  # Empty - using linked Azure Function App backend
           output_location: 'dist'
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
@@ -104,7 +104,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: 'upload'
           app_location: 'apps/web'
-          api_location: 'apps/web/api'
+          api_location: ''  # Empty - using linked Azure Function App backend
           output_location: 'dist'
         env:
           VITE_API_URL: https://func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net

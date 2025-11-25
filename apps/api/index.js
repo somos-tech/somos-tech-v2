@@ -10,5 +10,6 @@ import "./functions/healthCheck.js";
 //import "./functions/adminUsersSimple.js";
 import "./functions/adminUsers.js";
 import "./functions/adminUserManagement.js";
+import "./functions/checkAdmin.js";
 //import "./functions/testAdmin.js";
 
