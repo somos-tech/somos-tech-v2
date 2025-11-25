@@ -27,7 +27,8 @@
         {
             "route": "/admin*",
             "allowedRoles": [
-                "anonymous"
+                "anonymous",
+                "authenticated"
             ]
         },
         {
