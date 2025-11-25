@@ -27,7 +27,8 @@ Somos Tech is a full-stack event management application featuring:
 - NoSQL data storage with Azure Cosmos DB
 - **Dual Authentication**: Separate flows for admins and members
 - **Donation Integration**: Direct Givebutter integration
-- Global CDN distribution via Azure Static Web Apps
+- Global CDN distribution via Azure Front Door + Static Web Apps
+- Edge security enforced by Azure Front Door Web Application Firewall (WAF)
 - Automated CI/CD with GitHub Actions
 
 **Live URLs**:
@@ -69,57 +70,60 @@ Somos Tech is a full-stack event management application featuring:
 ## Architecture
 
 ```
-                    ┌─────────────────────┐
-                    │      GitHub         │
-                    │   (Source Code)     │
-                    └──────────┬──────────┘
-                               │
-                    ┌──────────▼──────────┐
-                    │  GitHub Actions     │
-                    │  (CI/CD Pipeline)   │
-                    └──────────┬──────────┘
-                               │
-              ┌────────────────┴────────────────┐
-              │                                  │
-    ┌─────────▼──────────┐          ┌──────────▼──────────┐
-    │  Azure Static Web  │          │  Azure Function App │
-    │     App (React)    │◄─────────┤    (Node.js API)    │
-    │                    │  Backend │                     │
-    │  - CDN Hosting     │   Link   │  - REST Endpoints   │
-    │  - SSL/TLS         │          │  - Managed Identity │
-    │  - Custom Domain   │          │  - CORS Enabled     │
-    └────────────────────┘          └──────────┬──────────┘
-                                                │
-                                     ┌──────────▼──────────┐
-                                     │  Azure Cosmos DB    │
-                                     │    (NoSQL)          │
-                                     │  - Serverless       │
-                                     └─────────┬───────────┘
-                                               │
-                                     ┌─────────▼───────────┐
-                                     │  Azure Storage      │
-                                     │    Account          │
-                                     │  - Blob Storage     │
-                                     └─────────┬───────────┘
-                                               │
-                                     ┌─────────▼───────────┐
-                                     │ Application Insights│
-                                     │  (Monitoring)       │
-                                     └─────────────────────┘
+         ┌─────────────────────┐
+         │      GitHub         │
+         │   (Source Code)     │
+         └──────────┬──────────┘
+            │
+         ┌──────────▼──────────┐
+         │  GitHub Actions     │
+         │  (CI/CD Pipeline)   │
+         └──────────┬──────────┘
+            │
+         ┌──────┴──────┐
+         │ Cloudflare  │
+         │    DNS      │
+         └──────┬──────┘
+            │ CNAME dev/prod
+     ┌──────────────────▼──────────────────┐
+     │   Azure Front Door (Standard/Premium)
+     │   - Global Anycast edge
+     │   - WAF policy + security rules
+     │   - Custom domains + certificates
+     └───────────┬─────────────────────────┘
+         │ Front Door backend route
+    ┌────────────▼────────────┐          ┌──────────▼──────────┐
+    │ Azure Static Web App    │◄─────────┤  Azure Function App │
+    │  - React SPA            │  Backend │  - Node.js API      │
+    │  - Default domain only  │   Link   │  - Managed Identity │
+    │  - Locked behind AFD    │          │  - CORS via backend │
+    └────────────┬────────────┘          └──────────┬──────────┘
+         │                                   │
+    ┌────────▼────────┐                ┌─────────▼─────────┐
+    │ Azure Cosmos DB │                │ Azure Storage     │
+    │  (Serverless)   │                │  (Blob/Files)     │
+    └────────┬────────┘                └─────────┬─────────┘
+         │                                   │
+    ┌────────▼────────┐                ┌─────────▼─────────┐
+    │ Application     │                │ Azure Monitor &   │
+    │ Insights        │                │ Alerts            │
+    └─────────────────┘                └───────────────────┘
 ```
 
 ### Data Flow
 
 ```
 User Browser
-    ↓ (HTTPS)
+   ↓ (HTTPS over Cloudflare)
+Azure Front Door (custom domain + WAF)
+   ↓ (Forwarding to backend link)
 Azure Static Web App (React SPA)
-    ↓ (API Calls via Backend Link)
+   ↓ (API calls via AFD backend link)
 Azure Function App (REST API)
-    ↓ (Cosmos DB SDK)
-Azure Cosmos DB (NoSQL Data)
-    ↓ (Telemetry)
-Application Insights (Monitoring)
+   ↓ (Cosmos DB SDK / Storage SDK)
+Azure Cosmos DB & Storage
+   ↓ (Telemetry)
+Application Insights / Monitor
 ```
 
 ### Security Architecture
@@ -128,7 +132,21 @@ Application Insights (Monitoring)
 2. **Access Control**: CORS configuration, Managed Identity authentication
 3. **Data Security**: Storage encryption at rest, identity-based auth (no connection strings)
 4. **Application Security**: Security headers (CSP, X-Frame-Options), input validation
-5. **Secrets Management**: GitHub Secrets, Azure Key Vault ready
+5. **Edge Protection**: Azure Front Door WAF blocking Tor/anonymous networks, malicious user agents, script extensions, injection payloads, suspicious uploads, and abusive request rates
+6. **Secrets Management**: GitHub Secrets, Azure Key Vault ready
+
+### Edge Security & WAF Rules
+
+Traffic now terminates at Azure Front Door before reaching the Static Web App. The attached WAF policy enforces:
+
+- `BlockAnonymousNetworks` (priority 100): GeoMatch allow-list that only permits United States, Canada, Mexico, and United Kingdom traffic (all other countries blocked at the edge)
+- `BlockMaliciousUserAgents` (priority 200): drops scanners and automation frameworks (curl, wget, python-requests, nikto, sqlmap, Nessus, Nmap, etc.) using a lowercase transform for consistent matching
+- `BlockScriptExtensions` (priority 300): prevents direct requests for executable/script artifacts (.php, .aspx, .jsp, .sh, .pl, .cgi, .exe, .dll, .jar)
+- `BlockCommonInjectionPatterns` + `BlockInjectionInRequestBody` (priorities 400/500): inspect query strings and bodies after URL-decoding to catch `<script>`, `javascript:`, `../`, `%27`, `union select`, `information_schema`, and SQLi staples like `' or '1'='1`
+- `BlockSuspiciousFileUploads` (priority 600): rejects uploads advertising executable MIME types such as `application/x-msdownload`
+- `RateLimitExcessiveRequests` (priority 700): global rate-limit rule (100 requests/min per client IP) to slow brute-force or enumeration attempts
+
+> **Propagation note**: Azure Front Door may report `deploymentStatus: NotStarted` immediately after WAF updates. Allow 15–30 minutes for global rollout and confirm via `az afd security-policy show`.
 
 ---
 
@@ -580,6 +598,48 @@ All deployments are automated via GitHub Actions workflows. No manual deployment
 #### 1. Infrastructure Deployment
 - **Workflow**: `deploy-infrastructure.yml`
 - **Trigger**: Manual only (workflow_dispatch)
+
+### Azure Front Door Deployment (Custom Domain + WAF)
+
+The Static Web App no longer exposes a public custom domain; all traffic flows through Azure Front Door (`fd-somos-tech`). Deploying or refreshing the edge requires three quick steps:
+
+1. **Provision/refresh the custom domain**
+   ```powershell
+   pwsh scripts/setup-frontdoor-domain.ps1 -Domain dev.somos.tech -ProfileName fd-somos-tech
+   ```
+   This script validates the CNAME in Cloudflare, obtains/renews the Azure-managed certificate, and attaches the domain to the `default-route`.
+
+2. **Push the WAF ruleset**
+   ```powershell
+   pwsh scripts/deploy-waf-rules.ps1
+   ```
+   The script wipes stale rules, recreates them from `waf-rules-update.json`, and verifies the policy is enabled in Prevention mode.
+
+3. **Confirm propagation + run tests**
+   ```powershell
+   az afd security-policy show \ 
+     --resource-group rg-somos-tech-dev \ 
+     --profile-name fd-somos-tech \ 
+     --security-policy-name devwafpolicy-60e1330f \ 
+     --query "deploymentStatus"
+
+   pwsh scripts/test-waf-rules.ps1 -Verbose
+   ```
+   Front Door may report `deploymentStatus: NotStarted` for ~15 minutes. Wait for success, then execute the regression script (legitimate traffic should pass; malicious probes should receive 403).
+
+#### WAF Rule Overview
+
+| Rule Name | Priority | What it blocks |
+|-----------|----------|----------------|
+| `BlockAnonymousNetworks` | 100 | Geo-allowlist enforced via Front Door WAF (only US, Canada, Mexico, UK traffic is permitted; all other countries blocked) |
+| `BlockMaliciousUserAgents` | 200 | curl, wget, python-requests, nikto, sqlmap, Nessus, Masscan, Nmap, etc. (case-normalized) |
+| `BlockScriptExtensions` | 300 | Direct requests for `.php`, `.aspx`, `.jsp`, `.sh`, `.pl`, `.cgi`, `.exe`, `.dll`, `.jar` |
+| `BlockCommonInjectionPatterns` | 400 | Query string payloads containing `<script>`, `javascript:`, `../`, `%27`, `union select`, `information_schema` |
+| `BlockInjectionInRequestBody` | 500 | Body payloads with script/injection markers (`<script>`, `union select`, `xp_cmdshell`, path traversal, SQLi) |
+| `BlockSuspiciousFileUploads` | 600 | Uploads advertising executable MIME types (`application/x-msdownload`, `application/x-executable`, etc.) |
+| `RateLimitExcessiveRequests` | 700 | Clients exceeding 100 requests/minute (per socket address) |
+
+`scripts/test-waf-rules.ps1` exercises every rule with positive/negative cases and exits non-zero if any protection fails. Manual Tor/VPN testing is still recommended for the anonymous-network block.
 - **Purpose**: Deploy or update Azure infrastructure
 - **Environments**: dev, prod
 

@@ -1,7 +1,27 @@
 # Deployment Guide - Security Fixes
 
 ## Overview
-This guide covers deploying the security fixes to production. Follow these steps carefully to ensure proper authentication and authorization controls are in place. The latest hardening requires all traffic to flow through an Azure Front Door Standard profile with a geo-filtering WAF policy so that only United States traffic reaches the Static Web App. The profile ($35/mo list price) plus one custom rule ($1/mo) keeps the monthly spend below the $40 cap while still enforcing regional compliance.
+This guide covers deploying the security fixes to production. Follow these steps carefully to ensure proper authentication and authorization controls are in place. The latest hardening requires all traffic to flow through an Azure Front Door Standard profile with a geo-filtering WAF policy so that only traffic from the United States, Canada, Mexico, and the United Kingdom reaches the Static Web App. The profile ($35/mo list price) plus one custom rule ($1/mo) keeps the monthly spend below the $40 cap while still enforcing regional compliance.
+
+## Current Deployment Status
+
+### ✅ Development Environment (dev.somos.tech)
+- **Status**: Fully deployed and operational
+- **Front Door**: `fd-somos-tech` (shared across dev/prod)
+- **Custom Domain**: dev.somos.tech
+- **SSL Certificate**: Azure-managed certificate (auto-provisioned)
+- **WAF Policy**: `devwafpolicy` with geo-allowlist (US, CA, MX, UK)
+- **Static Web App**: `swa-somos-tech-dev-64qb73pzvgekw`
+- **Origin Protection**: Custom domain removed from SWA (forces traffic through Front Door)
+
+### ⏳ Production Environment (somos.tech)
+- **Status**: PENDING - Not yet configured
+- **Front Door**: Will use same `fd-somos-tech` profile (cost-effective)
+- **Custom Domain**: somos.tech (to be configured)
+- **SSL Certificate**: Azure-managed certificate (will be auto-provisioned)
+- **WAF Policy**: Will share `devwafpolicy` or create `prodwafpolicy`
+- **Static Web App**: Existing production SWA
+- **Next Steps**: See "Production Deployment" section below
 
 ## Pre-Deployment Checklist
 
@@ -47,6 +67,57 @@ In `apps/web/staticwebapp.config.json`:
 ```
 
 Replace `<YOUR-TENANT-ID>` with your actual Azure AD tenant ID.
+
+### 3. Azure Front Door Configuration
+
+#### Front Door Setup (Development - COMPLETED ✅)
+The development environment now uses Azure Front Door Standard with:
+
+1. **Profile**: `fd-somos-tech` (Standard_AzureFrontDoor SKU)
+2. **Endpoint**: `fd-somostech-ehgfhqcpa2bka7dt.z02.azurefd.net`
+3. **Custom Domain**: `dev.somos.tech`
+   - DNS: CNAME → `fd-somostech-ehgfhqcpa2bka7dt.z02.azurefd.net`
+   - SSL: Azure-managed certificate (auto-renewed)
+4. **Origin**: Static Web App default hostname
+5. **Route**: `default-route` with HTTPS redirect enabled
+6. **WAF Policy**: `devwafpolicy` in Prevention mode
+  - Custom Rule: `BlockAnonymousNetworks` (GeoMatch allow-list permitting only US, CA, MX, UK)
+  - Priority: 100
+  - Action: Block with 403 Forbidden
+
+**Verifying Front Door Traffic:**
+```powershell
+curl -I https://dev.somos.tech | Select-String "x-azure-ref"
+```
+The `x-azure-ref` header is only added by Azure Front Door.
+
+#### Production Front Door Setup (PENDING ⏳)
+To add production endpoint to the same Front Door profile (cost-effective):
+
+1. **Add Custom Domain**:
+   ```powershell
+   az afd custom-domain create `
+     --resource-group rg-somos-tech-dev `
+     --profile-name fd-somos-tech `
+     --custom-domain-name somos-tech `
+     --host-name somos.tech `
+     --certificate-type ManagedCertificate
+   ```
+
+2. **Configure DNS** in Cloudflare:
+   ```
+   Type: CNAME
+   Name: @
+   Target: fd-somostech-ehgfhqcpa2bka7dt.z02.azurefd.net
+   ```
+
+3. **Wait for domain validation** (5-10 minutes)
+
+4. **Update route** to include production domain
+
+5. **Remove custom domain** from production Static Web App
+
+See `scripts/setup-frontdoor-domain.ps1` for automation.
 
 #### Function App Environment Variables
 Set these in Azure Portal → Function App → Configuration:
