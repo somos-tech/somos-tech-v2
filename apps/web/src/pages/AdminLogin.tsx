@@ -30,8 +30,8 @@ export default function AdminLogin() {
     };
 
     const handleAdminLogin = () => {
-        // Login with AAD for somos.tech accounts only
-        // Add domain_hint to ensure only somos.tech accounts can sign in
+        // Login with AAD for administrators only
+        // Add domain_hint to assist Microsoft Entra in selecting the correct tenant
         const redirect = buildAbsoluteRedirect(returnUrl);
         window.location.href = `/.auth/login/aad?post_login_redirect_uri=${redirect}&domain_hint=somos.tech`;
     };
@@ -58,7 +58,7 @@ export default function AdminLogin() {
                         Admin Access
                     </h1>
                     <p style={{ color: '#8394A7' }}>
-                        Sign in with your @somos.tech account
+                        Sign in with your administrator credentials
                     </p>
                 </div>
 
@@ -69,14 +69,14 @@ export default function AdminLogin() {
                         style={{ backgroundColor: '#00FF91', color: '#051323' }}
                     >
                         <Shield className="mr-2 h-5 w-5" />
-                        Sign in with Microsoft (somos.tech)
+                        Continue with Microsoft Entra ID
                     </Button>
                 </div>
 
                 <div className="mt-8 p-4 rounded-xl" style={{ backgroundColor: 'rgba(131, 148, 167, 0.1)', border: '1px solid rgba(131, 148, 167, 0.2)' }}>
                     <p className="text-sm" style={{ color: '#8394A7' }}>
                         <strong style={{ color: '#FFFFFF' }}>Admin access is restricted</strong><br />
-                        Only @somos.tech email addresses are authorized for admin access. If you're a regular user, please{' '}
+                        Only authorized staff can access this portal. If you're a regular user, please{' '}
                         <a 
                             href="/login" 
                             style={{ color: '#00FF91', textDecoration: 'underline' }}

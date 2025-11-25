@@ -15,19 +15,19 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
             // Redirect to appropriate login page
-            const currentPath = window.location.pathname;
+            const currentPath = `${window.location.pathname}${window.location.search || ''}${window.location.hash || ''}`;
             if (requireAdmin) {
                 // Admin routes -> admin login
-                navigate(`/admin/login?returnUrl=${encodeURIComponent(currentPath)}`);
+                navigate(`/admin/login?returnUrl=${encodeURIComponent(currentPath)}`, { replace: true });
             } else {
                 // Regular routes -> regular login
-                navigate(`/login?returnUrl=${encodeURIComponent(currentPath)}`);
+                navigate(`/login?returnUrl=${encodeURIComponent(currentPath)}`, { replace: true });
             }
         }
 
         if (!isLoading && isAuthenticated && requireAdmin && !isAdmin) {
             // User is authenticated but not an admin
-            navigate('/unauthorized');
+            navigate('/unauthorized', { replace: true });
         }
     }, [isAuthenticated, isAdmin, isLoading, requireAdmin, navigate]);
 

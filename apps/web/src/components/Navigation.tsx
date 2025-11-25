@@ -8,7 +8,7 @@ import NotificationPanel from '@/components/NotificationPanel';
 export default function Navigation() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated, user, isAdmin } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 
@@ -140,7 +140,7 @@ export default function Navigation() {
                         {isAuthenticated && (
                             <>
                                 <NotificationPanel />
-                                {user?.userDetails?.toLowerCase().endsWith('@somos.tech') && (
+                                {isAdmin && (
                                     <Button
                                         className="hidden md:flex items-center gap-2 rounded-full px-6 transition-all hover:scale-105"
                                         style={{
@@ -278,7 +278,7 @@ export default function Navigation() {
                                     <div className="px-4 py-2">
                                         <NotificationPanel />
                                     </div>
-                                    {user?.userDetails?.toLowerCase().endsWith('@somos.tech') && (
+                                    {isAdmin && (
                                         <Button
                                             className="w-full rounded-full flex items-center justify-center gap-2"
                                             style={{

@@ -37,6 +37,26 @@ export function useAuth(): AuthState {
     });
 
     useEffect(() => {
+        const resolveAdminStatus = async (email: string) => {
+            try {
+                const adminResponse = await fetch('/api/check-admin', {
+                    credentials: 'include',
+                });
+
+                if (adminResponse.ok) {
+                    const payload = await adminResponse.json();
+                    return Boolean(payload?.isAdmin);
+                }
+
+                console.warn('Admin lookup failed with status', adminResponse.status);
+            } catch (error) {
+                console.error('Failed to resolve admin status via API:', error);
+            }
+
+            // Fallback: legacy domain-based rule to avoid locking out admins if API is unavailable
+            return email.endsWith('@somos.tech');
+        };
+
         async function fetchUserInfo() {
             try {
                 // SECURITY: Only allow mock authentication in local development
@@ -63,9 +83,8 @@ export function useAuth(): AuthState {
                 if (data.clientPrincipal) {
                     const user = data.clientPrincipal;
                     const userEmail = user.userDetails?.toLowerCase() || '';
-                    
-                    // Check if user is from somos.tech domain - that's all we need for admin access
-                    const isAdminUser = userEmail.endsWith('@somos.tech');
+
+                    const isAdminUser = await resolveAdminStatus(userEmail);
                     
                     setAuthState({
                         user,
