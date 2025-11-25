@@ -1,0 +1,13 @@
+{
+    "name": "swa-managed-api",
+    "version": "1.0.0",
+    "description": "Azure Static Web Apps managed functions",
+    "type": "module",
+    "main": "src/functions/check-admin.js",
+    "engines": {
+        "node": ">=20"
+    },
+    "dependencies": {
+        "@azure/functions": "^4.8.0"
+    }
+}
