@@ -85,9 +85,12 @@ param socialMediaAgentId string = ''
 @description('Venue Agent ID (defaults to main agent ID if not specified)')
 param venueAgentId string = ''
 
-@description('List of ISO 3166-1 alpha-2 country codes that are allowed through Azure Front Door (all other traffic is blocked). Defaults to United States only to satisfy compliance requirements.')
+@description('List of ISO 3166-1 alpha-2 country codes Azure Front Door allows (all other traffic is blocked). Defaults to United States, Canada, Mexico, and United Kingdom to satisfy compliance requirements.')
 param frontDoorAllowedCountries array = [
   'US'
+  'CA'
+  'MX'
+  'GB'
 ]
 
 // Variables for resource naming
@@ -641,6 +644,13 @@ resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2023-01-01' = {
 }
 
 // Azure Front Door Standard profile to sit in front of the Static Web App
+// This provides SSL/TLS termination, geo-blocking via WAF, and DDoS protection
+// Note: The same Front Door profile is shared across dev and prod environments for cost optimization
+// Current Status:
+//   - DEV: Fully configured with custom domain (dev.somos.tech) and geo-blocking WAF
+//   - PROD: Pending - needs custom domain (somos.tech) to be added manually via Azure CLI
+// Custom domains must be added via Azure CLI after initial deployment:
+//   az afd custom-domain create --profile-name <profile> --custom-domain-name <name> --host-name <domain>
 resource frontDoorProfile 'Microsoft.Cdn/profiles@2023-05-01' = {
   name: frontDoorProfileName
   location: 'global'
@@ -712,6 +722,13 @@ resource frontDoorRoute 'Microsoft.Cdn/profiles/afdEndpoints/routes@2023-05-01' 
   }
 }
 
+// Front Door WAF Policy for geo-allowlisting and security
+// Blocks all traffic from countries not in the frontDoorAllowedCountries array (default: US/CA/MX/UK)
+// Current Configuration:
+//   - Mode: Prevention (actively blocks, not just detects)
+//   - Custom Rule: BlockAnonymousNetworks (priority 100)
+//   - Action: Returns 403 Forbidden with custom HTML message
+//   - Applied to: All routes via frontDoorSecurityPolicy
 resource frontDoorWafPolicy 'Microsoft.Cdn/cdnWebApplicationFirewallPolicies@2023-05-01' = {
   name: frontDoorWafPolicyName
   location: 'global'
@@ -723,12 +740,12 @@ resource frontDoorWafPolicy 'Microsoft.Cdn/cdnWebApplicationFirewallPolicies@202
       enabledState: 'Enabled'
       mode: 'Prevention'
       defaultCustomBlockResponseStatusCode: 403
-      defaultCustomBlockResponseBody: base64('<html><body><h1>Access restricted</h1><p>This application only accepts traffic from approved US regions.</p></body></html>')
+      defaultCustomBlockResponseBody: base64('<html><body><h1>Access restricted</h1><p>Traffic is allowed only from ${join(frontDoorAllowedCountries, ', ')}.</p></body></html>')
     }
     customRules: {
       rules: [
         {
-          name: 'BlockNonUS'
+          name: 'BlockAnonymousNetworks'
           priority: 100
           enabledState: 'Enabled'
           action: 'Block'
@@ -747,6 +764,8 @@ resource frontDoorWafPolicy 'Microsoft.Cdn/cdnWebApplicationFirewallPolicies@202
   }
 }
 
+// Security Policy linking WAF to Front Door endpoints
+// This applies the geo-blocking WAF policy to all traffic through the Front Door
 resource frontDoorSecurityPolicy 'Microsoft.Cdn/profiles/securityPolicies@2023-05-01' = {
   parent: frontDoorProfile
   name: frontDoorSecurityPolicyName

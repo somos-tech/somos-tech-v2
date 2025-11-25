@@ -7,6 +7,7 @@ Modern event management platform built with React, Azure Functions, and Azure St
 - [Overview](#overview)
 - [Tech Stack](#tech-stack)
 - [Architecture](#architecture)
+- [Edge Security & WAF Rules](#edge-security--waf-rules)
 - [Quick Start](#quick-start)
 - [Authentication Setup](#authentication-setup)
 - [Project Structure](#project-structure)
@@ -145,6 +146,8 @@ Traffic now terminates at Azure Front Door before reaching the Static Web App. T
 - `BlockCommonInjectionPatterns` + `BlockInjectionInRequestBody` (priorities 400/500): inspect query strings and bodies after URL-decoding to catch `<script>`, `javascript:`, `../`, `%27`, `union select`, `information_schema`, and SQLi staples like `' or '1'='1`
 - `BlockSuspiciousFileUploads` (priority 600): rejects uploads advertising executable MIME types such as `application/x-msdownload`
 - `RateLimitExcessiveRequests` (priority 700): global rate-limit rule (100 requests/min per client IP) to slow brute-force or enumeration attempts
+
+Infrastructure as code: `infra/main.bicep` provisions the Front Door profile, endpoint, and `BlockAnonymousNetworks` geo-allowlist (US, Canada, Mexico, UK by default) alongside the rest of the custom rules. Update the `frontDoorAllowedCountries` parameter whenever compliance approves new regions so the edge stays in sync with production.
 
 > **Propagation note**: Azure Front Door may report `deploymentStatus: NotStarted` immediately after WAF updates. Allow 15–30 minutes for global rollout and confirm via `az afd security-policy show`.
 
