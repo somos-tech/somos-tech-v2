@@ -22,7 +22,7 @@ Modern event management platform built with React, Azure Functions, and Azure St
 
 ## Overview
 
-Somos Tech is a full-stack event management application featuring:
+SOMOS.tech is a full-stack event management application featuring:
 - Modern React frontend with TypeScript and Vite
 - Serverless API backend with Azure Functions
 - NoSQL data storage with Azure Cosmos DB
@@ -1038,7 +1038,7 @@ MIT License - see LICENSE file for details
 
 ## Contributors
 
-Built with ❤️ by the Somos Tech team
+Built with ❤️ by the SOMOS.tech team
 
 ---
 
