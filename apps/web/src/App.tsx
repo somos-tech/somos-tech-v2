@@ -6,6 +6,7 @@ import AdminEvents from './pages/AdminEvents'
 import AdminGroups from './pages/AdminGroups'
 import AdminUsers from './pages/AdminUsers'
 import AdminMedia from './pages/AdminMedia'
+import AdminSettings from './pages/AdminSettings'
 import APIHealthDashboard from './pages/APIHealthDashboard'
 import Login from './pages/Login'
 import AdminLogin from './pages/AdminLogin'
@@ -95,6 +96,14 @@ function AppContent() {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <AdminMedia />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/settings" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminSettings />
               </ProtectedRoute>
             } 
           />
