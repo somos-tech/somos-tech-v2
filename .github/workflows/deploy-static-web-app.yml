@@ -53,11 +53,26 @@ jobs:
         env:
           VITE_API_URL: 'https://func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net'
           VITE_ENVIRONMENT: dev
-          EXTERNAL_TENANT_ID: ${{ secrets.EXTERNAL_TENANT_ID }}
-          EXTERNAL_ADMIN_CLIENT_ID: ${{ secrets.EXTERNAL_ADMIN_CLIENT_ID }}
-          EXTERNAL_ADMIN_CLIENT_SECRET: ${{ secrets.EXTERNAL_ADMIN_CLIENT_SECRET }}
-          EXTERNAL_MEMBER_CLIENT_ID: ${{ secrets.EXTERNAL_MEMBER_CLIENT_ID }}
-          EXTERNAL_MEMBER_CLIENT_SECRET: ${{ secrets.EXTERNAL_MEMBER_CLIENT_SECRET }}
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set SWA App Settings (Auth Secrets)
+        run: |
+          az staticwebapp appsettings set \
+            --name "swa-somos-tech-dev-64qb73pzvgekw" \
+            --resource-group "rg-somos-tech-dev" \
+            --setting-names \
+              "EXTERNAL_TENANT_ID=${{ secrets.EXTERNAL_TENANT_ID }}" \
+              "EXTERNAL_ADMIN_CLIENT_ID=${{ secrets.EXTERNAL_ADMIN_CLIENT_ID }}" \
+              "EXTERNAL_ADMIN_CLIENT_SECRET=${{ secrets.EXTERNAL_ADMIN_CLIENT_SECRET }}" \
+              "EXTERNAL_MEMBER_CLIENT_ID=${{ secrets.EXTERNAL_MEMBER_CLIENT_ID }}" \
+              "EXTERNAL_MEMBER_CLIENT_SECRET=${{ secrets.EXTERNAL_MEMBER_CLIENT_SECRET }}" \
+              "VITE_ENVIRONMENT=dev"
+        env:
+          AZURE_CORE_OUTPUT: none
 
   # Deploy to production (manual approval required via environment protection rules)
   deploy-prod:
@@ -83,7 +98,26 @@ jobs:
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
           VITE_ENVIRONMENT: prod
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set SWA App Settings (Auth Secrets)
+        run: |
+          az staticwebapp appsettings set \
+            --name "${{ vars.SWA_NAME }}" \
+            --resource-group "${{ vars.RESOURCE_GROUP }}" \
+            --setting-names \
+              "EXTERNAL_TENANT_ID=${{ secrets.EXTERNAL_TENANT_ID }}" \
+              "EXTERNAL_ADMIN_CLIENT_ID=${{ secrets.EXTERNAL_ADMIN_CLIENT_ID }}" \
+              "EXTERNAL_ADMIN_CLIENT_SECRET=${{ secrets.EXTERNAL_ADMIN_CLIENT_SECRET }}" \
+              "EXTERNAL_MEMBER_CLIENT_ID=${{ secrets.EXTERNAL_MEMBER_CLIENT_ID }}" \
+              "EXTERNAL_MEMBER_CLIENT_SECRET=${{ secrets.EXTERNAL_MEMBER_CLIENT_SECRET }}" \
+              "VITE_ENVIRONMENT=prod"
+        env:
+          AZURE_CORE_OUTPUT: none
 
   # Handle PR preview deployments (uses dev environment)
   deploy-preview:
@@ -109,7 +143,6 @@ jobs:
         env:
           VITE_API_URL: https://func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net
           VITE_ENVIRONMENT: preview
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
