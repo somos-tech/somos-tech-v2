@@ -1,3 +1,21 @@
+/**
+ * Media API - Azure Functions endpoints for media management
+ * 
+ * Endpoints:
+ * - POST /api/media/profile-photo - Upload profile photo (authenticated users)
+ * - POST /api/media/site-asset - Upload to any container (admin only)
+ * - GET /api/media-admin/list - List all containers
+ * - GET /api/media-admin/list/{container} - List files in a container
+ * - GET /api/media-admin/stats - Get storage statistics
+ * - DELETE /api/media-admin/file/{container}/{filename} - Delete a file
+ * 
+ * File restrictions: JPG, JPEG, PNG only
+ * 
+ * @module media
+ * @author SOMOS.tech
+ * @updated 2025-11-26 - Added container/folder selection for site-asset uploads
+ */
+
 import { app } from '@azure/functions';
 import { requireAuth, requireAdmin, getClientPrincipal } from '../shared/authMiddleware.js';
 import { successResponse, errorResponse } from '../shared/httpResponse.js';
@@ -13,8 +31,8 @@ import {
 
 /**
  * Media Upload API - Handles file uploads with validation
- * POST /api/media/upload - Upload a file
  * POST /api/media/profile-photo - Upload profile photo (authenticated users)
+ * POST /api/media/site-asset - Upload to any container with folder support (admin only)
  */
 app.http('mediaUpload', {
     methods: ['POST'],
@@ -84,6 +102,7 @@ app.http('mediaUpload', {
                 const formData = await request.formData();
                 const file = formData.get('file');
                 const category = formData.get('category') || 'general';
+                const container = formData.get('container') || null; // Allow specifying target container
 
                 if (!file) {
                     return errorResponse(400, 'No file provided');
@@ -94,13 +113,13 @@ app.http('mediaUpload', {
                 const contentType = file.type;
                 const originalFilename = file.name;
 
-                context.log(`[Media] Uploading site asset by ${adminUserId}: ${originalFilename} (${category})`);
+                context.log(`[Media] Uploading site asset by ${adminUserId}: ${originalFilename} to ${container || 'site-assets'}/${category}`);
 
                 try {
-                    const result = await uploadSiteAsset(adminUserId, buffer, contentType, originalFilename, category);
+                    const result = await uploadSiteAsset(adminUserId, buffer, contentType, originalFilename, category, container);
                     
                     return successResponse({
-                        message: 'Site asset uploaded successfully',
+                        message: 'File uploaded successfully',
                         ...result
                     });
                 } catch (uploadError) {
@@ -223,6 +242,7 @@ function getContainerDescription(key) {
         SITE_ASSETS: 'Public site assets (logos, banners, etc.)',
         EVENT_IMAGES: 'Event promotional images and photos',
         GROUP_IMAGES: 'Community group logos and cover images',
+        PROGRAMS: 'Program-related images and assets',
         UPLOADS: 'General file uploads'
     };
     return descriptions[key] || 'Storage container';

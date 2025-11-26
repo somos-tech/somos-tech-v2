@@ -1069,15 +1069,32 @@ Built with ❤️ by the SOMOS.tech team
 
 ### Overview
 
-The platform includes a comprehensive media management system for user profile photos and admin-managed site assets.
+The platform includes a comprehensive media management system for user profile photos and admin-managed site assets. Admins can upload images to any storage container and organize them into folders.
 
 ### Features
 
 - **Profile Photo Uploads**: Members can upload profile photos from `/member` dashboard
 - **Admin Media Portal**: Admins can manage all media at `/admin/media`
-- **File Validation**: Max 5MB, allowed types: JPEG, PNG, GIF, WebP
-- **Secure Storage**: Azure Blob Storage with SAS token authentication
-- **Drag-and-Drop**: Modern upload experience with preview
+  - **Container Browser**: View and manage all storage containers (profile-photos, site-assets, event-images, group-images, programs, uploads)
+  - **Folder Creation**: Create custom folders within containers to organize uploads
+  - **Quick Upload**: Upload images directly to any container/folder combination
+  - **Gallery View**: Grid and list view modes for browsing uploaded images
+  - **Bulk Operations**: Select and delete multiple files at once
+  - **Storage Statistics**: Real-time file counts and storage usage per container
+- **File Validation**: Max 20MB for site assets, restricted to JPG, JPEG, PNG only
+- **Secure Storage**: Azure Blob Storage with managed identity authentication
+- **Clickable Navigation**: Click on storage overview boxes or container cards to browse files
+
+### Storage Containers
+
+| Container | Purpose |
+|-----------|---------|
+| `profile-photos` | User profile photos uploaded by members |
+| `site-assets` | Public site assets (logos, banners, etc.) |
+| `event-images` | Event promotional images and photos |
+| `group-images` | Community group logos and cover images |
+| `programs` | Program-related images and assets |
+| `uploads` | General file uploads |
 
 ### Azure Resources
 
@@ -1091,11 +1108,20 @@ The platform includes a comprehensive media management system for user profile p
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/api/media` | GET | List user's media files |
-| `/api/media` | POST | Upload new media file |
-| `/api/media/{id}` | DELETE | Delete media file |
-| `/api/media/admin` | GET | Admin: List all media |
-| `/api/media/admin/bulk` | DELETE | Admin: Bulk delete |
+| `/api/media/profile-photo` | POST | Upload profile photo (authenticated users) |
+| `/api/media/site-asset` | POST | Upload site asset (admin only, supports container & folder) |
+| `/api/media-admin/list` | GET | List all containers |
+| `/api/media-admin/list/{container}` | GET | List files in a container |
+| `/api/media-admin/stats` | GET | Get storage statistics for all containers |
+| `/api/media-admin/file/{container}/{filename}` | GET | Get file details |
+| `/api/media-admin/file/{container}/{filename}` | DELETE | Delete a file |
+
+### Upload Parameters
+
+When uploading via `/api/media/site-asset`:
+- `file` (required): The image file (JPG, JPEG, or PNG only)
+- `category` (optional): Folder path within the container (default: 'general')
+- `container` (optional): Target container name (default: 'site-assets')
 
 ### Configuration
 

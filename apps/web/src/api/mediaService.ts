@@ -1,19 +1,32 @@
 /**
  * Media Service - Frontend API client for media operations
+ * 
+ * Features:
+ * - Client-side file validation before upload
+ * - Upload images to any container with folder organization
+ * - List and manage files in storage containers
+ * - Storage statistics and container management
+ * 
+ * File type restrictions: JPG, JPEG, PNG only
+ * Max file size: 20MB for site assets, 5MB for profile photos
+ * 
+ * @module mediaService
+ * @author SOMOS.tech
+ * @updated 2025-11-26 - Added container selection and folder support
  */
 
 const API_BASE = '/api';
 
-// Allowed file types and size limits (should match backend)
+/**
+ * Allowed file types and size limits (should match backend)
+ * Restricted to JPG, JPEG, PNG only for security and consistency
+ */
 export const ALLOWED_IMAGE_TYPES = [
     'image/jpeg',
-    'image/png',
-    'image/gif',
-    'image/webp',
-    'image/svg+xml'
+    'image/png'
 ];
 
-export const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+export const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
 
 export const SIZE_LIMITS = {
     PROFILE_PHOTO: 5 * 1024 * 1024,      // 5 MB
@@ -29,7 +42,7 @@ export function validateFile(file: File, category: 'PROFILE_PHOTO' | 'SITE_ASSET
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
         return {
             valid: false,
-            error: `Invalid file type: ${file.type}. Allowed types: JPEG, PNG, GIF, WebP, SVG`
+            error: `Invalid file type: ${file.type}. Allowed types: JPG, JPEG, PNG`
         };
     }
 
@@ -96,9 +109,13 @@ export async function uploadProfilePhoto(file: File): Promise<{ success: boolean
 }
 
 /**
- * Upload site asset (admin only)
+ * Upload site asset (admin only) - supports uploading to any container with optional folder
  */
-export async function uploadSiteAsset(file: File, category: string = 'general'): Promise<{ success: boolean; data?: any; error?: string }> {
+export async function uploadSiteAsset(
+    file: File, 
+    category: string = 'general', 
+    container?: string
+): Promise<{ success: boolean; data?: any; error?: string }> {
     // Client-side validation
     const validation = validateFile(file, 'SITE_ASSET');
     if (!validation.valid) {
@@ -108,6 +125,9 @@ export async function uploadSiteAsset(file: File, category: string = 'general'):
     const formData = new FormData();
     formData.append('file', file);
     formData.append('category', category);
+    if (container) {
+        formData.append('container', container);
+    }
 
     try {
         const response = await fetch(`${API_BASE}/media/site-asset`, {

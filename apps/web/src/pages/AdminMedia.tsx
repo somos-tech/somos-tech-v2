@@ -1,3 +1,21 @@
+/**
+ * Admin Media Management Page
+ * 
+ * A comprehensive media management interface for administrators to:
+ * - Browse and manage all storage containers (profile-photos, site-assets, etc.)
+ * - Upload images to any container with optional folder organization
+ * - Create new folders within containers
+ * - View files in grid or list mode
+ * - Bulk select and delete files
+ * - Monitor storage usage statistics
+ * 
+ * File restrictions: JPG, JPEG, PNG only (max 20MB)
+ * 
+ * @component AdminMedia
+ * @author SOMOS.tech
+ * @updated 2025-11-26 - Added folder creation, container selection for uploads
+ */
+
 import { useEffect, useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +25,7 @@ import {
     Trash2,
     RefreshCw,
     FolderOpen,
+    FolderPlus,
     HardDrive,
     Search,
     Grid,
@@ -18,7 +37,8 @@ import {
     Loader2,
     ChevronLeft,
     ExternalLink,
-    Filter
+    Filter,
+    X
 } from 'lucide-react';
 import {
     getContainers,
@@ -69,7 +89,10 @@ export default function AdminMedia() {
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
     const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
     const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
-    const [uploadCategory, setUploadCategory] = useState('general');
+    const [uploadContainer, setUploadContainer] = useState('site-assets');
+    const [uploadFolder, setUploadFolder] = useState('');
+    const [showNewFolderInput, setShowNewFolderInput] = useState(false);
+    const [newFolderName, setNewFolderName] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Load containers and stats on mount
@@ -87,18 +110,62 @@ export default function AdminMedia() {
                 getStorageStats()
             ]);
 
+            console.log('[AdminMedia] Containers result:', containersResult);
+            console.log('[AdminMedia] Stats result:', statsResult);
+
             if (containersResult.success && containersResult.data?.containers) {
                 setContainers(containersResult.data.containers);
+                // Set default upload container to site-assets if available
+                const siteAssetsContainer = containersResult.data.containers.find((c: Container) => c.name === 'site-assets');
+                if (siteAssetsContainer) {
+                    setUploadContainer('site-assets');
+                } else if (containersResult.data.containers.length > 0) {
+                    setUploadContainer(containersResult.data.containers[0].name);
+                }
+                console.log('[AdminMedia] Set containers:', containersResult.data.containers);
+            } else {
+                console.warn('[AdminMedia] Failed to load containers:', containersResult.error || 'No containers in response');
+                // If API call failed but stats loaded, create containers from stats
+                if (statsResult.success && statsResult.data) {
+                    const containersFromStats = Object.entries(statsResult.data).map(([key, stat]: [string, any]) => ({
+                        key,
+                        name: stat.container,
+                        description: getContainerDescriptionFallback(key)
+                    }));
+                    setContainers(containersFromStats);
+                    // Set default upload container
+                    const siteAssetsFromStats = containersFromStats.find((c: Container) => c.name === 'site-assets');
+                    if (siteAssetsFromStats) {
+                        setUploadContainer('site-assets');
+                    } else if (containersFromStats.length > 0) {
+                        setUploadContainer(containersFromStats[0].name);
+                    }
+                    console.log('[AdminMedia] Created containers from stats:', containersFromStats);
+                }
             }
 
             if (statsResult.success && statsResult.data) {
                 setStats(statsResult.data);
             }
         } catch (err) {
+            console.error('[AdminMedia] Error loading data:', err);
             setError(err instanceof Error ? err.message : 'Failed to load data');
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // Fallback descriptions if API doesn't return them
+    const getContainerDescriptionFallback = (key: string): string => {
+        const descriptions: Record<string, string> = {
+            PROFILE_PHOTOS: 'User profile photos uploaded by members',
+            SITE_ASSETS: 'Public site assets (logos, banners, etc.)',
+            EVENT_IMAGES: 'Event promotional images and photos',
+            GROUP_IMAGES: 'Community group logos and cover images',
+            PROGRAMS: 'Program-related images and assets',
+            UPLOADS: 'General file uploads'
+        };
+        return descriptions[key] || 'Storage container';
     };
 
     const loadContainerFiles = async (containerName: string) => {
@@ -138,11 +205,13 @@ export default function AdminMedia() {
         setError(null);
 
         try {
-            const result = await uploadSiteAsset(file, uploadCategory);
+            // Use the selected folder or 'root' if no folder selected
+            const folder = uploadFolder || 'root';
+            const result = await uploadSiteAsset(file, folder, uploadContainer);
             
             if (result.success) {
-                // Refresh the current container if we're viewing site-assets
-                if (selectedContainer === 'site-assets') {
+                // Refresh the current container if we're viewing the upload target
+                if (selectedContainer === uploadContainer) {
                     await loadContainerFiles(selectedContainer);
                 }
                 // Refresh stats
@@ -150,6 +219,8 @@ export default function AdminMedia() {
                 if (statsResult.success) {
                     setStats(statsResult.data);
                 }
+                // Reset folder input after successful upload
+                setUploadFolder('');
             } else {
                 setError(result.error || 'Upload failed');
             }
@@ -161,6 +232,23 @@ export default function AdminMedia() {
                 fileInputRef.current.value = '';
             }
         }
+    };
+
+    // Handle creating a new folder (by uploading to a new path)
+    const handleCreateFolder = () => {
+        if (!newFolderName.trim()) {
+            setError('Please enter a folder name');
+            return;
+        }
+        // Validate folder name - only allow alphanumeric, hyphens, underscores
+        const folderNameRegex = /^[a-zA-Z0-9_-]+$/;
+        if (!folderNameRegex.test(newFolderName.trim())) {
+            setError('Folder name can only contain letters, numbers, hyphens, and underscores');
+            return;
+        }
+        setUploadFolder(newFolderName.trim());
+        setNewFolderName('');
+        setShowNewFolderInput(false);
     };
 
     const handleDeleteFile = async (filename: string) => {
@@ -269,6 +357,13 @@ export default function AdminMedia() {
                     >
                         <AlertCircle className="w-5 h-5" />
                         {error}
+                        <button 
+                            onClick={() => setError(null)} 
+                            className="ml-auto"
+                            style={{ color: '#ef4444' }}
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
                     </div>
                 )}
 
@@ -281,68 +376,161 @@ export default function AdminMedia() {
                         <Upload className="w-5 h-5" style={{ color: '#00FF91' }} />
                         Quick Upload
                     </h2>
-                    <div className="flex items-center gap-4">
-                        <select
-                            value={uploadCategory}
-                            onChange={(e) => setUploadCategory(e.target.value)}
-                            className="px-4 py-2 rounded-lg"
-                            style={{ 
-                                backgroundColor: '#051323', 
-                                color: '#FFFFFF',
-                                border: '1px solid rgba(0, 255, 145, 0.3)'
-                            }}
-                        >
-                            <option value="general">General</option>
-                            <option value="logos">Logos</option>
-                            <option value="banners">Banners</option>
-                            <option value="icons">Icons</option>
-                            <option value="backgrounds">Backgrounds</option>
-                        </select>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileUpload}
-                            className="hidden"
-                        />
-                        <Button
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isUploading}
-                            className="rounded-full"
-                            style={{ backgroundColor: '#00FF91', color: '#051323' }}
-                        >
-                            {isUploading ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Uploading...
-                                </>
-                            ) : (
-                                <>
-                                    <Upload className="w-4 h-4 mr-2" />
-                                    Upload Image
-                                </>
-                            )}
-                        </Button>
+                    <div className="flex flex-wrap items-center gap-4">
+                        {/* Container Selection */}
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs" style={{ color: '#8394A7' }}>Container</label>
+                            <select
+                                value={uploadContainer}
+                                onChange={(e) => setUploadContainer(e.target.value)}
+                                className="px-4 py-2 rounded-lg min-w-[160px]"
+                                style={{ 
+                                    backgroundColor: '#051323', 
+                                    color: '#FFFFFF',
+                                    border: '1px solid rgba(0, 255, 145, 0.3)'
+                                }}
+                            >
+                                {containers.map((container) => (
+                                    <option key={container.key} value={container.name}>
+                                        {container.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Folder Selection / Creation */}
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs" style={{ color: '#8394A7' }}>Folder (optional)</label>
+                            <div className="flex items-center gap-2">
+                                {showNewFolderInput ? (
+                                    <>
+                                        <input
+                                            type="text"
+                                            value={newFolderName}
+                                            onChange={(e) => setNewFolderName(e.target.value)}
+                                            placeholder="folder-name"
+                                            className="px-4 py-2 rounded-lg min-w-[160px]"
+                                            style={{ 
+                                                backgroundColor: '#051323', 
+                                                color: '#FFFFFF',
+                                                border: '1px solid rgba(0, 255, 145, 0.3)'
+                                            }}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+                                        />
+                                        <Button
+                                            onClick={handleCreateFolder}
+                                            size="sm"
+                                            className="rounded-lg"
+                                            style={{ backgroundColor: '#00FF91', color: '#051323' }}
+                                        >
+                                            <Check className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                            onClick={() => {
+                                                setShowNewFolderInput(false);
+                                                setNewFolderName('');
+                                            }}
+                                            size="sm"
+                                            variant="ghost"
+                                            className="rounded-lg"
+                                            style={{ color: '#8394A7' }}
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <input
+                                            type="text"
+                                            value={uploadFolder}
+                                            onChange={(e) => setUploadFolder(e.target.value)}
+                                            placeholder="root (no folder)"
+                                            className="px-4 py-2 rounded-lg min-w-[160px]"
+                                            style={{ 
+                                                backgroundColor: '#051323', 
+                                                color: '#FFFFFF',
+                                                border: '1px solid rgba(0, 255, 145, 0.3)'
+                                            }}
+                                        />
+                                        <Button
+                                            onClick={() => setShowNewFolderInput(true)}
+                                            size="sm"
+                                            variant="outline"
+                                            className="rounded-lg"
+                                            style={{ borderColor: '#00FF91', color: '#00FF91' }}
+                                            title="Create new folder"
+                                        >
+                                            <FolderPlus className="w-4 h-4" />
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Upload Button */}
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs" style={{ color: '#8394A7' }}>&nbsp;</label>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".jpg,.jpeg,.png"
+                                onChange={handleFileUpload}
+                                className="hidden"
+                            />
+                            <Button
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isUploading}
+                                className="rounded-full"
+                                style={{ backgroundColor: '#00FF91', color: '#051323' }}
+                            >
+                                {isUploading ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Uploading...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Upload className="w-4 h-4 mr-2" />
+                                        Upload Image
+                                    </>
+                                )}
+                            </Button>
+                        </div>
                     </div>
-                    <p className="text-xs mt-2" style={{ color: '#8394A7' }}>
-                        JPG, PNG, GIF, WebP, SVG • Max 20MB
+                    <p className="text-xs mt-3" style={{ color: '#8394A7' }}>
+                        JPG, JPEG, PNG only • Max 20MB • Upload to: <span style={{ color: '#00FF91' }}>{uploadContainer}/{uploadFolder || 'root'}</span>
                     </p>
                 </Card>
 
-                {/* Storage Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {isLoading ? (
-                        Array.from({ length: 4 }).map((_, i) => (
+                {/* Container Folders */}
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: '#FFFFFF' }}>
+                        <FolderOpen className="w-5 h-5" style={{ color: '#00FF91' }} />
+                        Browse Containers
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {isLoading ? (
+                            Array.from({ length: 6 }).map((_, i) => (
+                                <Card 
+                                    key={i}
+                                    className="p-6 rounded-xl animate-pulse"
+                                    style={{ backgroundColor: '#0a1f35' }}
+                                >
+                                    <div className="h-24"></div>
+                                </Card>
+                            ))
+                        ) : containers.length === 0 ? (
                             <Card 
-                                key={i}
-                                className="p-6 rounded-xl animate-pulse"
-                                style={{ backgroundColor: '#0a1f35' }}
+                                className="p-6 rounded-xl col-span-full"
+                                style={{ backgroundColor: '#0a1f35', border: '1px solid rgba(239, 68, 68, 0.3)' }}
                             >
-                                <div className="h-20"></div>
+                                <div className="flex items-center gap-2" style={{ color: '#ef4444' }}>
+                                    <AlertCircle className="w-5 h-5" />
+                                    <span>No containers found. Unable to load storage containers.</span>
+                                </div>
                             </Card>
-                        ))
-                    ) : (
-                        containers.map((container) => {
+                        ) : (
+                            containers.map((container) => {
                             const containerStats = getContainerStats(container.name);
                             return (
                                 <Card
@@ -379,6 +567,7 @@ export default function AdminMedia() {
                             );
                         })
                     )}
+                    </div>
                 </div>
 
                 {/* Total Storage Stats */}
@@ -391,9 +580,15 @@ export default function AdminMedia() {
                             <HardDrive className="w-5 h-5" style={{ color: '#00FF91' }} />
                             Storage Overview
                         </h2>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                             {Object.entries(stats).map(([key, stat]) => (
-                                <div key={key} className="text-center p-4 rounded-lg" style={{ backgroundColor: 'rgba(0, 255, 145, 0.1)' }}>
+                                <div 
+                                    key={key} 
+                                    className="text-center p-4 rounded-lg cursor-pointer transition-all hover:scale-[1.02]" 
+                                    style={{ backgroundColor: 'rgba(0, 255, 145, 0.1)' }}
+                                    onClick={() => loadContainerFiles(stat.container)}
+                                    title={`Click to browse ${stat.container}`}
+                                >
                                     <div className="text-2xl font-bold" style={{ color: '#00FF91' }}>
                                         {stat.fileCount || 0}
                                     </div>

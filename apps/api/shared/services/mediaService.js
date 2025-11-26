@@ -1,6 +1,18 @@
 /**
  * Media Service - Handles file uploads, validation, and storage management
  * Uses Azure Blob Storage for media assets
+ * 
+ * Features:
+ * - Upload images to any storage container with optional folder organization
+ * - File type validation (restricted to JPG, JPEG, PNG only)
+ * - File size validation with configurable limits per category
+ * - Magic bytes validation for security
+ * - Secure filename generation with timestamps and random hashes
+ * - Storage statistics for monitoring usage
+ * 
+ * @module mediaService
+ * @author SOMOS.tech
+ * @updated 2025-11-26 - Added container selection and folder support for uploads
  */
 
 import { BlobServiceClient } from '@azure/storage-blob';
@@ -11,7 +23,10 @@ import crypto from 'crypto';
 const STORAGE_ACCOUNT_NAME = process.env.AZURE_STORAGE_ACCOUNT_NAME || 'stsomostechdev64qb73pzvg';
 const STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
 
-// Container names
+/**
+ * Storage container names - each container serves a specific purpose
+ * Admins can upload to any container, users can only upload profile photos
+ */
 const CONTAINERS = {
     PROFILE_PHOTOS: 'profile-photos',
     SITE_ASSETS: 'site-assets',
@@ -21,16 +36,17 @@ const CONTAINERS = {
     UPLOADS: 'uploads'
 };
 
-// Security constraints
+/**
+ * Security constraints - Restricted to JPG, JPEG, PNG only
+ * This restriction improves security by limiting attack vectors
+ * and ensures consistent image handling across the platform
+ */
 const ALLOWED_IMAGE_TYPES = [
     'image/jpeg',
-    'image/png',
-    'image/gif',
-    'image/webp',
-    'image/svg+xml'
+    'image/png'
 ];
 
-const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
 
 // Size limits (in bytes)
 const SIZE_LIMITS = {
@@ -238,9 +254,9 @@ export async function uploadProfilePhoto(userId, fileBuffer, contentType, origin
 }
 
 /**
- * Upload site asset (admin only)
+ * Upload site asset (admin only) - supports uploading to any container with optional folder
  */
-export async function uploadSiteAsset(adminUserId, fileBuffer, contentType, originalFilename, category = 'general') {
+export async function uploadSiteAsset(adminUserId, fileBuffer, contentType, originalFilename, category = 'general', containerName = null) {
     // Validate file type
     const typeValidation = validateFileType(contentType, originalFilename);
     if (!typeValidation.valid) {
@@ -259,19 +275,34 @@ export async function uploadSiteAsset(adminUserId, fileBuffer, contentType, orig
         throw new Error(magicValidation.error);
     }
     
+    // Determine target container - default to SITE_ASSETS if not specified
+    const targetContainer = containerName || CONTAINERS.SITE_ASSETS;
+    
+    // Validate container name
+    const validContainers = Object.values(CONTAINERS);
+    if (!validContainers.includes(targetContainer)) {
+        throw new Error(`Invalid container: ${targetContainer}. Valid containers: ${validContainers.join(', ')}`);
+    }
+    
     // Generate secure filename
     const secureFilename = generateSecureFilename(originalFilename, adminUserId);
     
+    // Build the blob path - include folder/category if provided
+    const blobPath = category && category !== 'root' 
+        ? `${category}/${secureFilename}` 
+        : secureFilename;
+    
     // Upload to storage
     const result = await uploadFile(
-        CONTAINERS.SITE_ASSETS,
-        `${category}/${secureFilename}`,
+        targetContainer,
+        blobPath,
         fileBuffer,
         contentType,
         {
             uploadedBy: adminUserId,
             originalFilename,
-            category
+            category: category || 'root',
+            container: targetContainer
         }
     );
     
