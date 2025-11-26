@@ -17,6 +17,7 @@ const CONTAINERS = {
     SITE_ASSETS: 'site-assets',
     EVENT_IMAGES: 'event-images',
     GROUP_IMAGES: 'group-images',
+    PROGRAMS: 'programs',
     UPLOADS: 'uploads'
 };
 
