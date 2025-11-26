@@ -5,14 +5,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { UserPlus } from 'lucide-react';
 
 export default function Register() {
-    const { isAuthenticated, isLoading } = useAuth();
+    const { isAuthenticated, isAdmin, isLoading } = useAuth();
     const navigate = useNavigate();
 
     useEffect(() => {
         if (!isLoading && isAuthenticated) {
-            navigate('/profile');
+            // Redirect to appropriate dashboard based on role
+            navigate(isAdmin ? '/admin' : '/member');
         }
-    }, [isAuthenticated, isLoading, navigate]);
+    }, [isAuthenticated, isAdmin, isLoading, navigate]);
 
     // SWA requires absolute post-login URLs or it falls back to default hostname
     const buildAbsoluteRedirect = (target: string) => {
@@ -24,8 +25,8 @@ export default function Register() {
     };
 
     const handleRegister = () => {
-        // Use member provider for user signup/login
-        const redirect = buildAbsoluteRedirect('/profile');
+        // Use member provider for user signup/login - redirect to member dashboard
+        const redirect = buildAbsoluteRedirect('/member');
         window.location.href = `/.auth/login/member?post_login_redirect_uri=${redirect}`;
     };
 

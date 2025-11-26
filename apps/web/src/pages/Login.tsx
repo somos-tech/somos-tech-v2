@@ -4,16 +4,22 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function Login() {
-    const { isAuthenticated, isLoading } = useAuth();
+    const { isAuthenticated, isAdmin, isLoading } = useAuth();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const returnUrl = searchParams.get('returnUrl') || '/';
+    // Default redirect to member dashboard for members, admin for admins
+    const returnUrl = searchParams.get('returnUrl') || '/member';
 
     useEffect(() => {
         if (!isLoading && isAuthenticated) {
-            navigate(returnUrl);
+            // Redirect admins to admin dashboard, members to member dashboard
+            if (isAdmin) {
+                navigate('/admin');
+            } else {
+                navigate(returnUrl);
+            }
         }
-    }, [isAuthenticated, isLoading, navigate, returnUrl]);
+    }, [isAuthenticated, isAdmin, isLoading, navigate, returnUrl]);
 
     // SWA requires absolute post-login URLs or it falls back to default hostname
     const buildAbsoluteRedirect = (target: string) => {
@@ -25,8 +31,8 @@ export default function Login() {
     };
 
     const handleLogin = () => {
-        // Use member provider for regular user login
-        const redirect = buildAbsoluteRedirect(returnUrl);
+        // Use member provider for regular user login - redirect to member dashboard
+        const redirect = buildAbsoluteRedirect('/member');
         window.location.href = `/.auth/login/member?post_login_redirect_uri=${redirect}`;
     };
 

@@ -38,6 +38,13 @@
             ]
         },
         {
+            "route": "/member",
+            "allowedRoles": [
+                "anonymous",
+                "authenticated"
+            ]
+        },
+        {
             "route": "/api/*",
             "allowedRoles": ["authenticated", "anonymous"]
         }
