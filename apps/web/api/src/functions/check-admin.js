@@ -69,9 +69,9 @@ app.http('check-admin', {
             context.log(`Admin API response body: ${responseText}`);
             
             if (response.ok) {
-                let adminUser;
+                let apiResponse;
                 try {
-                    adminUser = JSON.parse(responseText);
+                    apiResponse = JSON.parse(responseText);
                 } catch (parseError) {
                     context.error(`Failed to parse response as JSON: ${parseError.message}`);
                     return {
@@ -86,12 +86,16 @@ app.http('check-admin', {
                     };
                 }
                 
+                // The API wraps responses in { success: true, data: {...} }
+                // Unwrap to get the actual admin user object
+                const adminUser = apiResponse.data || apiResponse;
+                
                 const isAdmin = adminUser && 
                                adminUser.status === 'active' && 
                                Array.isArray(adminUser.roles) && 
                                adminUser.roles.includes('admin');
                 
-                context.log(`Admin check result for ${email}: ${isAdmin}`);
+                context.log(`Admin check result for ${email}: ${isAdmin}, status: ${adminUser?.status}, roles: ${JSON.stringify(adminUser?.roles)}`);
                 
                 return {
                     status: 200,
