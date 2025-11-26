@@ -12,6 +12,7 @@ This guide covers deploying the security fixes to production. Follow these steps
 - **SSL Certificate**: Azure-managed certificate (auto-provisioned)
 - **WAF Policy**: `devwafpolicy` with geo-allowlist (US, CA, MX, UK)
 - **Static Web App**: `swa-somos-tech-dev-64qb73pzvgekw`
+- **Storage Account**: `stsomostechdev64qb73pzvg` (media uploads)
 - **Origin Protection**: Custom domain removed from SWA (forces traffic through Front Door)
 
 ### ⏳ Production Environment (somos.tech)
@@ -124,6 +125,18 @@ Set these in Azure Portal → Function App → Configuration:
 - `COSMOS_ENDPOINT` - Cosmos DB endpoint URL
 - `COSMOS_DATABASE_NAME` - somostech
 - `ALLOWED_ADMIN_DOMAIN` - somos.tech
+- `AZURE_STORAGE_CONNECTION_STRING` - Storage account connection string
+- `AZURE_STORAGE_ACCOUNT_NAME` - stsomostechdev64qb73pzvg
+
+#### Static Web App Environment Variables
+Set these via Azure CLI or Portal → Static Web App → Configuration:
+- `AZURE_STORAGE_CONNECTION_STRING` - Storage account connection string
+- `AZURE_STORAGE_ACCOUNT_NAME` - stsomostechdev64qb73pzvg
+- `EXTERNAL_TENANT_ID` - Azure AD tenant ID
+- `EXTERNAL_ADMIN_CLIENT_ID` - Admin portal app registration
+- `EXTERNAL_ADMIN_CLIENT_SECRET` - Admin portal secret
+- `EXTERNAL_MEMBER_CLIENT_ID` - Member portal app registration
+- `EXTERNAL_MEMBER_CLIENT_SECRET` - Member portal secret
 
 ### 3. Build Verification
 
@@ -461,6 +474,9 @@ Deployment is successful if:
 - [x] Security headers are present
 - [x] No CodeQL vulnerabilities
 - [x] Build completes without errors
+- [x] Media uploads work from member dashboard
+- [x] Admin media portal accessible at `/admin/media`
+- [x] Storage account CORS configured correctly
 
 ## Support
 

@@ -62,7 +62,8 @@ SOMOS.tech is a full-stack event management application featuring:
 - **Azure Static Web Apps** (Standard) - Frontend hosting with custom domains
 - **Azure Functions** (Flex Consumption) - API hosting
 - **Azure Cosmos DB** (Serverless) - NoSQL database
-- **Azure Storage Account** - Function storage and site images
+- **Azure Storage Account** - Function storage, site images, and media uploads
+- **Azure Blob Storage** - Profile photos and admin media (container: `media`)
 - **Application Insights** - Monitoring & analytics
 - **Bicep** - Infrastructure as Code
 
@@ -338,6 +339,7 @@ somos-tech-v2/
 │   │   │   ├── adminUsers.js   # Admin user management
 │   │   │   ├── agent.js        # AI agent endpoints
 │   │   │   ├── groups.js       # Community groups
+│   │   │   ├── media.js        # Media upload/management
 │   │   │   ├── GetUserRoles.js # User role verification
 │   │   │   ├── notifications.js # Notification system
 │   │   │   └── register.js     # User registration
@@ -350,6 +352,7 @@ somos-tech-v2/
 │   │   │   └── services/       # Business logic
 │   │   │       ├── agentService.js # AI agent orchestration
 │   │   │       ├── eventService.js # Event management
+│   │   │       ├── mediaService.js # Media/blob storage
 │   │   │       ├── notificationService.js # Notifications
 │   │   │       ├── socialMediaService.js  # Social media
 │   │   │       └── venueAgentService.js   # Venue agents
@@ -362,12 +365,14 @@ somos-tech-v2/
 │       │   ├── api/            # API service layer
 │       │   │   ├── adminUsersService.ts
 │       │   │   ├── eventService.ts
+│       │   │   ├── mediaService.ts     # Media upload API
 │       │   │   └── notificationsService.ts
 │       │   ├── components/     # React components
 │       │   │   ├── admin-events/ # Event management
 │       │   │   ├── EventbriteWidget.tsx
 │       │   │   ├── Navigation.tsx
 │       │   │   ├── NotificationPanel.tsx
+│       │   │   ├── ProfilePhotoUpload.tsx # Photo upload component
 │       │   │   ├── ProtectedRoute.tsx
 │       │   │   ├── SideBar.tsx
 │       │   │   └── ui/         # Reusable UI components (shadcn/ui)
@@ -376,6 +381,8 @@ somos-tech-v2/
 │       │   ├── lib/            # Utility functions
 │       │   ├── pages/          # Page components
 │       │   │   ├── AdminDashboard.tsx
+│       │   │   ├── AdminMedia.tsx  # Admin media portal
+│       │   │   ├── MemberDashboard.tsx # Member portal with photo upload
 │       │   │   ├── Donate.tsx  # Givebutter redirect
 │       │   │   └── ...
 │       │   ├── shared/         # Types & interfaces
@@ -1042,17 +1049,66 @@ Built with ❤️ by the SOMOS.tech team
 
 ---
 
-**Last Updated**: November 9, 2025
+**Last Updated**: November 25, 2025
 
 ## Recent Updates
 
 ### November 2025
+- ✅ **Media Management System**: Profile photo uploads for members and admin media portal
+- ✅ **Azure Blob Storage**: Media storage with `stsomostechdev64qb73pzvg` storage account
 - ✅ **Dual Authentication**: Separate auth flows for admins (@somos.tech) and members (External ID CIAM)
 - ✅ **Givebutter Integration**: Direct donation links to https://givebutter.com/somostech
 - ✅ **Payment Capability Detection**: Apple Pay and Google Pay support indicators
 - ✅ **Cosmos DB Migration**: Moved from Azure Table Storage to Cosmos DB for better performance
 - ✅ **Automated Deployments**: Restored automatic deployments on push to main branch
 - ✅ **Front Door + SWA Lockdown**: Direct access to default SWA hostname blocked (see below)
+
+---
+
+## Media Management System
+
+### Overview
+
+The platform includes a comprehensive media management system for user profile photos and admin-managed site assets.
+
+### Features
+
+- **Profile Photo Uploads**: Members can upload profile photos from `/member` dashboard
+- **Admin Media Portal**: Admins can manage all media at `/admin/media`
+- **File Validation**: Max 5MB, allowed types: JPEG, PNG, GIF, WebP
+- **Secure Storage**: Azure Blob Storage with SAS token authentication
+- **Drag-and-Drop**: Modern upload experience with preview
+
+### Azure Resources
+
+| Resource | Name | Purpose |
+|----------|------|---------|
+| Storage Account | `stsomostechdev64qb73pzvg` | Media blob storage |
+| Container | `media` | Profile photos and site assets |
+| Blob Endpoint | `https://stsomostechdev64qb73pzvg.blob.core.windows.net/` | Public blob access |
+
+### API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/media` | GET | List user's media files |
+| `/api/media` | POST | Upload new media file |
+| `/api/media/{id}` | DELETE | Delete media file |
+| `/api/media/admin` | GET | Admin: List all media |
+| `/api/media/admin/bulk` | DELETE | Admin: Bulk delete |
+
+### Configuration
+
+Required environment variables (set in SWA app settings):
+- `AZURE_STORAGE_CONNECTION_STRING` - Storage account connection string
+- `AZURE_STORAGE_ACCOUNT_NAME` - Storage account name (`stsomostechdev64qb73pzvg`)
+
+### CORS Configuration
+
+The storage account has CORS configured for:
+- `https://dev.somos.tech`
+- `https://swa-somos-tech-dev-64qb73pzvgekw.azurestaticapps.net`
+- `http://localhost:5173` (local development)
 
 ---
 
