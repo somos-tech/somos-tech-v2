@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import ProfilePhotoUpload from '@/components/ProfilePhotoUpload';
 import { 
     User, 
     Mail, 
@@ -31,6 +32,7 @@ export default function MemberDashboard() {
     const navigate = useNavigate();
     const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
     const [profileLoading, setProfileLoading] = useState(true);
+    const [profileImageUrl, setProfileImageUrl] = useState<string | undefined>();
 
     useEffect(() => {
         async function fetchMemberProfile() {
@@ -44,7 +46,9 @@ export default function MemberDashboard() {
                 if (response.ok) {
                     const data = await response.json();
                     // Handle wrapped response
-                    setMemberProfile(data.data || data);
+                    const profile = data.data || data;
+                    setMemberProfile(profile);
+                    setProfileImageUrl(profile.profileImage);
                 }
             } catch (error) {
                 console.error('Failed to fetch member profile:', error);
@@ -59,6 +63,25 @@ export default function MemberDashboard() {
             setProfileLoading(false);
         }
     }, [isAuthenticated, isLoading]);
+
+    const handlePhotoUploadSuccess = (url: string) => {
+        setProfileImageUrl(url);
+        // Optionally update the profile in the backend
+        updateProfileImage(url);
+    };
+
+    const updateProfileImage = async (url: string) => {
+        try {
+            await fetch('/api/users/me', {
+                method: 'PATCH',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ profileImage: url })
+            });
+        } catch (error) {
+            console.error('Failed to update profile image:', error);
+        }
+    };
 
     if (isLoading || profileLoading) {
         return (
@@ -120,37 +143,14 @@ export default function MemberDashboard() {
             <div className="max-w-4xl mx-auto px-4">
                 {/* Welcome Header */}
                 <div className="text-center mb-8">
-                    {/* Profile Image or Avatar */}
-                    <div className="relative inline-block mb-4">
-                        {profileImage ? (
-                            <img 
-                                src={profileImage}
-                                alt={displayName}
-                                className="w-28 h-28 rounded-full object-cover"
-                                style={{ 
-                                    border: '3px solid #00FF91',
-                                    boxShadow: '0 0 30px rgba(0, 255, 145, 0.4)' 
-                                }}
-                            />
-                        ) : (
-                            <div 
-                                className="w-28 h-28 rounded-full flex items-center justify-center text-3xl font-bold"
-                                style={{ 
-                                    backgroundColor: 'rgba(0, 255, 145, 0.2)',
-                                    border: '3px solid #00FF91',
-                                    color: '#00FF91',
-                                    boxShadow: '0 0 30px rgba(0, 255, 145, 0.4)'
-                                }}
-                            >
-                                {getInitials(displayName)}
-                            </div>
-                        )}
-                        <div 
-                            className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center"
-                            style={{ backgroundColor: '#00FF91' }}
-                        >
-                            <Sparkles className="w-4 h-4" style={{ color: '#051323' }} />
-                        </div>
+                    {/* Profile Photo Upload */}
+                    <div className="mb-4">
+                        <ProfilePhotoUpload
+                            currentPhotoUrl={profileImageUrl}
+                            userName={displayName}
+                            onUploadSuccess={handlePhotoUploadSuccess}
+                            size="lg"
+                        />
                     </div>
                     
                     <h1 className="text-3xl font-bold mb-2" style={{ color: '#FFFFFF' }}>
