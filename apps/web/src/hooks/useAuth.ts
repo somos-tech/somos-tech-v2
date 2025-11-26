@@ -45,7 +45,10 @@ export function useAuth(): AuthState {
 
                 if (adminResponse.ok) {
                     const payload = await adminResponse.json();
-                    return Boolean(payload?.isAdmin);
+                    // The API wraps responses in { success: true, data: {...} }
+                    // Check both wrapped and unwrapped formats for compatibility
+                    const isAdmin = payload?.data?.isAdmin ?? payload?.isAdmin ?? false;
+                    return Boolean(isAdmin);
                 }
 
                 console.warn('Admin lookup failed with status', adminResponse.status);
