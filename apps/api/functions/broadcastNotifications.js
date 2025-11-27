@@ -184,7 +184,8 @@ app.http('broadcastNotifications', {
                 }
 
                 if (recipients.length === 0) {
-                    return errorResponse(400, 'No recipients found for the selected target');
+                    const targetDesc = targetType === 'all' ? 'all members' : `group "${targetName}"`;
+                    return errorResponse(400, `No recipients found for ${targetDesc}. The target has no registered members.`);
                 }
 
                 context.log(`[BroadcastNotifications] Found ${recipients.length} recipients`);
