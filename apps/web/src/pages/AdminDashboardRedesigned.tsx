@@ -5,7 +5,9 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart, Users, Zap, TrendingUp, Plus, Filter, Settings, Download, Calendar } from 'lucide-react';
+import { BarChart, Users, Zap, TrendingUp, Plus, Filter, Settings, Download, Calendar, Loader2 } from 'lucide-react';
+import { getUserStats } from '@/api/userService';
+import { listGroups } from '@/api/groupsService';
 
 interface DashboardMetrics {
     totalMembers: number;
@@ -18,16 +20,52 @@ interface DashboardMetrics {
 
 export default function AdminDashboardRedesigned() {
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(true);
     const [metrics, setMetrics] = useState<DashboardMetrics>({
-        totalMembers: 8420,
-        activeUsers: 342,
-        communityGroups: 26,
-        eventsThisMonth: 12,
-        programsRunning: 8,
-        volunteerHours: 1240,
+        totalMembers: 0,
+        activeUsers: 0,
+        communityGroups: 0,
+        eventsThisMonth: 0,
+        programsRunning: 6,
+        volunteerHours: 0,
     });
 
     const [timeRange, setTimeRange] = useState('month');
+
+    useEffect(() => {
+        async function fetchMetrics() {
+            try {
+                setLoading(true);
+                const [userStats, groupsData] = await Promise.all([
+                    getUserStats().catch(() => ({ total: 0, active: 0, blocked: 0 })),
+                    listGroups().catch(() => ({ groups: [], total: 0, userMemberships: [] }))
+                ]);
+
+                setMetrics({
+                    totalMembers: userStats.total,
+                    activeUsers: userStats.active,
+                    communityGroups: groupsData.total || groupsData.groups.length,
+                    eventsThisMonth: 0, // Events API not yet implemented
+                    programsRunning: 6, // Static for now
+                    volunteerHours: 0, // Not tracked yet
+                });
+            } catch (error) {
+                console.error('Failed to fetch dashboard metrics:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchMetrics();
+    }, []);
+
+    if (loading) {
+        return (
+            <div style={{ backgroundColor: '#051323', minHeight: '100vh' }} className="flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#00FF91' }} />
+            </div>
+        );
+    }
 
     return (
         <div style={{ backgroundColor: '#051323', minHeight: '100vh' }}>
@@ -75,21 +113,18 @@ export default function AdminDashboardRedesigned() {
                         {
                             label: 'Total Members',
                             value: metrics.totalMembers.toLocaleString(),
-                            change: '+12.5%',
                             icon: Users,
                             color: '#00FF91'
                         },
                         {
-                            label: 'Active This Month',
+                            label: 'Active Members',
                             value: metrics.activeUsers.toLocaleString(),
-                            change: '+5.2%',
                             icon: TrendingUp,
                             color: '#00D4FF'
                         },
                         {
                             label: 'Community Groups',
                             value: metrics.communityGroups,
-                            change: '+2',
                             icon: BarChart,
                             color: '#FF6B9D'
                         }
@@ -111,9 +146,6 @@ export default function AdminDashboardRedesigned() {
                                     >
                                         <Icon className="w-6 h-6" style={{ color: metric.color }} />
                                     </div>
-                                    <span style={{ color: metric.color }} className="text-sm font-bold">
-                                        {metric.change}
-                                    </span>
                                 </div>
                                 <p style={{ color: '#8394A7' }} className="text-sm mb-1">{metric.label}</p>
                                 <p className="text-3xl font-bold text-white">{metric.value}</p>
@@ -125,9 +157,7 @@ export default function AdminDashboardRedesigned() {
                 {/* Secondary Metrics */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                     {[
-                        { label: 'Events This Month', value: metrics.eventsThisMonth, icon: Calendar },
                         { label: 'Active Programs', value: metrics.programsRunning, icon: Zap },
-                        { label: 'Volunteer Hours', value: `${metrics.volunteerHours}+`, icon: Users },
                     ].map((metric, idx) => (
                         <div
                             key={idx}

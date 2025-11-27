@@ -92,27 +92,39 @@ export default function Navigation() {
                                 {/* Dropdown Menu */}
                                 {item.submenu && openSubmenu === item.label && (
                                     <div 
-                                        className="absolute top-full left-0 mt-2 py-4 px-2 rounded-xl shadow-2xl min-w-[240px] backdrop-blur-sm"
-                                        style={{
-                                            backgroundColor: 'rgba(10, 22, 40, 0.95)',
-                                            border: '1px solid rgba(0, 255, 145, 0.3)',
-                                            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)'
-                                        }}
+                                        className="absolute top-full left-0 pt-2"
+                                        style={{ paddingTop: '0' }}
                                     >
-                                        {item.submenu.map((subItem, subIdx) => (
-                                            <button
-                                                key={subItem.path}
-                                                onClick={() => navigate(subItem.path)}
-                                                className="w-full text-left px-4 py-2.5 rounded-lg transition-all duration-200 flex items-center gap-2 group"
-                                                style={{
-                                                    color: isActive(subItem.path) ? '#00FF91' : '#FFFFFF',
-                                                    backgroundColor: isActive(subItem.path) ? 'rgba(0, 255, 145, 0.15)' : 'transparent',
-                                                }}
-                                            >
-                                                <span className="w-1.5 h-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all" style={{ backgroundColor: isActive(subItem.path) ? '#00FF91' : '#00D4FF' }} />
-                                                {subItem.label}
-                                            </button>
-                                        ))}
+                                        {/* Invisible bridge to prevent hover gap */}
+                                        <div className="h-2 w-full" />
+                                        <div 
+                                            className="py-4 px-2 rounded-xl shadow-2xl min-w-[240px] backdrop-blur-sm"
+                                            style={{
+                                                backgroundColor: 'rgba(10, 22, 40, 0.95)',
+                                                border: '1px solid rgba(0, 255, 145, 0.3)',
+                                                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)'
+                                            }}
+                                        >
+                                            {item.submenu.map((subItem, subIdx) => (
+                                                <button
+                                                    key={subItem.path}
+                                                    onClick={() => {
+                                                        navigate(subItem.path);
+                                                        setOpenSubmenu(null);
+                                                    }}
+                                                    className="w-full text-left px-4 py-2.5 rounded-lg transition-all duration-200 flex items-center gap-2 group"
+                                                    style={{
+                                                        color: isActive(subItem.path) ? '#00FF91' : '#FFFFFF',
+                                                        backgroundColor: isActive(subItem.path) ? 'rgba(0, 255, 145, 0.15)' : 'transparent',
+                                                    }}
+                                                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(0, 255, 145, 0.1)')}
+                                                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = isActive(subItem.path) ? 'rgba(0, 255, 145, 0.15)' : 'transparent')}
+                                                >
+                                                    <span className="w-1.5 h-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all" style={{ backgroundColor: isActive(subItem.path) ? '#00FF91' : '#00D4FF' }} />
+                                                    {subItem.label}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>

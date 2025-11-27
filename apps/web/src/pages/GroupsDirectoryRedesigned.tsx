@@ -219,9 +219,7 @@ export default function GroupsDirectoryRedesigned() {
                                         <div className="flex items-center gap-2">
                                             <Users className="w-4 h-4" style={{ color: '#00D4FF' }} />
                                             <span className="text-sm" style={{ color: '#8394A7' }}>
-                                                {group.memberCount && group.memberCount > 0 
-                                                    ? `${group.memberCount} members` 
-                                                    : 'Join to connect'}
+                                                Join to see members
                                             </span>
                                         </div>
                                         <span 

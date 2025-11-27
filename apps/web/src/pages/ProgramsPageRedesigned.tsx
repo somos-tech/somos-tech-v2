@@ -13,13 +13,7 @@ interface Program {
     description: string;
     icon: any;
     color: string;
-    enrollment: number;
     featured: boolean;
-    stats: {
-        participants: number;
-        completed: number;
-        averageRating: number;
-    };
     benefits: string[];
     cta: string;
 }
@@ -35,13 +29,7 @@ export default function ProgramsPageRedesigned() {
             description: 'Personalized guidance through the AI landscape. Get a customized roadmap based on your skills and goals.',
             icon: Lightbulb,
             color: '#00FF91',
-            enrollment: 1245,
             featured: true,
-            stats: {
-                participants: 1245,
-                completed: 342,
-                averageRating: 4.8
-            },
             benefits: [
                 'Personalized learning path',
                 'Expert mentorship',
@@ -56,13 +44,7 @@ export default function ProgramsPageRedesigned() {
             description: 'Connect with experienced professionals in your field. Get guidance, advice, and career support.',
             icon: Users,
             color: '#00D4FF',
-            enrollment: 856,
             featured: true,
-            stats: {
-                participants: 856,
-                completed: 623,
-                averageRating: 4.9
-            },
             benefits: [
                 '1-on-1 mentorship',
                 'Monthly check-ins',
@@ -77,13 +59,7 @@ export default function ProgramsPageRedesigned() {
             description: 'Build real-world projects with peers. Apply your skills in collaborative environments.',
             icon: Zap,
             color: '#FF6B9D',
-            enrollment: 634,
             featured: true,
-            stats: {
-                participants: 634,
-                completed: 421,
-                averageRating: 4.7
-            },
             benefits: [
                 'Team projects',
                 'Real-world applications',
@@ -98,13 +74,7 @@ export default function ProgramsPageRedesigned() {
             description: 'Access resume reviews, interview prep, and job opportunities.',
             icon: Briefcase,
             color: '#FFB81C',
-            enrollment: 2103,
             featured: false,
-            stats: {
-                participants: 2103,
-                completed: 1456,
-                averageRating: 4.6
-            },
             benefits: [
                 'Resume reviews',
                 'Interview coaching',
@@ -119,13 +89,7 @@ export default function ProgramsPageRedesigned() {
             description: 'Intensive learning program for rapid skill development in emerging technologies.',
             icon: BookOpen,
             color: '#9D4EDD',
-            enrollment: 445,
             featured: false,
-            stats: {
-                participants: 445,
-                completed: 289,
-                averageRating: 4.8
-            },
             benefits: [
                 '12-week intensive',
                 'Live instruction',
@@ -140,13 +104,7 @@ export default function ProgramsPageRedesigned() {
             description: 'Build leadership skills for tech roles. Learn management, communication, and strategy.',
             icon: Award,
             color: '#00FF91',
-            enrollment: 321,
             featured: false,
-            stats: {
-                participants: 321,
-                completed: 156,
-                averageRating: 4.9
-            },
             benefits: [
                 'Leadership training',
                 'Executive coaching',
@@ -243,17 +201,6 @@ export default function ProgramsPageRedesigned() {
                                         <h3 className="text-xl font-bold text-white mb-2">{program.title}</h3>
                                         <p style={{ color: '#8394A7' }} className="text-sm mb-6">{program.description}</p>
 
-                                        <div className="flex items-center gap-4 mb-6 text-sm">
-                                            <div>
-                                                <p style={{ color: '#8394A7' }} className="text-xs">Members</p>
-                                                <p className="text-white font-bold">{program.stats.participants.toLocaleString()}</p>
-                                            </div>
-                                            <div>
-                                                <p style={{ color: '#8394A7' }} className="text-xs">Rating</p>
-                                                <p className="text-white font-bold">{program.stats.averageRating}/5</p>
-                                            </div>
-                                        </div>
-
                                         <button 
                                             className="w-full py-2 rounded-lg font-semibold transition-all text-sm flex items-center justify-between px-4 group/btn"
                                             style={{
@@ -321,18 +268,6 @@ export default function ProgramsPageRedesigned() {
                                         ))}
                                     </div>
 
-                                    {/* Stats */}
-                                    <div className="grid grid-cols-2 gap-4 mb-6 pb-6 border-b" style={{ borderColor: 'rgba(0, 255, 145, 0.1)' }}>
-                                        <div>
-                                            <p style={{ color: '#8394A7' }} className="text-xs mb-1">Members</p>
-                                            <p className="text-lg font-bold text-white">{(program.stats.participants / 1000).toFixed(1)}k</p>
-                                        </div>
-                                        <div>
-                                            <p style={{ color: '#8394A7' }} className="text-xs mb-1">Completed</p>
-                                            <p className="text-lg font-bold text-white">{(program.stats.completed).toLocaleString()}</p>
-                                        </div>
-                                    </div>
-
                                     {/* CTA */}
                                     <button 
                                         onClick={() => navigate(`/programs/${program.id}`)}
@@ -365,7 +300,7 @@ export default function ProgramsPageRedesigned() {
                         Ready to Transform Your Career?
                     </h2>
                     <p style={{ color: '#8394A7' }} className="text-lg mb-8">
-                        Join thousands of tech professionals building their futures with SOMOS.tech
+                        Join our growing community of tech professionals building their futures with SOMOS.tech
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <button 
