@@ -49,6 +49,15 @@ export async function createNotification({
 }
 
 /**
+ * Validate email address format
+ */
+function isValidEmail(email) {
+    if (!email || typeof email !== 'string') return false;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
+}
+
+/**
  * Send email notification using Azure Communication Services
  * For now, we'll log the email content and create in-app notification
  * TODO: Integrate with Azure Communication Services Email API
@@ -60,6 +69,12 @@ export async function sendEmailNotification({
     htmlBody
 }) {
     try {
+        // Validate email address
+        if (!isValidEmail(to)) {
+            console.error(`📧 Invalid email address: "${to}" - skipping`);
+            return { success: false, error: `Invalid email address: ${to}` };
+        }
+
         // Check if Azure Communication Services is configured
         const connectionString = process.env.AZURE_COMMUNICATION_SERVICES_CONNECTION_STRING;
         
@@ -69,7 +84,7 @@ export async function sendEmailNotification({
                 const { EmailClient } = await import('@azure/communication-email');
                 const emailClient = new EmailClient(connectionString);
                 
-                const senderAddress = process.env.EMAIL_SENDER_ADDRESS || 'DO-NOT-REPLY@somos.tech';
+                const senderAddress = process.env.EMAIL_SENDER_ADDRESS || 'DoNotReply@somos.tech';
                 const senderDisplayName = process.env.EMAIL_SENDER_DISPLAY_NAME || 'Member Notification';
                 
                 const emailMessage = {
@@ -81,9 +96,6 @@ export async function sendEmailNotification({
                     },
                     recipients: {
                         to: [{ address: to }]
-                    },
-                    headers: {
-                        'Reply-To': 'noreply@somos.tech'
                     }
                 };
                 
@@ -92,11 +104,16 @@ export async function sendEmailNotification({
                 const poller = await emailClient.beginSend(emailMessage);
                 const result = await poller.pollUntilDone();
 
-                console.log(`📧 Email sent to ${to}: ${result.status}`);
-                return { success: true, message: 'Email sent successfully', status: result.status };
+                if (result.status === 'Succeeded') {
+                    console.log(`📧 ✅ Email sent to ${to}: ${result.status}`);
+                    return { success: true, message: 'Email sent successfully', status: result.status };
+                } else {
+                    console.error(`📧 ❌ Email failed to ${to}: ${result.status}`, result.error);
+                    return { success: false, error: result.error?.message || result.status };
+                }
             } catch (acsError) {
-                console.error('Error sending email via ACS:', acsError);
-                // Fall through to logging
+                console.error(`📧 ❌ Error sending email via ACS to ${to}:`, acsError.message);
+                return { success: false, error: acsError.message };
             }
         }
         
@@ -106,7 +123,7 @@ export async function sendEmailNotification({
         console.log(`Subject: ${subject}`);
         console.log(`Body: ${body}`);
 
-        return { success: true, message: 'Email logged (will be sent when ACS is configured)' };
+        return { success: false, message: 'Email not sent - ACS not configured' };
     } catch (error) {
         console.error('Error sending email:', error);
         return { success: false, error: error.message };
