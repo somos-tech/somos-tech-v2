@@ -21,22 +21,19 @@ export default function Navigation() {
         return name.charAt(0).toUpperCase() + name.slice(1);
     };
 
+    // Only include live pages - focus on Community
     const menuItems = [
         { label: 'Home', path: '/' },
-        { label: 'About', path: '/about' },
-        { label: 'Programs', path: '/programs' },
         { 
             label: 'Community', 
             path: '/groups',
             submenu: [
                 { label: 'Groups', path: '/groups' },
-                { label: 'Events', path: '/events' },
             ]
         },
-        { label: 'Career', path: '/career' },
     ];
 
-    const isActive = (path: string) => location.pathname === path;
+    const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
     return (
         <nav className="w-full sticky top-0" style={{ backgroundColor: '#051323', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', zIndex: 100 }}>
