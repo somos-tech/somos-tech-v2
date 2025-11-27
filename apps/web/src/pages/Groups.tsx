@@ -162,6 +162,8 @@ export default function Groups() {
             setGroups(prev => prev.map(g => 
                 g.id === groupId ? { ...g, memberCount: (g.memberCount || 0) + 1 } : g
             ));
+            // Navigate to the group page after joining
+            navigate(`/groups/${groupId}`);
         } catch (err) {
             console.error('Error joining group:', err);
         } finally {

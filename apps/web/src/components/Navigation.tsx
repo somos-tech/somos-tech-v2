@@ -28,6 +28,7 @@ export default function Navigation() {
             label: 'Community', 
             path: '/groups',
             submenu: [
+                { label: 'Online Community', path: '/online' },
                 { label: 'Groups', path: '/groups' },
             ]
         },

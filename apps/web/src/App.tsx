@@ -10,6 +10,7 @@ import AdminSettings from './pages/AdminSettings'
 import APIHealthDashboard from './pages/APIHealthDashboard'
 import Groups from './pages/Groups'
 import GroupDetail from './pages/GroupDetail'
+import OnlineCommunity from './pages/OnlineCommunity'
 import Login from './pages/Login'
 import AdminLogin from './pages/AdminLogin'
 import Register from './pages/Register'
@@ -45,8 +46,30 @@ function AppContent() {
           <Route path="/register" element={<Register />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/donate" element={<Donate />} />
-          <Route path="/groups" element={<Groups />} />
-          <Route path="/groups/:id" element={<GroupDetail />} />
+          <Route 
+            path="/community" 
+            element={
+              <ProtectedRoute>
+                <OnlineCommunity />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/groups" 
+            element={
+              <ProtectedRoute>
+                <Groups />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/groups/:id" 
+            element={
+              <ProtectedRoute>
+                <GroupDetail />
+              </ProtectedRoute>
+            } 
+          />
           <Route 
             path="/member" 
             element={
