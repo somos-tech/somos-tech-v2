@@ -23,13 +23,10 @@ import Donate from './pages/Donate'
 import Navigation from './components/Navigation'
 import ProtectedRoute from './components/ProtectedRoute'
 import { HealthBanner } from './components/HealthBanner'
-import { GoogleOneTap } from './components/GoogleOneTap'
-import { useAuth } from './hooks/useAuth'
 import './index.css'
 
 function AppContent() {
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
   const isAdminPage = location.pathname.startsWith('/admin');
   const isAuthPage = location.pathname === '/login' || 
                      location.pathname === '/register' || 
@@ -37,10 +34,6 @@ function AppContent() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: isAdminPage ? '#0a1f35' : '#051323' }}>
-      {/* Google One Tap - shows on all pages for non-authenticated users */}
-      {!isAuthenticated && !isAuthPage && (
-        <GoogleOneTap autoPrompt={true} context="signin" />
-      )}
       {isAdminPage && !isAuthPage && <HealthBanner />}
       {!isAuthPage && (
         <div style={{ position: 'relative', zIndex: 50 }}>

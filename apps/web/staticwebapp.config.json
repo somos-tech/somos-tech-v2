@@ -72,12 +72,6 @@
     "auth": {
         "rolesSource": "/api/GetUserRoles",
         "identityProviders": {
-            "google": {
-                "registration": {
-                    "clientIdSettingName": "GOOGLE_CLIENT_ID",
-                    "clientSecretSettingName": "GOOGLE_CLIENT_SECRET"
-                }
-            },
             "azureActiveDirectory": {
                 "registration": {
                     "openIdIssuer": "https://login.microsoftonline.com/ea315caf-5fa1-4348-a3f8-e50867ae19d4/v2.0",
