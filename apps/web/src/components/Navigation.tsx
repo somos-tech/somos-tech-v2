@@ -21,15 +21,27 @@ export default function Navigation() {
         return name.charAt(0).toUpperCase() + name.slice(1);
     };
 
-    // Only include live pages - focus on Community
+    // Main navigation items with discovery focus
     const menuItems = [
         { label: 'Home', path: '/' },
+        { 
+            label: 'Programs', 
+            path: '/programs',
+            submenu: [
+                { label: 'All Programs', path: '/programs' },
+                { label: 'AI Career Roadmap', path: '/programs/ai-roadmap' },
+                { label: 'Mentorship', path: '/programs/mentorship' },
+                { label: 'Labs', path: '/programs/labs' },
+                { label: 'Career Resources', path: '/programs/career-resources' },
+            ]
+        },
         { 
             label: 'Community', 
             path: '/groups',
             submenu: [
                 { label: 'Online Community', path: '/online' },
-                { label: 'Groups', path: '/groups' },
+                { label: 'Local Groups', path: '/groups' },
+                { label: 'Find Events', path: '/events' },
             ]
         },
     ];
@@ -80,22 +92,24 @@ export default function Navigation() {
                                 {/* Dropdown Menu */}
                                 {item.submenu && openSubmenu === item.label && (
                                     <div 
-                                        className="absolute top-full left-0 mt-1 py-2 rounded-lg shadow-xl min-w-[160px]"
+                                        className="absolute top-full left-0 mt-2 py-4 px-2 rounded-xl shadow-2xl min-w-[240px] backdrop-blur-sm"
                                         style={{
-                                            backgroundColor: '#0a1f35',
-                                            border: '1px solid rgba(0, 255, 145, 0.2)',
+                                            backgroundColor: 'rgba(10, 22, 40, 0.95)',
+                                            border: '1px solid rgba(0, 255, 145, 0.3)',
+                                            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)'
                                         }}
                                     >
-                                        {item.submenu.map((subItem) => (
+                                        {item.submenu.map((subItem, subIdx) => (
                                             <button
                                                 key={subItem.path}
                                                 onClick={() => navigate(subItem.path)}
-                                                className="w-full text-left px-4 py-2 transition-all duration-200 hover:bg-opacity-10"
+                                                className="w-full text-left px-4 py-2.5 rounded-lg transition-all duration-200 flex items-center gap-2 group"
                                                 style={{
                                                     color: isActive(subItem.path) ? '#00FF91' : '#FFFFFF',
-                                                    backgroundColor: isActive(subItem.path) ? 'rgba(0, 255, 145, 0.1)' : 'transparent',
+                                                    backgroundColor: isActive(subItem.path) ? 'rgba(0, 255, 145, 0.15)' : 'transparent',
                                                 }}
                                             >
+                                                <span className="w-1.5 h-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all" style={{ backgroundColor: isActive(subItem.path) ? '#00FF91' : '#00D4FF' }} />
                                                 {subItem.label}
                                             </button>
                                         ))}
@@ -229,11 +243,11 @@ export default function Navigation() {
                                                 setIsMobileMenuOpen(false);
                                             }
                                         }}
-                                        className="px-4 py-3 rounded-lg text-left transition-all w-full flex items-center justify-between"
+                                        className="px-4 py-3 rounded-lg text-left transition-all w-full flex items-center justify-between font-medium"
                                         style={{
                                             color: isActive(item.path) ? '#00FF91' : '#FFFFFF',
                                             backgroundColor: isActive(item.path) ? 'rgba(0, 255, 145, 0.1)' : 'transparent',
-                                            border: isActive(item.path) ? '1px solid #00FF91' : '1px solid transparent',
+                                            border: isActive(item.path) ? '1px solid rgba(0, 255, 145, 0.5)' : '1px solid transparent',
                                         }}
                                     >
                                         {item.label}
@@ -249,7 +263,7 @@ export default function Navigation() {
                                     </button>
                                     {/* Mobile Submenu */}
                                     {item.submenu && openSubmenu === item.label && (
-                                        <div className="ml-4 mt-1 space-y-1">
+                                        <div className="ml-4 mt-2 space-y-2 bg-black/20 rounded-lg p-2">
                                             {item.submenu.map((subItem) => (
                                                 <button
                                                     key={subItem.path}
@@ -258,12 +272,13 @@ export default function Navigation() {
                                                         setIsMobileMenuOpen(false);
                                                         setOpenSubmenu(null);
                                                     }}
-                                                    className="px-4 py-2 rounded-lg text-left transition-all w-full"
+                                                    className="px-4 py-2 rounded-lg text-left transition-all w-full flex items-center gap-2"
                                                     style={{
                                                         color: isActive(subItem.path) ? '#00FF91' : '#8394A7',
-                                                        backgroundColor: isActive(subItem.path) ? 'rgba(0, 255, 145, 0.05)' : 'transparent',
+                                                        backgroundColor: isActive(subItem.path) ? 'rgba(0, 255, 145, 0.1)' : 'transparent',
                                                     }}
                                                 >
+                                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: isActive(subItem.path) ? '#00FF91' : '#00D4FF' }} />
                                                     {subItem.label}
                                                 </button>
                                             ))}

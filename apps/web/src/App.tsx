@@ -1,16 +1,17 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 
-import Home from './pages/Home'
-import AdminDashboard from './pages/AdminDashboard'
+import HomeRedesigned from './pages/HomeRedesigned'
+import AdminDashboardRedesigned from './pages/AdminDashboardRedesigned'
 import AdminEvents from './pages/AdminEvents'
 import AdminGroups from './pages/AdminGroups'
 import AdminUsers from './pages/AdminUsers'
 import AdminMedia from './pages/AdminMedia'
 import AdminSettings from './pages/AdminSettings'
 import APIHealthDashboard from './pages/APIHealthDashboard'
-import Groups from './pages/Groups'
+import GroupsDirectoryRedesigned from './pages/GroupsDirectoryRedesigned'
 import GroupDetail from './pages/GroupDetail'
 import OnlineCommunity from './pages/OnlineCommunity'
+import ProgramsPageRedesigned from './pages/ProgramsPageRedesigned'
 import Login from './pages/Login'
 import AdminLogin from './pages/AdminLogin'
 import Register from './pages/Register'
@@ -40,7 +41,9 @@ function AppContent() {
       )}
       <main className={isAdminPage ? "p-4 lg:p-8" : ""}>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<HomeRedesigned />} />
+          <Route path="/programs" element={<ProgramsPageRedesigned />} />
+          <Route path="/programs/:id" element={<ProgramsPageRedesigned />} />
           <Route path="/login" element={<Login />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/register" element={<Register />} />
@@ -57,9 +60,7 @@ function AppContent() {
           <Route 
             path="/groups" 
             element={
-              <ProtectedRoute>
-                <Groups />
-              </ProtectedRoute>
+              <GroupsDirectoryRedesigned />
             } 
           />
           <Route 
@@ -90,7 +91,7 @@ function AppContent() {
             path="/admin" 
             element={
               <ProtectedRoute requireAdmin={true}>
-                <AdminDashboard />
+                <AdminDashboardRedesigned />
               </ProtectedRoute>
             } 
           />
