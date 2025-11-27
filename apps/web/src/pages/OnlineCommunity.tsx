@@ -455,7 +455,9 @@ export default function OnlineCommunity() {
             if (!response.ok) {
                 throw new Error('Failed to fetch messages');
             }
-            const data = await response.json();
+            const json = await response.json();
+            // API returns { success, data: { messages } }
+            const data = json.data || json;
             setMessages(data.messages || []);
         } catch (err) {
             console.error('Error fetching messages:', err);
@@ -473,7 +475,9 @@ export default function OnlineCommunity() {
             if (!response.ok) {
                 throw new Error('Failed to fetch users');
             }
-            const data = await response.json();
+            const json = await response.json();
+            // API returns { success, data: { online, offline } }
+            const data = json.data || json;
             setOnlineUsers(data.online || []);
             setOfflineUsers(data.offline || []);
         } catch (err) {
@@ -543,7 +547,9 @@ export default function OnlineCommunity() {
                 throw new Error('Failed to send message');
             }
             
-            const data = await response.json();
+            const json = await response.json();
+            // API returns { success, data: { message } }
+            const data = json.data || json;
             setMessages(prev => [...prev, data.message]);
             setMessageInput('');
         } catch (err) {
@@ -583,7 +589,9 @@ export default function OnlineCommunity() {
                 throw new Error('Failed to add reaction');
             }
             
-            const data = await response.json();
+            const json = await response.json();
+            // API returns { success, data: { message } }
+            const data = json.data || json;
             setMessages(prev => prev.map(m => m.id === messageId ? data.message : m));
         } catch (err) {
             console.error('Error adding reaction:', err);
