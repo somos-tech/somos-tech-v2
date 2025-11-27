@@ -4,11 +4,16 @@
  */
 
 // SECURITY: Development mode authentication should ONLY be enabled in local development
-// This is controlled by FUNCTIONS_EXTENSION_VERSION (which is set in Azure) 
-// and specific local development indicators
-// Never enable this in production
+// Flex Consumption plans don't set FUNCTIONS_EXTENSION_VERSION, so we use multiple indicators
+// to detect if we're running in Azure
 const isAzureFunctions = !!process.env.FUNCTIONS_EXTENSION_VERSION;
-const isLocalDevelopment = !isAzureFunctions && 
+const isFlexConsumption = !!process.env.AzureWebJobsStorage__accountName || 
+                          !!process.env.WEBSITE_INSTANCE_ID ||
+                          !!process.env.WEBSITE_SITE_NAME;
+const isRunningInAzure = isAzureFunctions || isFlexConsumption;
+
+// Only enable local development mode when NOT in Azure AND in development environment
+const isLocalDevelopment = !isRunningInAzure && 
                           (process.env.NODE_ENV === 'development' || 
                            process.env.NODE_ENV === 'dev' ||
                            process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development');
@@ -26,9 +31,10 @@ function getMockClientPrincipal() {
 
     console.warn('⚠️ DEVELOPMENT MODE: Using mock authentication in API');
     console.warn('  - isAzureFunctions:', isAzureFunctions);
+    console.warn('  - isFlexConsumption:', isFlexConsumption);
+    console.warn('  - isRunningInAzure:', isRunningInAzure);
     console.warn('  - isLocalDevelopment:', isLocalDevelopment);
     console.warn('  - NODE_ENV:', process.env.NODE_ENV);
-    console.warn('  - FUNCTIONS_EXTENSION_VERSION:', process.env.FUNCTIONS_EXTENSION_VERSION);
     
     return {
         identityProvider: 'mock',
