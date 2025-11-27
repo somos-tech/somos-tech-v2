@@ -80,16 +80,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setProfileLoading(true);
       setProfileError(null);
       
+      console.log('[UserContext] Loading profile for user:', authUser.userDetails);
+      
       // Sync first (creates profile if needed)
       const syncResult = await syncUserProfile();
+      console.log('[UserContext] Sync result:', syncResult);
       setProfile(syncResult.user);
     } catch (err) {
-      console.error('Error loading profile:', err);
+      console.error('[UserContext] Error loading profile:', err);
       setProfileError(err instanceof Error ? err.message : 'Failed to load profile');
       
       // Try to get profile without sync
       try {
         const profileData = await getCurrentUserProfile();
+        console.log('[UserContext] Fallback profile data:', profileData);
         setProfile(profileData);
       } catch {
         // Profile doesn't exist yet, that's okay
@@ -139,11 +143,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        console.log('[UserContext] Fetching auth from /.auth/me...');
         const response = await fetch('/.auth/me');
         const data = await response.json();
+        console.log('[UserContext] Auth response:', data);
 
         if (data.clientPrincipal) {
           const user = data.clientPrincipal;
+          console.log('[UserContext] User authenticated:', user.userDetails, 'userId:', user.userId);
           const userEmail = user.userDetails?.toLowerCase() || '';
           const adminStatus = await resolveAdminStatus(userEmail);
           
@@ -151,12 +158,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
           setIsAuthenticated(true);
           setIsAdmin(adminStatus);
         } else {
+          console.log('[UserContext] No clientPrincipal - user not authenticated');
           setAuthUser(null);
           setIsAuthenticated(false);
           setIsAdmin(false);
         }
       } catch (error) {
-        console.error('Error fetching auth:', error);
+        console.error('[UserContext] Error fetching auth:', error);
         setAuthUser(null);
         setIsAuthenticated(false);
         setIsAdmin(false);
