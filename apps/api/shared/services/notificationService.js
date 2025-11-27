@@ -69,8 +69,11 @@ export async function sendEmailNotification({
                 const { EmailClient } = await import('@azure/communication-email');
                 const emailClient = new EmailClient(connectionString);
                 
+                const senderAddress = process.env.EMAIL_SENDER_ADDRESS || 'DO-NOT-REPLY@somos.tech';
+                const senderDisplayName = process.env.EMAIL_SENDER_DISPLAY_NAME || 'Member Notification';
+                
                 const emailMessage = {
-                    senderAddress: process.env.EMAIL_SENDER_ADDRESS || 'DoNotReply@somos.tech',
+                    senderAddress: senderAddress,
                     content: {
                         subject,
                         plainText: body,
@@ -78,8 +81,13 @@ export async function sendEmailNotification({
                     },
                     recipients: {
                         to: [{ address: to }]
+                    },
+                    headers: {
+                        'Reply-To': 'noreply@somos.tech'
                     }
                 };
+                
+                console.log(`📧 Sending email from "${senderDisplayName}" <${senderAddress}> to ${to}`);
 
                 const poller = await emailClient.beginSend(emailMessage);
                 const result = await poller.pollUntilDone();
