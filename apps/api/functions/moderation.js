@@ -35,6 +35,19 @@ import {
 } from '../shared/services/moderationService.js';
 
 /**
+ * Check if a client principal has admin role
+ * @param {Object} clientPrincipal - The parsed client principal
+ * @returns {boolean} True if user has admin role
+ */
+function isAdminFromPrincipal(clientPrincipal) {
+    if (!clientPrincipal || !clientPrincipal.userRoles) {
+        return false;
+    }
+    return clientPrincipal.userRoles.includes('admin') || 
+           clientPrincipal.userRoles.includes('administrator');
+}
+
+/**
  * Moderation API Handler
  */
 app.http('moderation', {
@@ -69,7 +82,7 @@ app.http('moderation', {
 
                 // GET/PUT /api/moderation/config - Get or update config (admin only)
                 case 'config':
-                    if (!isAdmin(clientPrincipal)) {
+                    if (!isAdminFromPrincipal(clientPrincipal)) {
                         return errorResponse(403, 'Admin access required');
                     }
                     if (method === 'GET') {
@@ -81,7 +94,7 @@ app.http('moderation', {
 
                 // GET /api/moderation/queue - Get moderation queue (admin only)
                 case 'queue':
-                    if (!isAdmin(clientPrincipal)) {
+                    if (!isAdminFromPrincipal(clientPrincipal)) {
                         return errorResponse(403, 'Admin access required');
                     }
                     if (method === 'GET') {
@@ -93,7 +106,7 @@ app.http('moderation', {
 
                 // GET /api/moderation/stats - Get moderation stats (admin only)
                 case 'stats':
-                    if (!isAdmin(clientPrincipal)) {
+                    if (!isAdminFromPrincipal(clientPrincipal)) {
                         return errorResponse(403, 'Admin access required');
                     }
                     if (method === 'GET') {
@@ -103,7 +116,7 @@ app.http('moderation', {
 
                 // POST /api/moderation/blocklist - Update blocklist (admin only)
                 case 'blocklist':
-                    if (!isAdmin(clientPrincipal)) {
+                    if (!isAdminFromPrincipal(clientPrincipal)) {
                         return errorResponse(403, 'Admin access required');
                     }
                     if (method === 'POST') {
@@ -113,7 +126,7 @@ app.http('moderation', {
 
                 // PUT /api/moderation/user/:userId/block or /unblock
                 case 'user':
-                    if (!isAdmin(clientPrincipal)) {
+                    if (!isAdminFromPrincipal(clientPrincipal)) {
                         return errorResponse(403, 'Admin access required');
                     }
                     if (method === 'PUT' && itemId) {
