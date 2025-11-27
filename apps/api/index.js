@@ -15,5 +15,6 @@ import "./functions/checkAdmin.js";
 import "./functions/communityGroups.js";
 import "./functions/groupMessages.js";
 import "./functions/groupEvents.js";
+import "./functions/communityMessages.js";
 //import "./functions/testAdmin.js";
 

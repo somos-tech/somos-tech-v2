@@ -1,0 +1,341 @@
+/**
+ * Community Messages API - Chat functionality for the online community
+ * 
+ * Endpoints:
+ * - GET /api/community-messages/:channelId - Get messages for a channel
+ * - POST /api/community-messages/:channelId - Send a message
+ * - DELETE /api/community-messages/:channelId/:messageId - Delete a message
+ * - POST /api/community-messages/:channelId/:messageId/react - Add reaction to a message
+ * 
+ * @module communityMessages
+ * @author SOMOS.tech
+ */
+
+import { app } from '@azure/functions';
+import { requireAuth, getClientPrincipal } from '../shared/authMiddleware.js';
+import { getContainer } from '../shared/db.js';
+import { successResponse, errorResponse } from '../shared/httpResponse.js';
+
+const CONTAINERS = {
+    MESSAGES: 'community-messages',
+    USERS: 'users'
+};
+
+/**
+ * Get user profile data
+ */
+async function getUserProfile(userId, usersContainer) {
+    try {
+        const { resources } = await usersContainer.items
+            .query({
+                query: 'SELECT c.id, c.email, c.displayName, c.profilePhotoUrl FROM c WHERE c.id = @userId',
+                parameters: [{ name: '@userId', value: userId }]
+            })
+            .fetchAll();
+        return resources[0] || null;
+    } catch (error) {
+        console.error('[CommunityMessages] Error getting user profile:', error);
+        return null;
+    }
+}
+
+/**
+ * Community Messages Handler
+ */
+app.http('communityMessages', {
+    methods: ['GET', 'POST', 'DELETE'],
+    authLevel: 'anonymous',
+    route: 'community-messages/{channelId}/{messageId?}/{action?}',
+    handler: async (request, context) => {
+        try {
+            const method = request.method;
+            const channelId = request.params.channelId;
+            const messageId = request.params.messageId;
+            const action = request.params.action;
+
+            context.log(`[CommunityMessages] ${method} /community-messages/${channelId}/${messageId || ''}/${action || ''}`);
+
+            if (!channelId) {
+                return errorResponse(400, 'Channel ID is required');
+            }
+
+            // All operations require authentication
+            const authResult = await requireAuth(request);
+            if (!authResult.authenticated) {
+                return errorResponse(401, 'Authentication required');
+            }
+
+            const principal = getClientPrincipal(request);
+            if (!principal?.userId) {
+                return errorResponse(400, 'User ID not found');
+            }
+
+            const messagesContainer = getContainer(CONTAINERS.MESSAGES);
+            const usersContainer = getContainer(CONTAINERS.USERS);
+
+            // GET - Fetch messages for a channel
+            if (method === 'GET') {
+                const url = new URL(request.url);
+                const limit = parseInt(url.searchParams.get('limit') || '50');
+                const before = url.searchParams.get('before'); // For pagination
+
+                let query = 'SELECT * FROM c WHERE c.channelId = @channelId AND (c.isDeleted = false OR NOT IS_DEFINED(c.isDeleted))';
+                const parameters = [{ name: '@channelId', value: channelId }];
+
+                if (before) {
+                    query += ' AND c.createdAt < @before';
+                    parameters.push({ name: '@before', value: before });
+                }
+
+                query += ' ORDER BY c.createdAt DESC';
+
+                const { resources: messages } = await messagesContainer.items
+                    .query({ query, parameters })
+                    .fetchAll();
+
+                // Reverse to get chronological order, then limit
+                const sortedMessages = messages.reverse().slice(-limit);
+
+                return successResponse({
+                    messages: sortedMessages,
+                    channelId,
+                    count: sortedMessages.length
+                });
+            }
+
+            // POST - Send a new message or add reaction
+            if (method === 'POST') {
+                // Handle reactions
+                if (action === 'react' && messageId) {
+                    const body = await request.json();
+                    const { emoji } = body;
+
+                    if (!emoji) {
+                        return errorResponse(400, 'Emoji is required');
+                    }
+
+                    // Get the message
+                    const { resources: [message] } = await messagesContainer.items
+                        .query({
+                            query: 'SELECT * FROM c WHERE c.id = @id AND c.channelId = @channelId',
+                            parameters: [
+                                { name: '@id', value: messageId },
+                                { name: '@channelId', value: channelId }
+                            ]
+                        })
+                        .fetchAll();
+
+                    if (!message) {
+                        return errorResponse(404, 'Message not found');
+                    }
+
+                    // Update reactions
+                    const reactions = message.reactions || [];
+                    const existingReaction = reactions.find(r => r.emoji === emoji);
+
+                    if (existingReaction) {
+                        if (existingReaction.users.includes(principal.userId)) {
+                            // Remove user from reaction
+                            existingReaction.users = existingReaction.users.filter(u => u !== principal.userId);
+                            existingReaction.count = existingReaction.users.length;
+                            if (existingReaction.count === 0) {
+                                const idx = reactions.indexOf(existingReaction);
+                                reactions.splice(idx, 1);
+                            }
+                        } else {
+                            // Add user to reaction
+                            existingReaction.users.push(principal.userId);
+                            existingReaction.count = existingReaction.users.length;
+                        }
+                    } else {
+                        // New reaction
+                        reactions.push({
+                            emoji,
+                            count: 1,
+                            users: [principal.userId]
+                        });
+                    }
+
+                    message.reactions = reactions;
+                    message.updatedAt = new Date().toISOString();
+
+                    const { resource: updated } = await messagesContainer.item(message.id, channelId).replace(message);
+
+                    return successResponse({
+                        message: updated,
+                        action: 'reaction_updated'
+                    });
+                }
+
+                // Send new message
+                const body = await request.json();
+                const { content, replyTo } = body;
+
+                if (!content || !content.trim()) {
+                    return errorResponse(400, 'Message content is required');
+                }
+
+                // Get user profile for display
+                const userProfile = await getUserProfile(principal.userId, usersContainer);
+
+                const newMessage = {
+                    id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    channelId,
+                    userId: principal.userId,
+                    userName: userProfile?.displayName || principal.userDetails?.split('@')[0] || 'Member',
+                    userEmail: principal.userDetails,
+                    userPhoto: userProfile?.profilePhotoUrl || null,
+                    content: content.trim(),
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    reactions: [],
+                    isDeleted: false,
+                    ...(replyTo && { replyTo })
+                };
+
+                const { resource: created } = await messagesContainer.items.create(newMessage);
+
+                context.log(`[CommunityMessages] Message created: ${created.id} in channel ${channelId}`);
+
+                return successResponse({
+                    message: created,
+                    action: 'created'
+                }, 201);
+            }
+
+            // DELETE - Delete a message
+            if (method === 'DELETE' && messageId) {
+                // Get the message
+                const { resources: [message] } = await messagesContainer.items
+                    .query({
+                        query: 'SELECT * FROM c WHERE c.id = @id AND c.channelId = @channelId',
+                        parameters: [
+                            { name: '@id', value: messageId },
+                            { name: '@channelId', value: channelId }
+                        ]
+                    })
+                    .fetchAll();
+
+                if (!message) {
+                    return errorResponse(404, 'Message not found');
+                }
+
+                // Only allow deletion by message author or admin
+                if (message.userId !== principal.userId) {
+                    // Check if user is admin
+                    const userProfile = await getUserProfile(principal.userId, usersContainer);
+                    if (!userProfile?.isAdmin) {
+                        return errorResponse(403, 'You can only delete your own messages');
+                    }
+                }
+
+                // Soft delete
+                message.isDeleted = true;
+                message.deletedAt = new Date().toISOString();
+                message.deletedBy = principal.userId;
+
+                await messagesContainer.item(message.id, channelId).replace(message);
+
+                context.log(`[CommunityMessages] Message deleted: ${messageId}`);
+
+                return successResponse({
+                    messageId,
+                    action: 'deleted'
+                });
+            }
+
+            return errorResponse(405, 'Method not allowed');
+
+        } catch (error) {
+            context.error('[CommunityMessages] Error:', error);
+            return errorResponse(500, 'Internal server error', error.message);
+        }
+    }
+});
+
+/**
+ * Get online/active users API
+ * Returns users who have been active in the last 15 minutes
+ */
+app.http('communityActiveUsers', {
+    methods: ['GET'],
+    authLevel: 'anonymous',
+    route: 'community/active-users',
+    handler: async (request, context) => {
+        try {
+            context.log('[CommunityActiveUsers] GET /community/active-users');
+
+            // Authentication required
+            const authResult = await requireAuth(request);
+            if (!authResult.authenticated) {
+                return errorResponse(401, 'Authentication required');
+            }
+
+            const principal = getClientPrincipal(request);
+            const usersContainer = getContainer(CONTAINERS.USERS);
+
+            // Get users who have been active in the last 15 minutes
+            const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+            
+            // Get all users (we'll track activity separately, for now just get registered users)
+            const { resources: users } = await usersContainer.items
+                .query({
+                    query: `SELECT c.id, c.email, c.displayName, c.profilePhotoUrl, c.lastActiveAt, c.isAdmin, c.createdAt 
+                            FROM c 
+                            WHERE c.email != null 
+                            ORDER BY c.lastActiveAt DESC`
+                })
+                .fetchAll();
+
+            // Separate into online (active recently) and offline
+            const online = [];
+            const offline = [];
+
+            users.forEach(user => {
+                const userInfo = {
+                    id: user.id,
+                    name: user.displayName || user.email?.split('@')[0] || 'Member',
+                    email: user.email,
+                    photoUrl: user.profilePhotoUrl,
+                    isAdmin: user.isAdmin || false,
+                    isCurrentUser: user.id === principal.userId
+                };
+
+                if (user.lastActiveAt && user.lastActiveAt > fifteenMinutesAgo) {
+                    online.push({ ...userInfo, status: 'online' });
+                } else {
+                    offline.push({ ...userInfo, status: 'offline' });
+                }
+            });
+
+            // Update current user's lastActiveAt
+            try {
+                const { resources: [currentUser] } = await usersContainer.items
+                    .query({
+                        query: 'SELECT * FROM c WHERE c.id = @userId',
+                        parameters: [{ name: '@userId', value: principal.userId }]
+                    })
+                    .fetchAll();
+
+                if (currentUser) {
+                    currentUser.lastActiveAt = new Date().toISOString();
+                    await usersContainer.item(currentUser.id, currentUser.id).replace(currentUser);
+                }
+            } catch (err) {
+                context.warn('[CommunityActiveUsers] Could not update lastActiveAt:', err.message);
+            }
+
+            return successResponse({
+                online,
+                offline,
+                totalOnline: online.length,
+                totalOffline: offline.length,
+                totalUsers: users.length
+            });
+
+        } catch (error) {
+            context.error('[CommunityActiveUsers] Error:', error);
+            return errorResponse(500, 'Internal server error', error.message);
+        }
+    }
+});
