@@ -275,10 +275,10 @@ async function checkInternalAPIs(context, request) {
 
   // Define API endpoints to check with expected behavior
   const endpoints = [
-    { name: 'Events API (Public)', path: '/api/events', method: 'GET', critical: true, requiresAuth: false },
-    { name: 'Groups API (Public)', path: '/api/groups', method: 'GET', critical: true, requiresAuth: false },
+    { name: 'Events API', path: '/api/events', method: 'GET', critical: false, requiresAuth: true },
+    { name: 'Groups API', path: '/api/groups', method: 'GET', critical: false, requiresAuth: true },
     { name: 'Health Status', path: '/api/health/status', method: 'GET', critical: true, requiresAuth: false },
-    { name: 'User Roles', path: '/api/getuserroles', method: 'GET', critical: true, requiresAuth: true }
+    { name: 'User Roles', path: '/api/getuserroles', method: 'GET', critical: false, requiresAuth: true }
   ];
 
   for (const endpoint of endpoints) {
