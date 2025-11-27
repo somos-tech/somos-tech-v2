@@ -47,7 +47,7 @@ function AppContent() {
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/donate" element={<Donate />} />
           <Route 
-            path="/community" 
+            path="/online" 
             element={
               <ProtectedRoute>
                 <OnlineCommunity />
