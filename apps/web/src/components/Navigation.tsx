@@ -27,9 +27,9 @@ export default function Navigation() {
         { label: 'Programs', path: '/programs' },
         { 
             label: 'Community', 
-            path: '/community',
+            path: '/groups',
             submenu: [
-                { label: 'Groups', path: '/community' },
+                { label: 'Groups', path: '/groups' },
                 { label: 'Events', path: '/events' },
             ]
         },
