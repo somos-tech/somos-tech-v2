@@ -15,7 +15,7 @@ import { app } from '@azure/functions';
 import { requireAuth, getClientPrincipal } from '../shared/authMiddleware.js';
 import { getContainer } from '../shared/db.js';
 import { successResponse, errorResponse } from '../shared/httpResponse.js';
-import { moderateContent, getModerationConfig } from '../shared/moderationService.js';
+import { moderateContent, getModerationConfig } from '../shared/services/moderationService.js';
 
 const CONTAINERS = {
     MESSAGES: 'community-messages',
