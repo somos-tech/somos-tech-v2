@@ -258,24 +258,28 @@ export default function HomeRedesigned() {
                             {
                                 title: 'Want to Mentor?',
                                 description: 'Share your knowledge and guide the next generation',
-                                action: 'Become a Mentor'
+                                action: 'Become a Mentor',
+                                onClick: () => window.open('https://somos.tech/mentor', '_blank')
                             },
                             {
                                 title: 'Support the Mission',
                                 description: 'Help us reach and empower more tech professionals',
-                                action: 'Donate'
+                                action: 'Donate',
+                                onClick: () => window.open('https://givebutter.com/somostech', '_blank')
                             },
                             {
                                 title: 'Looking to Volunteer?',
                                 description: 'Contribute your skills to our thriving community',
-                                action: 'Explore Roles'
+                                action: 'Explore Roles',
+                                onClick: () => window.open('https://somos.tech/volunteer', '_blank')
                             }
                         ].map((item, idx) => (
                             <div key={idx} className="p-6 text-center">
                                 <h3 className="text-lg font-bold text-white mb-2">{item.title}</h3>
                                 <p style={{ color: '#8394A7' }} className="mb-4">{item.description}</p>
                                 <button
-                                    className="text-sm font-bold inline-flex items-center gap-2 transition-colors hover:text-white"
+                                    onClick={item.onClick}
+                                    className="text-sm font-bold inline-flex items-center gap-2 transition-colors hover:text-white cursor-pointer"
                                     style={{ color: '#00FF91' }}
                                 >
                                     {item.action}

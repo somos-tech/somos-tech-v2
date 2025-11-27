@@ -5,14 +5,13 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Users, Calendar, MessageCircle, Search, Filter, ArrowRight } from 'lucide-react';
+import { MapPin, Users, Calendar, MessageCircle, Search, Filter, ArrowRight, Lock } from 'lucide-react';
 
 interface Group {
     id: string;
     name: string;
     city: string;
     state: string;
-    members: number;
     nextEvent?: string;
     description: string;
     meetingFrequency: string;
@@ -24,36 +23,36 @@ export default function GroupsDirectoryRedesigned() {
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedFocus, setSelectedFocus] = useState('all');
-    const [sortBy, setSortBy] = useState('members');
+    const [sortBy, setSortBy] = useState('name');
 
-    // 26 SOMOS.tech local groups across US
+    // 26 SOMOS.tech local groups across US (member counts hidden until user joins)
     const groups: Group[] = [
-        { id: 'sf-bay', name: 'SF Bay Area', city: 'San Francisco', state: 'CA', members: 842, meetingFrequency: 'Weekly', description: 'Tech professionals in the Bay Area connecting, learning, and growing together.', focus: ['AI', 'Web Dev', 'Cloud'] },
-        { id: 'la', name: 'Los Angeles', city: 'Los Angeles', state: 'CA', members: 654, meetingFrequency: 'Bi-weekly', description: 'LA tech community focused on career growth and mentorship.', focus: ['Mobile', 'Data Science', 'Startups'] },
-        { id: 'nyc', name: 'New York City', city: 'New York', state: 'NY', members: 721, meetingFrequency: 'Weekly', description: 'The largest SOMOS chapter with diverse tech opportunities.', focus: ['Finance Tech', 'AI', 'Web Dev'] },
-        { id: 'chicago', name: 'Chicago', city: 'Chicago', state: 'IL', members: 456, meetingFrequency: 'Bi-weekly', description: 'Chicago tech community building careers and networks.', focus: ['Cloud', 'DevOps', 'Full Stack'] },
-        { id: 'denver', name: 'Denver', city: 'Denver', state: 'CO', members: 312, meetingFrequency: 'Monthly', description: 'Rocky Mountain tech professionals connecting and collaborating.', focus: ['AI', 'Web Dev', 'Startups'] },
-        { id: 'austin', name: 'Austin', city: 'Austin', state: 'TX', members: 528, meetingFrequency: 'Weekly', description: 'Austin tech scene with focus on innovation and mentorship.', focus: ['Full Stack', 'Data Science', 'Startups'] },
-        { id: 'dallas', name: 'Dallas', city: 'Dallas', state: 'TX', members: 389, meetingFrequency: 'Bi-weekly', description: 'Dallas tech professionals advancing their careers.', focus: ['Cloud', 'Security', 'Enterprise'] },
-        { id: 'houston', name: 'Houston', city: 'Houston', state: 'TX', members: 267, meetingFrequency: 'Monthly', description: 'Houston community focused on tech careers and networking.', focus: ['Data Science', 'Mobile', 'AI'] },
-        { id: 'miami', name: 'Miami', city: 'Miami', state: 'FL', members: 198, meetingFrequency: 'Monthly', description: 'South Florida tech community and professional network.', focus: ['Startups', 'Mobile', 'Web Dev'] },
-        { id: 'seattle', name: 'Seattle', city: 'Seattle', state: 'WA', members: 434, meetingFrequency: 'Weekly', description: 'Seattle tech professionals in the Pacific Northwest.', focus: ['Cloud', 'AI', 'Data Science'] },
-        { id: 'pdx', name: 'Portland', city: 'Portland', state: 'OR', members: 287, meetingFrequency: 'Bi-weekly', description: 'Portland tech community with emphasis on open source and innovation.', focus: ['Open Source', 'Web Dev', 'DevOps'] },
-        { id: 'phoenix', name: 'Phoenix', city: 'Phoenix', state: 'AZ', members: 245, meetingFrequency: 'Monthly', description: 'Arizona tech professionals building careers.', focus: ['Full Stack', 'Mobile', 'Cloud'] },
-        { id: 'denver-springs', name: 'Colorado Springs', city: 'Colorado Springs', state: 'CO', members: 156, meetingFrequency: 'Monthly', description: 'Colorado Springs tech community and learning hub.', focus: ['Web Dev', 'Data Science', 'Cloud'] },
-        { id: 'raleigh', name: 'Raleigh', city: 'Raleigh', state: 'NC', members: 234, meetingFrequency: 'Bi-weekly', description: 'Research Triangle tech professionals.', focus: ['AI', 'Cloud', 'Full Stack'] },
-        { id: 'boston', name: 'Boston', city: 'Boston', state: 'MA', members: 512, meetingFrequency: 'Weekly', description: 'Boston tech scene with strong emphasis on education and growth.', focus: ['Startups', 'AI', 'Security'] },
-        { id: 'atlanta', name: 'Atlanta', city: 'Atlanta', state: 'GA', members: 398, meetingFrequency: 'Bi-weekly', description: 'Atlanta tech community for career advancement.', focus: ['Cloud', 'Data Science', 'Mobile'] },
-        { id: 'dc', name: 'Washington DC', city: 'Washington', state: 'DC', members: 467, meetingFrequency: 'Weekly', description: 'DC tech professionals in government and enterprise.', focus: ['Security', 'Enterprise', 'Cloud'] },
-        { id: 'philadelphia', name: 'Philadelphia', city: 'Philadelphia', state: 'PA', members: 321, meetingFrequency: 'Bi-weekly', description: 'Philadelphia tech community and professional network.', focus: ['Full Stack', 'Web Dev', 'Startups'] },
-        { id: 'san-diego', name: 'San Diego', city: 'San Diego', state: 'CA', members: 289, meetingFrequency: 'Monthly', description: 'Southern California tech professionals and innovators.', focus: ['Mobile', 'AI', 'Data Science'] },
-        { id: 'phoenix-az', name: 'Tempe', city: 'Tempe', state: 'AZ', members: 198, meetingFrequency: 'Monthly', description: 'Arizona State area tech professionals.', focus: ['Web Dev', 'Cloud', 'DevOps'] },
-        { id: 'vegas', name: 'Las Vegas', city: 'Las Vegas', state: 'NV', members: 145, meetingFrequency: 'Monthly', description: 'Nevada tech community and networking hub.', focus: ['Full Stack', 'Data Science', 'Cloud'] },
-        { id: 'minneapolis', name: 'Minneapolis', city: 'Minneapolis', state: 'MN', members: 267, meetingFrequency: 'Bi-weekly', description: 'Twin Cities tech professionals.', focus: ['Cloud', 'AI', 'Web Dev'] },
-        { id: 'kansas-city', name: 'Kansas City', city: 'Kansas City', state: 'MO', members: 189, meetingFrequency: 'Monthly', description: 'Midwest tech community for professionals.', focus: ['Startups', 'Full Stack', 'Data Science'] },
-        { id: 'columbus', name: 'Columbus', city: 'Columbus', state: 'OH', members: 212, meetingFrequency: 'Monthly', description: 'Ohio tech professionals and innovators.', focus: ['Web Dev', 'Cloud', 'Mobile'] },
-        { id: 'detroit', name: 'Detroit', city: 'Detroit', state: 'MI', members: 178, meetingFrequency: 'Monthly', description: 'Michigan tech community and professional network.', focus: ['AI', 'Data Science', 'Enterprise'] },
-        { id: 'indigo', name: 'Indianapolis', city: 'Indianapolis', state: 'IN', members: 154, meetingFrequency: 'Monthly', description: 'Indianapolis tech professionals and learners.', focus: ['Full Stack', 'Web Dev', 'Cloud'] },
+        { id: 'sf-bay', name: 'SF Bay Area', city: 'San Francisco', state: 'CA', meetingFrequency: 'Weekly', description: 'Tech professionals in the Bay Area connecting, learning, and growing together.', focus: ['AI', 'Web Dev', 'Cloud'] },
+        { id: 'la', name: 'Los Angeles', city: 'Los Angeles', state: 'CA', meetingFrequency: 'Bi-weekly', description: 'LA tech community focused on career growth and mentorship.', focus: ['Mobile', 'Data Science', 'Startups'] },
+        { id: 'nyc', name: 'New York City', city: 'New York', state: 'NY', meetingFrequency: 'Weekly', description: 'The largest SOMOS chapter with diverse tech opportunities.', focus: ['Finance Tech', 'AI', 'Web Dev'] },
+        { id: 'chicago', name: 'Chicago', city: 'Chicago', state: 'IL', meetingFrequency: 'Bi-weekly', description: 'Chicago tech community building careers and networks.', focus: ['Cloud', 'DevOps', 'Full Stack'] },
+        { id: 'denver', name: 'Denver', city: 'Denver', state: 'CO', meetingFrequency: 'Monthly', description: 'Rocky Mountain tech professionals connecting and collaborating.', focus: ['AI', 'Web Dev', 'Startups'] },
+        { id: 'austin', name: 'Austin', city: 'Austin', state: 'TX', meetingFrequency: 'Weekly', description: 'Austin tech scene with focus on innovation and mentorship.', focus: ['Full Stack', 'Data Science', 'Startups'] },
+        { id: 'dallas', name: 'Dallas', city: 'Dallas', state: 'TX', meetingFrequency: 'Bi-weekly', description: 'Dallas tech professionals advancing their careers.', focus: ['Cloud', 'Security', 'Enterprise'] },
+        { id: 'houston', name: 'Houston', city: 'Houston', state: 'TX', meetingFrequency: 'Monthly', description: 'Houston community focused on tech careers and networking.', focus: ['Data Science', 'Mobile', 'AI'] },
+        { id: 'miami', name: 'Miami', city: 'Miami', state: 'FL', meetingFrequency: 'Monthly', description: 'South Florida tech community and professional network.', focus: ['Startups', 'Mobile', 'Web Dev'] },
+        { id: 'seattle', name: 'Seattle', city: 'Seattle', state: 'WA', meetingFrequency: 'Weekly', description: 'Seattle tech professionals in the Pacific Northwest.', focus: ['Cloud', 'AI', 'Data Science'] },
+        { id: 'pdx', name: 'Portland', city: 'Portland', state: 'OR', meetingFrequency: 'Bi-weekly', description: 'Portland tech community with emphasis on open source and innovation.', focus: ['Open Source', 'Web Dev', 'DevOps'] },
+        { id: 'phoenix', name: 'Phoenix', city: 'Phoenix', state: 'AZ', meetingFrequency: 'Monthly', description: 'Arizona tech professionals building careers.', focus: ['Full Stack', 'Mobile', 'Cloud'] },
+        { id: 'colorado-springs', name: 'Colorado Springs', city: 'Colorado Springs', state: 'CO', meetingFrequency: 'Monthly', description: 'Colorado Springs tech community and learning hub.', focus: ['Web Dev', 'Data Science', 'Cloud'] },
+        { id: 'raleigh', name: 'Raleigh', city: 'Raleigh', state: 'NC', meetingFrequency: 'Bi-weekly', description: 'Research Triangle tech professionals.', focus: ['AI', 'Cloud', 'Full Stack'] },
+        { id: 'boston', name: 'Boston', city: 'Boston', state: 'MA', meetingFrequency: 'Weekly', description: 'Boston tech scene with strong emphasis on education and growth.', focus: ['Startups', 'AI', 'Security'] },
+        { id: 'atlanta', name: 'Atlanta', city: 'Atlanta', state: 'GA', meetingFrequency: 'Bi-weekly', description: 'Atlanta tech community for career advancement.', focus: ['Cloud', 'Data Science', 'Mobile'] },
+        { id: 'dc', name: 'Washington DC', city: 'Washington', state: 'DC', meetingFrequency: 'Weekly', description: 'DC tech professionals in government and enterprise.', focus: ['Security', 'Enterprise', 'Cloud'] },
+        { id: 'philadelphia', name: 'Philadelphia', city: 'Philadelphia', state: 'PA', meetingFrequency: 'Bi-weekly', description: 'Philadelphia tech community and professional network.', focus: ['Full Stack', 'Web Dev', 'Startups'] },
+        { id: 'san-diego', name: 'San Diego', city: 'San Diego', state: 'CA', meetingFrequency: 'Monthly', description: 'Southern California tech professionals and innovators.', focus: ['Mobile', 'AI', 'Data Science'] },
+        { id: 'tempe', name: 'Tempe', city: 'Tempe', state: 'AZ', meetingFrequency: 'Monthly', description: 'Arizona State area tech professionals.', focus: ['Web Dev', 'Cloud', 'DevOps'] },
+        { id: 'vegas', name: 'Las Vegas', city: 'Las Vegas', state: 'NV', meetingFrequency: 'Monthly', description: 'Nevada tech community and networking hub.', focus: ['Full Stack', 'Data Science', 'Cloud'] },
+        { id: 'minneapolis', name: 'Minneapolis', city: 'Minneapolis', state: 'MN', meetingFrequency: 'Bi-weekly', description: 'Twin Cities tech professionals.', focus: ['Cloud', 'AI', 'Web Dev'] },
+        { id: 'kansas-city', name: 'Kansas City', city: 'Kansas City', state: 'MO', meetingFrequency: 'Monthly', description: 'Midwest tech community for professionals.', focus: ['Startups', 'Full Stack', 'Data Science'] },
+        { id: 'columbus', name: 'Columbus', city: 'Columbus', state: 'OH', meetingFrequency: 'Monthly', description: 'Ohio tech professionals and innovators.', focus: ['Web Dev', 'Cloud', 'Mobile'] },
+        { id: 'detroit', name: 'Detroit', city: 'Detroit', state: 'MI', meetingFrequency: 'Monthly', description: 'Michigan tech community and professional network.', focus: ['AI', 'Data Science', 'Enterprise'] },
+        { id: 'indianapolis', name: 'Indianapolis', city: 'Indianapolis', state: 'IN', meetingFrequency: 'Monthly', description: 'Indianapolis tech professionals and learners.', focus: ['Full Stack', 'Web Dev', 'Cloud'] },
     ];
 
     const allFocusAreas = Array.from(new Set(groups.flatMap(g => g.focus))).sort();
@@ -67,10 +66,15 @@ export default function GroupsDirectoryRedesigned() {
             return matchesSearch && matchesFocus;
         })
         .sort((a, b) => {
-            if (sortBy === 'members') return b.members - a.members;
             if (sortBy === 'name') return a.name.localeCompare(b.name);
-            return a.members - b.members;
+            if (sortBy === 'city') return a.city.localeCompare(b.city);
+            return a.name.localeCompare(b.name);
         });
+
+    const handleJoinGroup = (e: React.MouseEvent, groupId: string) => {
+        e.stopPropagation();
+        navigate(`/groups/${groupId}`);
+    };
 
     return (
         <div style={{ backgroundColor: '#051323', minHeight: '100vh' }}>
@@ -85,14 +89,14 @@ export default function GroupsDirectoryRedesigned() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
                     <div className="text-center max-w-3xl mx-auto mb-12">
                         <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
-                            26 Local Groups
+                            Find Your Community
                         </h1>
                         <p style={{ color: '#8394A7' }} className="text-lg mb-4">
                             Connect with tech professionals in your area. Find your local SOMOS.tech chapter.
                         </p>
                         <p className="text-sm" style={{ color: '#00FF91' }}>
                             <Users className="w-4 h-4 inline mr-1" />
-                            {groups.reduce((sum, g) => sum + g.members, 0).toLocaleString()} members across 26 chapters
+                            26 chapters across the United States
                         </p>
                     </div>
 
@@ -142,9 +146,8 @@ export default function GroupsDirectoryRedesigned() {
                                     color: '#FFFFFF'
                                 }}
                             >
-                                <option value="members">Most Members</option>
                                 <option value="name">Alphabetical</option>
-                                <option value="small">Smallest Groups</option>
+                                <option value="city">By City</option>
                             </select>
                         </div>
                     </div>
@@ -198,7 +201,10 @@ export default function GroupsDirectoryRedesigned() {
                                                 <Users className="w-3 h-3" />
                                                 Members
                                             </p>
-                                            <p className="text-lg font-bold text-white">{group.members}</p>
+                                            <p className="text-sm font-bold flex items-center gap-1" style={{ color: '#00D4FF' }}>
+                                                <Lock className="w-3 h-3" />
+                                                Join to see
+                                            </p>
                                         </div>
                                         <div>
                                             <p style={{ color: '#8394A7' }} className="text-xs mb-1 flex items-center gap-1">
@@ -231,7 +237,8 @@ export default function GroupsDirectoryRedesigned() {
 
                                     {/* CTA */}
                                     <button 
-                                        className="w-full mt-4 py-2.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm group/btn"
+                                        onClick={(e) => handleJoinGroup(e, group.id)}
+                                        className="w-full mt-4 py-2.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm group/btn hover:scale-105"
                                         style={{
                                             backgroundColor: '#00FF91',
                                             color: '#051323',
@@ -269,6 +276,7 @@ export default function GroupsDirectoryRedesigned() {
                         Help us expand! Start a new chapter in your area and connect with local tech professionals.
                     </p>
                     <button 
+                        onClick={() => window.open('https://somos.tech/contact', '_blank')}
                         className="px-8 py-3 rounded-full font-bold transition-all hover:scale-105"
                         style={{ backgroundColor: '#00FF91', color: '#051323' }}
                     >
