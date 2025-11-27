@@ -7,6 +7,7 @@ import AdminGroups from './pages/AdminGroups'
 import AdminUsers from './pages/AdminUsers'
 import AdminMedia from './pages/AdminMedia'
 import AdminSettings from './pages/AdminSettings'
+import AdminNotifications from './pages/AdminNotifications'
 import APIHealthDashboard from './pages/APIHealthDashboard'
 import GroupsDirectoryRedesigned from './pages/GroupsDirectoryRedesigned'
 import GroupDetail from './pages/GroupDetail'
@@ -140,6 +141,14 @@ function AppContent() {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <APIHealthDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/notifications" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminNotifications />
               </ProtectedRoute>
             } 
           />

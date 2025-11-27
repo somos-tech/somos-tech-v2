@@ -187,7 +187,7 @@ export interface UpdateAdminUserDto {
 // Notification types
 export interface Notification {
     id: string;
-    type: 'admin_role_assigned' | 'admin_role_removed' | 'event_created' | 'event_updated' | 'event_deleted' | 'system';
+    type: 'admin_role_assigned' | 'admin_role_removed' | 'event_created' | 'event_updated' | 'event_deleted' | 'system' | 'broadcast';
     title: string;
     message: string;
     severity: 'info' | 'warning' | 'success' | 'error';

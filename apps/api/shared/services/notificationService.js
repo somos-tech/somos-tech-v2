@@ -60,24 +60,118 @@ export async function sendEmailNotification({
     htmlBody
 }) {
     try {
+        // Check if Azure Communication Services is configured
+        const connectionString = process.env.AZURE_COMMUNICATION_SERVICES_CONNECTION_STRING;
+        
+        if (connectionString) {
+            // Use Azure Communication Services for actual email delivery
+            try {
+                const { EmailClient } = await import('@azure/communication-email');
+                const emailClient = new EmailClient(connectionString);
+                
+                const emailMessage = {
+                    senderAddress: process.env.EMAIL_SENDER_ADDRESS || 'DoNotReply@somos.tech',
+                    content: {
+                        subject,
+                        plainText: body,
+                        html: htmlBody || body.replace(/\n/g, '<br>')
+                    },
+                    recipients: {
+                        to: [{ address: to }]
+                    }
+                };
+
+                const poller = await emailClient.beginSend(emailMessage);
+                const result = await poller.pollUntilDone();
+
+                console.log(`📧 Email sent to ${to}: ${result.status}`);
+                return { success: true, message: 'Email sent successfully', status: result.status };
+            } catch (acsError) {
+                console.error('Error sending email via ACS:', acsError);
+                // Fall through to logging
+            }
+        }
+        
         // Log email for now (will be replaced with actual email service)
-        console.log('📧 EMAIL NOTIFICATION:');
+        console.log('📧 EMAIL NOTIFICATION (logged - ACS not configured):');
         console.log(`To: ${to}`);
         console.log(`Subject: ${subject}`);
         console.log(`Body: ${body}`);
-        
-        // TODO: Implement actual email sending with Azure Communication Services
-        // const emailClient = new EmailClient(connectionString);
-        // await emailClient.send({
-        //     senderAddress: 'noreply@somos.tech',
-        //     recipients: { to: [{ address: to }] },
-        //     content: { subject, plainText: body, html: htmlBody }
-        // });
 
         return { success: true, message: 'Email logged (will be sent when ACS is configured)' };
     } catch (error) {
         console.error('Error sending email:', error);
         return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send broadcast notification to multiple recipients
+ * Supports both email and in-app push notifications
+ */
+export async function sendBroadcastNotification({
+    recipients, // array of email addresses
+    subject,
+    message,
+    channel = 'email', // 'email' or 'push'
+    senderEmail
+}) {
+    try {
+        console.log(`📢 BROADCAST NOTIFICATION (${channel}):`);
+        console.log(`Recipients: ${recipients.length}`);
+        console.log(`Subject: ${subject}`);
+
+        let sent = 0;
+        let failed = 0;
+
+        if (channel === 'email') {
+            const htmlBody = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background: #051323; padding: 20px; text-align: center;">
+                        <img src="https://static.wixstatic.com/media/0c204d_5f310ee2b2a848ceac8e68b25c0c39eb~mv2.png" 
+                             alt="SOMOS.tech" style="width: 60px; height: 60px; border-radius: 50%;">
+                        <h1 style="color: #00FF91; margin: 10px 0 0 0;">SOMOS.tech</h1>
+                    </div>
+                    <div style="background: #0A1628; padding: 30px; color: #FFFFFF;">
+                        <h2 style="color: #00FF91; margin-top: 0;">${subject}</h2>
+                        <div style="color: #8394A7; line-height: 1.6;">
+                            ${message.replace(/\n/g, '<br>')}
+                        </div>
+                    </div>
+                    <div style="background: #051323; padding: 20px; text-align: center; color: #8394A7; font-size: 12px;">
+                        <p>This message was sent to SOMOS.tech community members.</p>
+                        <p><a href="https://somos.tech" style="color: #00D4FF;">Visit SOMOS.tech</a></p>
+                    </div>
+                </div>
+            `;
+
+            // Send to each recipient
+            for (const recipientEmail of recipients) {
+                try {
+                    const result = await sendEmailNotification({
+                        to: recipientEmail,
+                        subject: `📢 ${subject}`,
+                        body: message,
+                        htmlBody
+                    });
+                    if (result.success) {
+                        sent++;
+                    } else {
+                        failed++;
+                    }
+                } catch (e) {
+                    failed++;
+                    console.error(`Failed to send email to ${recipientEmail}:`, e.message);
+                }
+            }
+        }
+
+        console.log(`📢 Broadcast complete: ${sent} sent, ${failed} failed`);
+
+        return { sent, failed };
+    } catch (error) {
+        console.error('Error sending broadcast:', error);
+        return { sent: 0, failed: recipients.length, error: error.message };
     }
 }
 

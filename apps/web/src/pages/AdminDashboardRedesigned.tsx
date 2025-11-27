@@ -194,15 +194,16 @@ export default function AdminDashboardRedesigned() {
                                 { label: 'New Group', action: () => navigate('/admin/groups') },
                                 { label: 'View Users', action: () => navigate('/admin/users') },
                                 { label: 'Media Manager', action: () => navigate('/admin/media') },
+                                { label: 'Send Notification', action: () => navigate('/admin/notifications'), highlight: true },
                             ].map((action, idx) => (
                                 <button
                                     key={idx}
                                     onClick={action.action}
-                                    className="p-3 rounded-lg border transition-all hover:bg-white/10 hover:border-[#00FF91] text-white font-medium text-sm"
-                                    style={{
-                                        backgroundColor: '#051323',
-                                        borderColor: 'rgba(0, 255, 145, 0.2)',
-                                    }}
+                                    className={`p-3 rounded-lg border transition-all hover:scale-105 font-medium text-sm ${
+                                        (action as any).highlight 
+                                            ? 'bg-[#00D4FF] text-[#051323] border-[#00D4FF]' 
+                                            : 'bg-[#051323] text-white border-[rgba(0,255,145,0.2)] hover:bg-white/10 hover:border-[#00FF91]'
+                                    }`}
                                 >
                                     {action.label}
                                 </button>
