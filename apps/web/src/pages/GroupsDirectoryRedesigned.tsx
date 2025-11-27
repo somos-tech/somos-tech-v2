@@ -1,69 +1,76 @@
 /**
  * Modern Groups/Community Directory Page
- * Showcase all 26 SOMOS.tech local groups with discovery and filtering
+ * Showcase all SOMOS.tech local groups with discovery and filtering
+ * Uses actual group IDs from database (group-{cityname} format)
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Users, Calendar, MessageCircle, Search, Filter, ArrowRight, Lock } from 'lucide-react';
+import { MapPin, Users, Calendar, MessageCircle, Search, ArrowRight, Lock, Loader2 } from 'lucide-react';
+import { listGroups } from '@/api/groupsService';
+import type { CommunityGroup } from '@/types/groups';
 
-interface Group {
-    id: string;
-    name: string;
-    city: string;
-    state: string;
-    nextEvent?: string;
-    description: string;
-    meetingFrequency: string;
-    focus: string[];
-    image?: string;
-}
+// Royalty-free Unsplash skyline images for each city
+const cityImages: Record<string, string> = {
+    'Seattle': 'https://images.unsplash.com/photo-1502175353174-a7a70e73b362?w=800&q=80',
+    'New York': 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&q=80',
+    'Boston': 'https://images.unsplash.com/photo-1617440168937-e6b5e8a4b28f?w=800&q=80',
+    'Denver': 'https://images.unsplash.com/photo-1619856699906-09e1f58c98b1?w=800&q=80',
+    'Washington': 'https://images.unsplash.com/photo-1617581629397-a72507c3de9e?w=800&q=80',
+    'Atlanta': 'https://images.unsplash.com/photo-1575917649705-5b59aaa12e6b?w=800&q=80',
+    'San Francisco': 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80',
+    'Chicago': 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=800&q=80',
+    'Austin': 'https://images.unsplash.com/photo-1531218150217-54595bc2b934?w=800&q=80',
+    'Houston': 'https://images.unsplash.com/photo-1558525107-b9b347fe9da5?w=800&q=80',
+    'Los Angeles': 'https://images.unsplash.com/photo-1534190239940-9ba8944ea261?w=800&q=80',
+    'Miami': 'https://images.unsplash.com/photo-1506966953602-c20cc11f75e3?w=800&q=80',
+    'Dallas': 'https://images.unsplash.com/photo-1558522195-e1201b090344?w=800&q=80',
+    'Phoenix': 'https://images.unsplash.com/photo-1515862515700-77e5b8faab81?w=800&q=80',
+    'San Diego': 'https://images.unsplash.com/photo-1538964173425-93884ed51948?w=800&q=80',
+    'Philadelphia': 'https://images.unsplash.com/photo-1569761316261-9a8696fa2ca3?w=800&q=80',
+    'Sacramento': 'https://images.unsplash.com/photo-1590859808308-3d2d9c515b1a?w=800&q=80',
+    'Dallas/Ft. Worth': 'https://images.unsplash.com/photo-1552057426-c4d3f5f6d1f6?w=800&q=80',
+};
+
+// Default skyline for cities without specific images
+const defaultSkyline = 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&q=80';
 
 export default function GroupsDirectoryRedesigned() {
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedFocus, setSelectedFocus] = useState('all');
     const [sortBy, setSortBy] = useState('name');
+    const [groups, setGroups] = useState<CommunityGroup[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // 26 SOMOS.tech local groups across US (member counts hidden until user joins)
-    const groups: Group[] = [
-        { id: 'sf-bay', name: 'SF Bay Area', city: 'San Francisco', state: 'CA', meetingFrequency: 'Weekly', description: 'Tech professionals in the Bay Area connecting, learning, and growing together.', focus: ['AI', 'Web Dev', 'Cloud'] },
-        { id: 'la', name: 'Los Angeles', city: 'Los Angeles', state: 'CA', meetingFrequency: 'Bi-weekly', description: 'LA tech community focused on career growth and mentorship.', focus: ['Mobile', 'Data Science', 'Startups'] },
-        { id: 'nyc', name: 'New York City', city: 'New York', state: 'NY', meetingFrequency: 'Weekly', description: 'The largest SOMOS chapter with diverse tech opportunities.', focus: ['Finance Tech', 'AI', 'Web Dev'] },
-        { id: 'chicago', name: 'Chicago', city: 'Chicago', state: 'IL', meetingFrequency: 'Bi-weekly', description: 'Chicago tech community building careers and networks.', focus: ['Cloud', 'DevOps', 'Full Stack'] },
-        { id: 'denver', name: 'Denver', city: 'Denver', state: 'CO', meetingFrequency: 'Monthly', description: 'Rocky Mountain tech professionals connecting and collaborating.', focus: ['AI', 'Web Dev', 'Startups'] },
-        { id: 'austin', name: 'Austin', city: 'Austin', state: 'TX', meetingFrequency: 'Weekly', description: 'Austin tech scene with focus on innovation and mentorship.', focus: ['Full Stack', 'Data Science', 'Startups'] },
-        { id: 'dallas', name: 'Dallas', city: 'Dallas', state: 'TX', meetingFrequency: 'Bi-weekly', description: 'Dallas tech professionals advancing their careers.', focus: ['Cloud', 'Security', 'Enterprise'] },
-        { id: 'houston', name: 'Houston', city: 'Houston', state: 'TX', meetingFrequency: 'Monthly', description: 'Houston community focused on tech careers and networking.', focus: ['Data Science', 'Mobile', 'AI'] },
-        { id: 'miami', name: 'Miami', city: 'Miami', state: 'FL', meetingFrequency: 'Monthly', description: 'South Florida tech community and professional network.', focus: ['Startups', 'Mobile', 'Web Dev'] },
-        { id: 'seattle', name: 'Seattle', city: 'Seattle', state: 'WA', meetingFrequency: 'Weekly', description: 'Seattle tech professionals in the Pacific Northwest.', focus: ['Cloud', 'AI', 'Data Science'] },
-        { id: 'pdx', name: 'Portland', city: 'Portland', state: 'OR', meetingFrequency: 'Bi-weekly', description: 'Portland tech community with emphasis on open source and innovation.', focus: ['Open Source', 'Web Dev', 'DevOps'] },
-        { id: 'phoenix', name: 'Phoenix', city: 'Phoenix', state: 'AZ', meetingFrequency: 'Monthly', description: 'Arizona tech professionals building careers.', focus: ['Full Stack', 'Mobile', 'Cloud'] },
-        { id: 'colorado-springs', name: 'Colorado Springs', city: 'Colorado Springs', state: 'CO', meetingFrequency: 'Monthly', description: 'Colorado Springs tech community and learning hub.', focus: ['Web Dev', 'Data Science', 'Cloud'] },
-        { id: 'raleigh', name: 'Raleigh', city: 'Raleigh', state: 'NC', meetingFrequency: 'Bi-weekly', description: 'Research Triangle tech professionals.', focus: ['AI', 'Cloud', 'Full Stack'] },
-        { id: 'boston', name: 'Boston', city: 'Boston', state: 'MA', meetingFrequency: 'Weekly', description: 'Boston tech scene with strong emphasis on education and growth.', focus: ['Startups', 'AI', 'Security'] },
-        { id: 'atlanta', name: 'Atlanta', city: 'Atlanta', state: 'GA', meetingFrequency: 'Bi-weekly', description: 'Atlanta tech community for career advancement.', focus: ['Cloud', 'Data Science', 'Mobile'] },
-        { id: 'dc', name: 'Washington DC', city: 'Washington', state: 'DC', meetingFrequency: 'Weekly', description: 'DC tech professionals in government and enterprise.', focus: ['Security', 'Enterprise', 'Cloud'] },
-        { id: 'philadelphia', name: 'Philadelphia', city: 'Philadelphia', state: 'PA', meetingFrequency: 'Bi-weekly', description: 'Philadelphia tech community and professional network.', focus: ['Full Stack', 'Web Dev', 'Startups'] },
-        { id: 'san-diego', name: 'San Diego', city: 'San Diego', state: 'CA', meetingFrequency: 'Monthly', description: 'Southern California tech professionals and innovators.', focus: ['Mobile', 'AI', 'Data Science'] },
-        { id: 'tempe', name: 'Tempe', city: 'Tempe', state: 'AZ', meetingFrequency: 'Monthly', description: 'Arizona State area tech professionals.', focus: ['Web Dev', 'Cloud', 'DevOps'] },
-        { id: 'vegas', name: 'Las Vegas', city: 'Las Vegas', state: 'NV', meetingFrequency: 'Monthly', description: 'Nevada tech community and networking hub.', focus: ['Full Stack', 'Data Science', 'Cloud'] },
-        { id: 'minneapolis', name: 'Minneapolis', city: 'Minneapolis', state: 'MN', meetingFrequency: 'Bi-weekly', description: 'Twin Cities tech professionals.', focus: ['Cloud', 'AI', 'Web Dev'] },
-        { id: 'kansas-city', name: 'Kansas City', city: 'Kansas City', state: 'MO', meetingFrequency: 'Monthly', description: 'Midwest tech community for professionals.', focus: ['Startups', 'Full Stack', 'Data Science'] },
-        { id: 'columbus', name: 'Columbus', city: 'Columbus', state: 'OH', meetingFrequency: 'Monthly', description: 'Ohio tech professionals and innovators.', focus: ['Web Dev', 'Cloud', 'Mobile'] },
-        { id: 'detroit', name: 'Detroit', city: 'Detroit', state: 'MI', meetingFrequency: 'Monthly', description: 'Michigan tech community and professional network.', focus: ['AI', 'Data Science', 'Enterprise'] },
-        { id: 'indianapolis', name: 'Indianapolis', city: 'Indianapolis', state: 'IN', meetingFrequency: 'Monthly', description: 'Indianapolis tech professionals and learners.', focus: ['Full Stack', 'Web Dev', 'Cloud'] },
-    ];
+    // Fetch groups from API on mount
+    useEffect(() => {
+        fetchGroups();
+    }, []);
 
-    const allFocusAreas = Array.from(new Set(groups.flatMap(g => g.focus))).sort();
+    const fetchGroups = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await listGroups();
+            // Filter to only show Public groups
+            const publicGroups = data.groups.filter(g => g.visibility === 'Public');
+            setGroups(publicGroups);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to load groups');
+            console.error('Error fetching groups:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const filteredGroups = groups
         .filter(group => {
             const matchesSearch = group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                 group.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                 group.state.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesFocus = selectedFocus === 'all' || group.focus.includes(selectedFocus);
-            return matchesSearch && matchesFocus;
+            return matchesSearch;
         })
         .sort((a, b) => {
             if (sortBy === 'name') return a.name.localeCompare(b.name);
@@ -74,6 +81,10 @@ export default function GroupsDirectoryRedesigned() {
     const handleJoinGroup = (e: React.MouseEvent, groupId: string) => {
         e.stopPropagation();
         navigate(`/groups/${groupId}`);
+    };
+
+    const getGroupImage = (group: CommunityGroup) => {
+        return cityImages[group.city] || group.imageUrl || defaultSkyline;
     };
 
     return (
@@ -96,7 +107,7 @@ export default function GroupsDirectoryRedesigned() {
                         </p>
                         <p className="text-sm" style={{ color: '#00FF91' }}>
                             <Users className="w-4 h-4 inline mr-1" />
-                            26 chapters across the United States
+                            {groups.length} chapters across the United States
                         </p>
                     </div>
 
@@ -118,24 +129,8 @@ export default function GroupsDirectoryRedesigned() {
                             />
                         </div>
 
-                        {/* Focus Areas and Sort */}
+                        {/* Sort */}
                         <div className="flex flex-col sm:flex-row gap-4">
-                            <select
-                                value={selectedFocus}
-                                onChange={(e) => setSelectedFocus(e.target.value)}
-                                className="px-4 py-2 rounded-lg border text-sm focus:outline-none transition-colors"
-                                style={{
-                                    backgroundColor: '#0A1628',
-                                    borderColor: 'rgba(0, 255, 145, 0.2)',
-                                    color: '#FFFFFF'
-                                }}
-                            >
-                                <option value="all">All Focus Areas</option>
-                                {allFocusAreas.map(focus => (
-                                    <option key={focus} value={focus}>{focus}</option>
-                                ))}
-                            </select>
-
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
@@ -163,7 +158,25 @@ export default function GroupsDirectoryRedesigned() {
 
             {/* Groups Grid */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-                {filteredGroups.length > 0 ? (
+                {loading ? (
+                    <div className="flex items-center justify-center py-16">
+                        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#00FF91' }} />
+                        <span className="ml-3 text-white">Loading groups...</span>
+                    </div>
+                ) : error ? (
+                    <div className="text-center py-16">
+                        <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-30" style={{ color: '#8394A7' }} />
+                        <p className="text-xl font-bold text-white mb-2">Error loading groups</p>
+                        <p style={{ color: '#8394A7' }}>{error}</p>
+                        <button
+                            onClick={fetchGroups}
+                            className="mt-4 px-6 py-2 rounded-lg font-bold"
+                            style={{ backgroundColor: '#00FF91', color: '#051323' }}
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                ) : filteredGroups.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredGroups.map((group) => (
                             <div
@@ -172,79 +185,66 @@ export default function GroupsDirectoryRedesigned() {
                                 style={{
                                     backgroundColor: '#0A1628',
                                     borderColor: 'rgba(0, 255, 145, 0.1)',
-                                    boxShadow: 'hover: 0 20px 50px rgba(0, 255, 145, 0.1)'
                                 }}
                                 onClick={() => navigate(`/groups/${group.id}`)}
                             >
-                                {/* Header */}
-                                <div 
-                                    className="p-6 border-b relative overflow-hidden"
-                                    style={{ borderColor: 'rgba(0, 255, 145, 0.1)' }}
-                                >
-                                    <div className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity" style={{ backgroundColor: '#00FF91' }} />
-                                    
-                                    <h3 className="text-xl font-bold text-white mb-1 relative z-10">{group.name}</h3>
-                                    <div className="flex items-center gap-2 text-sm relative z-10" style={{ color: '#8394A7' }}>
-                                        <MapPin className="w-4 h-4" />
-                                        {group.city}, {group.state}
+                                {/* City Skyline Image */}
+                                <div className="relative h-40 overflow-hidden">
+                                    <img 
+                                        src={getGroupImage(group)}
+                                        alt={`${group.city} skyline`}
+                                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = defaultSkyline;
+                                        }}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-[#0A1628] to-transparent" />
+                                    <div className="absolute bottom-4 left-4">
+                                        <h3 className="text-xl font-bold text-white">{group.name}</h3>
+                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#8394A7' }}>
+                                            <MapPin className="w-4 h-4" />
+                                            {group.city}, {group.state}
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Content */}
                                 <div className="p-6 space-y-4">
-                                    <p style={{ color: '#8394A7' }} className="text-sm">{group.description}</p>
+                                    <p style={{ color: '#8394A7' }} className="text-sm line-clamp-2">
+                                        {group.description || `Join the ${group.city} tech community chapter.`}
+                                    </p>
 
                                     {/* Stats */}
-                                    <div className="grid grid-cols-2 gap-4 pb-4 border-b" style={{ borderColor: 'rgba(0, 255, 145, 0.1)' }}>
-                                        <div>
-                                            <p style={{ color: '#8394A7' }} className="text-xs mb-1 flex items-center gap-1">
-                                                <Users className="w-3 h-3" />
-                                                Members
-                                            </p>
-                                            <p className="text-sm font-bold flex items-center gap-1" style={{ color: '#00D4FF' }}>
-                                                <Lock className="w-3 h-3" />
-                                                Join to see
-                                            </p>
+                                    <div className="flex items-center justify-between pb-4 border-b" style={{ borderColor: 'rgba(0, 255, 145, 0.1)' }}>
+                                        <div className="flex items-center gap-2">
+                                            <Users className="w-4 h-4" style={{ color: '#00D4FF' }} />
+                                            <span className="text-sm" style={{ color: '#8394A7' }}>
+                                                {group.memberCount && group.memberCount > 0 
+                                                    ? `${group.memberCount} members` 
+                                                    : 'Join to connect'}
+                                            </span>
                                         </div>
-                                        <div>
-                                            <p style={{ color: '#8394A7' }} className="text-xs mb-1 flex items-center gap-1">
-                                                <Calendar className="w-3 h-3" />
-                                                Meets
-                                            </p>
-                                            <p className="text-sm font-bold text-white">{group.meetingFrequency}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Focus Areas */}
-                                    <div className="space-y-2">
-                                        <p style={{ color: '#8394A7' }} className="text-xs">Focus Areas</p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {group.focus.map((focus) => (
-                                                <span
-                                                    key={focus}
-                                                    className="px-3 py-1 rounded-full text-xs font-medium"
-                                                    style={{
-                                                        backgroundColor: 'rgba(0, 255, 145, 0.1)',
-                                                        color: '#00FF91',
-                                                        border: '1px solid rgba(0, 255, 145, 0.3)'
-                                                    }}
-                                                >
-                                                    {focus}
-                                                </span>
-                                            ))}
-                                        </div>
+                                        <span 
+                                            className="px-2 py-1 rounded-full text-xs font-medium"
+                                            style={{
+                                                backgroundColor: 'rgba(0, 255, 145, 0.1)',
+                                                color: '#00FF91',
+                                            }}
+                                        >
+                                            {group.visibility}
+                                        </span>
                                     </div>
 
                                     {/* CTA */}
                                     <button 
                                         onClick={(e) => handleJoinGroup(e, group.id)}
-                                        className="w-full mt-4 py-2.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm group/btn hover:scale-105"
+                                        className="w-full py-2.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm group/btn hover:scale-105"
                                         style={{
                                             backgroundColor: '#00FF91',
                                             color: '#051323',
                                         }}
                                     >
-                                        Join Group
+                                        View Group
                                         <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                                     </button>
                                 </div>
@@ -255,7 +255,7 @@ export default function GroupsDirectoryRedesigned() {
                     <div className="text-center py-16">
                         <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-30" style={{ color: '#8394A7' }} />
                         <p className="text-xl font-bold text-white mb-2">No groups found</p>
-                        <p style={{ color: '#8394A7' }}>Try adjusting your search or filters to find more groups.</p>
+                        <p style={{ color: '#8394A7' }}>Try adjusting your search to find more groups.</p>
                     </div>
                 )}
             </div>
