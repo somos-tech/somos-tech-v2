@@ -460,7 +460,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'NODE_ENV'
-          value: environmentName
+          value: 'production'
         }
         {
           name: 'AZURE_STORAGE_ACCOUNT_NAME'

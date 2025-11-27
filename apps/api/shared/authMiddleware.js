@@ -4,11 +4,15 @@
  */
 
 // SECURITY: Development mode authentication should ONLY be enabled in local development
-// This is controlled by NODE_ENV or AZURE_FUNCTIONS_ENVIRONMENT environment variable
+// This is controlled by FUNCTIONS_EXTENSION_VERSION (which is set in Azure) 
+// and specific local development indicators
 // Never enable this in production
-const isDevelopment = process.env.NODE_ENV === 'development' || 
-                      process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development' ||
-                      process.env.NODE_ENV === 'dev';
+const isAzureFunctions = !!process.env.FUNCTIONS_EXTENSION_VERSION;
+const isLocalDevelopment = !isAzureFunctions && 
+                          (process.env.NODE_ENV === 'development' || 
+                           process.env.NODE_ENV === 'dev' ||
+                           process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development');
+const isDevelopment = isLocalDevelopment;
 
 /**
  * Get mock client principal for local development
@@ -21,6 +25,11 @@ function getMockClientPrincipal() {
     }
 
     console.warn('⚠️ DEVELOPMENT MODE: Using mock authentication in API');
+    console.warn('  - isAzureFunctions:', isAzureFunctions);
+    console.warn('  - isLocalDevelopment:', isLocalDevelopment);
+    console.warn('  - NODE_ENV:', process.env.NODE_ENV);
+    console.warn('  - FUNCTIONS_EXTENSION_VERSION:', process.env.FUNCTIONS_EXTENSION_VERSION);
+    
     return {
         identityProvider: 'mock',
         userId: 'mock-user-123',
