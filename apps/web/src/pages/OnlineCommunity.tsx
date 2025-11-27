@@ -26,7 +26,7 @@ import {
     Trash2
 } from 'lucide-react';
 import { UserAvatar } from '@/components/DefaultAvatar';
-import { useAuth } from '@/hooks/useAuth';
+import { useUserContext } from '@/contexts/UserContext';
 
 // Message type
 interface Message {
@@ -418,7 +418,7 @@ function MemberSidebar({
  * Main Online Community Page
  */
 export default function OnlineCommunity() {
-    const { user } = useAuth();
+    const { authUser, displayName, profilePicture } = useUserContext();
     const navigate = useNavigate();
     
     const [selectedChannel, setSelectedChannel] = useState('general');
@@ -436,11 +436,11 @@ export default function OnlineCommunity() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Current user info
+    // Current user info from context
     const currentUser = {
-        id: user?.userId || '',
-        name: user?.userDetails?.split('@')[0] || 'Member',
-        photoUrl: undefined
+        id: authUser?.userId || '',
+        name: displayName,
+        photoUrl: profilePicture
     };
 
     // Fetch messages for selected channel

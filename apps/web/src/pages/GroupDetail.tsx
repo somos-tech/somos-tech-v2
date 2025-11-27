@@ -51,7 +51,7 @@ import {
     getGroupMembers
 } from '@/api/groupsService';
 import type { CommunityGroup, GroupMessage, GroupEvent, GroupMembership } from '@/types/groups';
-import { useAuth } from '@/hooks/useAuth';
+import { useUserContext } from '@/contexts/UserContext';
 
 /**
  * Chat Message Component
@@ -198,7 +198,7 @@ function EventCard({ event }: { event: GroupEvent }) {
 export default function GroupDetail() {
     const { id: groupId } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated, authUser, displayName, profilePicture } = useUserContext();
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -347,8 +347,8 @@ export default function GroupDetail() {
                         ...m,
                         likeCount: result.likeCount,
                         likes: result.liked
-                            ? [...(m.likes || []), user?.userId || '']
-                            : (m.likes || []).filter(id => id !== user?.userId)
+                            ? [...(m.likes || []), authUser?.userId || '']
+                            : (m.likes || []).filter(id => id !== authUser?.userId)
                     }
                     : m
             ));
@@ -558,7 +558,7 @@ export default function GroupDetail() {
                                                 <ChatMessage
                                                     key={message.id}
                                                     message={message}
-                                                    currentUserId={user?.userId}
+                                                    currentUserId={authUser?.userId}
                                                     onLike={() => handleLike(message.id)}
                                                     onDelete={() => handleDelete(message.id)}
                                                     onReply={() => setReplyTo(message)}

@@ -2,24 +2,16 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Menu, X, Settings, User, ChevronDown } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useUserContext } from '@/contexts/UserContext';
+import { UserAvatar } from '@/components/DefaultAvatar';
 import NotificationPanel from '@/components/NotificationPanel';
 
 export default function Navigation() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { isAuthenticated, user, isAdmin } = useAuth();
+    const { isAuthenticated, isAdmin, displayName, profilePicture, email } = useUserContext();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
-
-    // Extract first name from email or use full email
-    const getDisplayName = () => {
-        if (!user?.userDetails) return 'User';
-        const email = user.userDetails;
-        const name = email.split('@')[0];
-        // Capitalize first letter
-        return name.charAt(0).toUpperCase() + name.slice(1);
-    };
 
     // Main navigation items with discovery focus
     const menuItems = [
@@ -135,16 +127,22 @@ export default function Navigation() {
                     <div className="flex items-center gap-4">
                         {isAuthenticated ? (
                             <div 
-                                className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer hover:opacity-80 transition-opacity" 
+                                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer hover:opacity-80 transition-opacity" 
                                 style={{
                                     backgroundColor: 'rgba(0, 255, 145, 0.1)',
                                     border: '1px solid rgba(0, 255, 145, 0.3)',
                                 }}
                                 onClick={() => navigate('/profile')}
                             >
-                                <User size={16} style={{ color: '#00FF91' }} />
+                                <UserAvatar 
+                                    photoUrl={profilePicture} 
+                                    name={displayName} 
+                                    email={email}
+                                    size="xs" 
+                                    showBorder={false}
+                                />
                                 <span style={{ color: '#FFFFFF', fontSize: '14px' }}>
-                                    Welcome, <span style={{ color: '#00FF91', fontWeight: '600' }}>{getDisplayName()}</span>
+                                    <span style={{ color: '#00FF91', fontWeight: '600' }}>{displayName}</span>
                                 </span>
                             </div>
                         ) : (
@@ -220,10 +218,16 @@ export default function Navigation() {
                                         setIsMobileMenuOpen(false);
                                     }}
                                 >
-                                    <div className="flex items-center gap-2">
-                                        <User size={16} style={{ color: '#00FF91' }} />
+                                    <div className="flex items-center gap-3">
+                                        <UserAvatar 
+                                            photoUrl={profilePicture} 
+                                            name={displayName} 
+                                            email={email}
+                                            size="sm" 
+                                            showBorder={false}
+                                        />
                                         <span style={{ color: '#FFFFFF', fontSize: '14px' }}>
-                                            Welcome, <span style={{ color: '#00FF91', fontWeight: '600' }}>{getDisplayName()}</span>
+                                            <span style={{ color: '#00FF91', fontWeight: '600' }}>{displayName}</span>
                                         </span>
                                     </div>
                                 </div>

@@ -1,6 +1,6 @@
 import { ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useUserContext } from '@/contexts/UserContext';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
-    const { isAuthenticated, isAdmin, isLoading } = useAuth();
+    const { isAuthenticated, isAdmin, isLoading } = useUserContext();
     const navigate = useNavigate();
 
     useEffect(() => {

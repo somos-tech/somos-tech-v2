@@ -23,6 +23,7 @@ import Donate from './pages/Donate'
 import Navigation from './components/Navigation'
 import ProtectedRoute from './components/ProtectedRoute'
 import { HealthBanner } from './components/HealthBanner'
+import { UserProvider } from './contexts/UserContext'
 import './index.css'
 
 function AppContent() {
@@ -161,7 +162,9 @@ function AppContent() {
 export default function App() {
   return (
     <Router>
-      <AppContent />
+      <UserProvider>
+        <AppContent />
+      </UserProvider>
     </Router>
   )
 }

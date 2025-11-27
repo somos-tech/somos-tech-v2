@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useUserContext } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,26 +10,23 @@ import {
 } from 'lucide-react';
 import ProfilePhotoUpload from '@/components/ProfilePhotoUpload';
 
-interface UserProfile {
-    id: string;
-    email: string;
-    displayName: string;
-    profilePicture: string | null;
-    bio: string | null;
-    location: string | null;
-    website: string | null;
-    status: string;
-    createdAt: string;
-    lastLoginAt: string;
-}
-
 export default function Profile() {
-    const { user, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
+    const { 
+        authUser, 
+        isAuthenticated, 
+        isAdmin, 
+        isLoading: authLoading,
+        profile,
+        profileLoading,
+        updateProfile,
+        refreshProfile,
+        displayName: contextDisplayName,
+        profilePicture,
+        email
+    } = useUserContext();
     const navigate = useNavigate();
     
-    // Profile state
-    const [profile, setProfile] = useState<UserProfile | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    // UI state
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -43,102 +40,33 @@ export default function Profile() {
         website: ''
     });
 
-    // Fetch user profile from Cosmos DB
+    // Initialize edit form when profile loads
     useEffect(() => {
-        async function fetchProfile() {
-            if (!isAuthenticated) return;
-            
-            try {
-                setIsLoading(true);
-                setError(null);
-                
-                // First, sync/create user profile
-                try {
-                    const syncResponse = await fetch('/api/users/sync', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    
-                    if (!syncResponse.ok) {
-                        console.warn('User sync failed, status:', syncResponse.status);
-                    }
-                } catch (syncErr) {
-                    console.warn('User sync error:', syncErr);
-                }
-                
-                // Then get full profile
-                const response = await fetch('/api/users/me');
-                
-                if (response.ok) {
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const data = await response.json();
-                        setProfile(data);
-                        setEditForm({
-                            displayName: data.displayName || '',
-                            bio: data.bio || '',
-                            location: data.location || '',
-                            website: data.website || ''
-                        });
-                    } else {
-                        // Non-JSON response, use defaults
-                        console.warn('Profile API returned non-JSON response');
-                        setProfile(null);
-                    }
-                } else if (response.status === 404) {
-                    // Profile doesn't exist yet, use auth data
-                    setProfile(null);
-                    setEditForm({
-                        displayName: user?.userDetails?.split('@')[0] || '',
-                        bio: '',
-                        location: '',
-                        website: ''
-                    });
-                } else {
-                    console.warn('Profile fetch failed with status:', response.status);
-                    // Don't throw error, just use defaults
-                    setProfile(null);
-                }
-            } catch (err) {
-                console.error('Error fetching profile:', err);
-                // Don't show error to user for profile fetch, just use defaults
-                setProfile(null);
-            } finally {
-                setIsLoading(false);
-            }
+        if (profile) {
+            setEditForm({
+                displayName: profile.displayName || '',
+                bio: profile.bio || '',
+                location: profile.location || '',
+                website: profile.website || ''
+            });
         }
-        
-        if (isAuthenticated && !authLoading) {
-            fetchProfile();
-        }
-    }, [isAuthenticated, authLoading, user]);
+    }, [profile]);
 
     const handleSaveProfile = async () => {
         try {
             setIsSaving(true);
             setError(null);
             
-            const response = await fetch('/api/users/me', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    displayName: editForm.displayName.trim() || undefined,
-                    bio: editForm.bio.trim() || null,
-                    location: editForm.location.trim() || null,
-                    website: editForm.website.trim() || null
-                })
+            await updateProfile({
+                displayName: editForm.displayName.trim() || undefined,
+                bio: editForm.bio.trim() || null,
+                location: editForm.location.trim() || null,
+                website: editForm.website.trim() || null
             });
             
-            if (response.ok) {
-                const updatedProfile = await response.json();
-                setProfile(updatedProfile);
-                setIsEditing(false);
-                setSuccessMessage('Profile updated successfully!');
-                setTimeout(() => setSuccessMessage(null), 3000);
-            } else {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to update profile');
-            }
+            setIsEditing(false);
+            setSuccessMessage('Profile updated successfully!');
+            setTimeout(() => setSuccessMessage(null), 3000);
         } catch (err) {
             console.error('Error saving profile:', err);
             setError(err instanceof Error ? err.message : 'Failed to save profile');
@@ -149,21 +77,13 @@ export default function Profile() {
 
     const handlePhotoUploadSuccess = async (url: string) => {
         try {
-            // Update profile with new photo URL
-            const response = await fetch('/api/users/me', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ profilePicture: url })
-            });
-            
-            if (response.ok) {
-                const updatedProfile = await response.json();
-                setProfile(updatedProfile);
-                setSuccessMessage('Profile photo updated!');
-                setTimeout(() => setSuccessMessage(null), 3000);
-            }
+            // Update profile with new photo URL via context
+            await updateProfile({ profilePicture: url });
+            setSuccessMessage('Profile photo updated!');
+            setTimeout(() => setSuccessMessage(null), 3000);
         } catch (err) {
             console.error('Error updating profile photo:', err);
+            setError('Failed to update profile photo');
         }
     };
 
@@ -181,7 +101,7 @@ export default function Profile() {
         window.location.href = '/.auth/logout';
     };
 
-    if (authLoading || isLoading) {
+    if (authLoading || profileLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#051323' }}>
                 <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#00FF91' }} />
@@ -194,11 +114,10 @@ export default function Profile() {
         return null;
     }
 
-    // Get display info
-    const userEmail = user?.userDetails || profile?.email || 'Not available';
-    const provider = user?.identityProvider || 'Unknown';
-    const userId = user?.userId || profile?.id || 'Unknown';
-    const displayName = profile?.displayName || userEmail.split('@')[0];
+    // Get display info from context
+    const userEmail = email || 'Not available';
+    const provider = authUser?.identityProvider || 'Unknown';
+    const displayName = contextDisplayName;
 
     return (
         <div className="min-h-screen py-12" style={{ backgroundColor: '#051323' }}>
@@ -228,7 +147,7 @@ export default function Profile() {
                 {/* Header with Profile Photo */}
                 <div className="text-center mb-8">
                     <ProfilePhotoUpload
-                        currentPhotoUrl={profile?.profilePicture || undefined}
+                        currentPhotoUrl={profilePicture || undefined}
                         userName={displayName}
                         onUploadSuccess={handlePhotoUploadSuccess}
                         onUploadError={(err) => setError(err)}

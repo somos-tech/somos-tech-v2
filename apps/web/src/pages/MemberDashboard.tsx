@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useUserContext } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import ProfilePhotoUpload from '@/components/ProfilePhotoUpload';
@@ -16,68 +16,24 @@ import {
     Sparkles
 } from 'lucide-react';
 
-interface MemberProfile {
-    id: string;
-    email: string;
-    displayName?: string;
-    firstName?: string;
-    lastName?: string;
-    profileImage?: string;
-    joinedAt?: string;
-    interests?: string[];
-}
-
 export default function MemberDashboard() {
-    const { user, isAuthenticated, isAdmin, isLoading } = useAuth();
+    const { 
+        authUser, 
+        isAuthenticated, 
+        isAdmin, 
+        isLoading,
+        profile,
+        profileLoading,
+        displayName,
+        profilePicture,
+        email,
+        updateProfile
+    } = useUserContext();
     const navigate = useNavigate();
-    const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
-    const [profileLoading, setProfileLoading] = useState(true);
-    const [profileImageUrl, setProfileImageUrl] = useState<string | undefined>();
 
-    useEffect(() => {
-        async function fetchMemberProfile() {
-            if (!isAuthenticated) return;
-            
-            try {
-                const response = await fetch('/api/users/me', {
-                    credentials: 'include',
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    // Handle wrapped response
-                    const profile = data.data || data;
-                    setMemberProfile(profile);
-                    setProfileImageUrl(profile.profileImage);
-                }
-            } catch (error) {
-                console.error('Failed to fetch member profile:', error);
-            } finally {
-                setProfileLoading(false);
-            }
-        }
-
-        if (!isLoading && isAuthenticated) {
-            fetchMemberProfile();
-        } else if (!isLoading) {
-            setProfileLoading(false);
-        }
-    }, [isAuthenticated, isLoading]);
-
-    const handlePhotoUploadSuccess = (url: string) => {
-        setProfileImageUrl(url);
-        // Optionally update the profile in the backend
-        updateProfileImage(url);
-    };
-
-    const updateProfileImage = async (url: string) => {
+    const handlePhotoUploadSuccess = async (url: string) => {
         try {
-            await fetch('/api/users/me', {
-                method: 'PATCH',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ profileImage: url })
-            });
+            await updateProfile({ profilePicture: url });
         } catch (error) {
             console.error('Failed to update profile image:', error);
         }
@@ -112,16 +68,11 @@ export default function MemberDashboard() {
         window.location.href = '/.auth/logout?post_logout_redirect_uri=' + encodeURIComponent(window.location.origin);
     };
 
-    // Extract user info
-    const userEmail = user?.userDetails || memberProfile?.email || 'Member';
-    const displayName = memberProfile?.displayName || 
-                       memberProfile?.firstName || 
-                       userEmail.split('@')[0] || 
-                       'Member';
-    const profileImage = memberProfile?.profileImage;
-    const provider = user?.identityProvider || 'member';
-    const joinDate = memberProfile?.joinedAt 
-        ? new Date(memberProfile.joinedAt).toLocaleDateString('en-US', { 
+    // Extract user info from context
+    const userEmail = email || 'Member';
+    const provider = authUser?.identityProvider || 'member';
+    const joinDate = profile?.createdAt 
+        ? new Date(profile.createdAt).toLocaleDateString('en-US', { 
             year: 'numeric', 
             month: 'long', 
             day: 'numeric' 
@@ -146,7 +97,7 @@ export default function MemberDashboard() {
                     {/* Profile Photo Upload */}
                     <div className="mb-4">
                         <ProfilePhotoUpload
-                            currentPhotoUrl={profileImageUrl}
+                            currentPhotoUrl={profilePicture || undefined}
                             userName={displayName}
                             onUploadSuccess={handlePhotoUploadSuccess}
                             size="lg"
