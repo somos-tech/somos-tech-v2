@@ -40,6 +40,7 @@ import {
     Filter,
     X
 } from 'lucide-react';
+import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
 import {
     getContainers,
     listFiles,
@@ -340,6 +341,9 @@ export default function AdminMedia() {
     if (!selectedContainer) {
         return (
             <div className="space-y-6">
+                {/* Breadcrumbs */}
+                <AdminBreadcrumbs />
+                
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>

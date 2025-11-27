@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit2, Trash2, MapPin, Eye } from 'lucide-react';
+import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
 
 interface Group {
     id: string;
@@ -128,6 +129,9 @@ export default function AdminGroups() {
     return (
         <div className="min-h-screen" style={{ backgroundColor: '#0a1f35' }}>
             <div className="max-w-7xl mx-auto px-4 py-8">
+                {/* Breadcrumbs */}
+                <AdminBreadcrumbs />
+                
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">
                     <div>

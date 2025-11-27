@@ -2,11 +2,16 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from "react-route
 
 import HomeRedesigned from './pages/HomeRedesigned'
 import AdminDashboardRedesigned from './pages/AdminDashboardRedesigned'
+import AdminDashboardNew from './pages/AdminDashboardNew'
 import AdminEvents from './pages/AdminEvents'
 import AdminGroups from './pages/AdminGroups'
 import AdminUsers from './pages/AdminUsers'
 import AdminMedia from './pages/AdminMedia'
 import AdminSettings from './pages/AdminSettings'
+import AdminSettingsNew from './pages/AdminSettingsNew'
+import AdminSecurity from './pages/AdminSecurity'
+import AdminModeration from './pages/AdminModeration'
+import AdminOptions from './pages/AdminOptions'
 import AdminNotifications from './pages/AdminNotifications'
 import APIHealthDashboard from './pages/APIHealthDashboard'
 import GroupsDirectoryRedesigned from './pages/GroupsDirectoryRedesigned'
@@ -93,7 +98,7 @@ function AppContent() {
             path="/admin" 
             element={
               <ProtectedRoute requireAdmin={true}>
-                <AdminDashboardRedesigned />
+                <AdminDashboardNew />
               </ProtectedRoute>
             } 
           />
@@ -133,7 +138,39 @@ function AppContent() {
             path="/admin/settings" 
             element={
               <ProtectedRoute requireAdmin={true}>
-                <AdminSettings />
+                <AdminSettingsNew />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/settings/security" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminSecurity />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/settings/moderation" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminModeration />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/settings/media" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminMedia />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/settings/options" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminOptions />
               </ProtectedRoute>
             } 
           />

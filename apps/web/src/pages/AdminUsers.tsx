@@ -318,6 +318,9 @@ export default function AdminUsers() {
                 {/* Admin Navigation */}
                 <AdminNav />
                 
+                {/* Breadcrumbs */}
+                <AdminBreadcrumbs />
+                
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
