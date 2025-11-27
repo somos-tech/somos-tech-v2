@@ -160,21 +160,25 @@ export default function AdminModeration() {
             const configRes = await fetch('/api/moderation/config');
             if (configRes.ok) {
                 const configData = await configRes.json();
-                setConfig(configData);
+                // API returns { success: true, data: config }
+                setConfig(configData.data || configData);
             }
 
             // Fetch stats
             const statsRes = await fetch('/api/moderation/stats');
             if (statsRes.ok) {
                 const statsData = await statsRes.json();
-                setStats(statsData);
+                // API returns { success: true, data: stats }
+                setStats(statsData.data || statsData);
             }
 
             // Fetch queue
             const queueRes = await fetch(`/api/moderation/queue?status=${queueFilter}`);
             if (queueRes.ok) {
                 const queueData = await queueRes.json();
-                setQueue(queueData.items || []);
+                // API returns { success: true, data: { items: [...], count: N } }
+                const queuePayload = queueData.data || queueData;
+                setQueue(queuePayload.items || []);
             }
         } catch (error) {
             console.error('Error fetching moderation data:', error);
@@ -198,8 +202,9 @@ export default function AdminModeration() {
                 body: JSON.stringify(config)
             });
             if (res.ok) {
-                const updated = await res.json();
-                setConfig(updated);
+                const result = await res.json();
+                // API returns { success: true, data: config }
+                setConfig(result.data || result);
             }
         } catch (error) {
             console.error('Error saving config:', error);
