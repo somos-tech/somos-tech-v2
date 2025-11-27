@@ -30,6 +30,34 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
 // Types
+interface TierCheck {
+    name: string;
+    passed: boolean;
+    message: string;
+    category?: string;
+    severity?: number;
+    threshold?: number;
+    url?: string;
+}
+
+interface TierFlowItem {
+    tier: number;
+    name: string;
+    action: string;
+    passed?: boolean | null;
+    message?: string;
+    checks?: TierCheck[];
+    categories?: { category: string; severity: number; threshold: number }[];
+    blocklist?: { blocklistName: string; text: string }[];
+    hasLinks?: boolean;
+    urls?: {
+        defangedUrl: string;
+        safe: boolean;
+        riskLevel: string;
+        threats: { type: string; message: string }[];
+    }[];
+}
+
 interface ModerationConfig {
     id: string;
     enabled: boolean;
@@ -42,6 +70,14 @@ interface ModerationConfig {
     autoBlock: boolean;
     notifyAdmins: boolean;
     blocklist: string[];
+    // Tier configuration
+    tier1Enabled?: boolean;
+    tier2Enabled?: boolean;
+    tier3Enabled?: boolean;
+    blockMaliciousLinks?: boolean;
+    flagSuspiciousLinks?: boolean;
+    showPendingMessage?: boolean;
+    pendingMessageText?: string;
     updatedAt?: string;
 }
 
@@ -50,12 +86,38 @@ interface QueueItem {
     type: string;
     contentType: string;
     content: string;
+    safeContent?: string; // Defanged version
     contentId?: string;
     userId: string;
     userEmail: string;
     channelId?: string;
+    groupId?: string;
     categories: { category: string; severity: number; threshold: number }[];
     blocklist: { blocklistName: string; text: string }[];
+    // Tier results
+    tierFlow?: TierFlowItem[];
+    tier1Result?: {
+        tier: number;
+        passed: boolean;
+        action: string;
+        categories: { category: string; severity: number; threshold: number }[];
+        checks: TierCheck[];
+    };
+    tier2Result?: {
+        tier: number;
+        passed: boolean;
+        action: string;
+        hasLinks: boolean;
+        urls: {
+            defangedUrl: string;
+            safe: boolean;
+            riskLevel: string;
+            threats: { type: string; message: string }[];
+        }[];
+        checks: TierCheck[];
+    };
+    priority?: 'critical' | 'high' | 'medium' | 'low';
+    overallAction?: string;
     status: 'pending' | 'approved' | 'rejected';
     createdAt: string;
     reviewedAt?: string;
@@ -68,6 +130,11 @@ interface ModerationStats {
     approved: number;
     rejected: number;
     todayTotal: number;
+    byTier?: {
+        tier1Blocks: number;
+        tier2Blocks: number;
+        tier3Reviews: number;
+    };
 }
 
 type TabType = 'queue' | 'settings' | 'blocklist' | 'users';
@@ -476,7 +543,14 @@ export default function AdminModeration() {
                                         <div 
                                             key={item.id}
                                             className="p-4 rounded-lg"
-                                            style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+                                            style={{ 
+                                                backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                                                borderLeft: `3px solid ${
+                                                    item.priority === 'critical' ? '#FF0000' :
+                                                    item.priority === 'high' ? '#FF6B6B' :
+                                                    item.priority === 'medium' ? '#FFB800' : '#00D4FF'
+                                                }`
+                                            }}
                                         >
                                             <div className="flex items-start gap-4">
                                                 <input
@@ -498,22 +572,37 @@ export default function AdminModeration() {
                                                         >
                                                             {item.status}
                                                         </span>
+                                                        {item.priority && (
+                                                            <span 
+                                                                className="text-xs px-2 py-0.5 rounded uppercase font-bold"
+                                                                style={{ 
+                                                                    backgroundColor: item.priority === 'critical' ? '#FF000020' :
+                                                                                   item.priority === 'high' ? '#FF6B6B20' :
+                                                                                   item.priority === 'medium' ? '#FFB80020' : '#00D4FF20',
+                                                                    color: item.priority === 'critical' ? '#FF0000' :
+                                                                          item.priority === 'high' ? '#FF6B6B' :
+                                                                          item.priority === 'medium' ? '#FFB800' : '#00D4FF'
+                                                                }}
+                                                            >
+                                                                {item.priority}
+                                                            </span>
+                                                        )}
                                                         <span className="text-xs" style={{ color: '#6B7280' }}>
                                                             {item.contentType} • {new Date(item.createdAt).toLocaleString()}
                                                         </span>
                                                     </div>
                                                     
-                                                    {/* Content preview */}
+                                                    {/* Content preview - show defanged version for safety */}
                                                     <div 
                                                         className="p-3 rounded-lg mb-3"
                                                         style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
                                                     >
-                                                        <p className="text-sm" style={{ color: '#FFFFFF' }}>
+                                                        <p className="text-sm font-mono" style={{ color: '#FFFFFF' }}>
                                                             {expandedItems.has(item.id) 
-                                                                ? item.content 
-                                                                : item.content.substring(0, 200) + (item.content.length > 200 ? '...' : '')}
+                                                                ? (item.safeContent || item.content) 
+                                                                : (item.safeContent || item.content).substring(0, 200) + ((item.safeContent || item.content).length > 200 ? '...' : '')}
                                                         </p>
-                                                        {item.content.length > 200 && (
+                                                        {(item.safeContent || item.content).length > 200 && (
                                                             <button
                                                                 onClick={() => toggleExpanded(item.id)}
                                                                 className="text-xs mt-2 flex items-center gap-1"
@@ -526,7 +615,129 @@ export default function AdminModeration() {
                                                                 )}
                                                             </button>
                                                         )}
+                                                        {item.safeContent && item.safeContent !== item.content && (
+                                                            <div className="mt-2 text-xs flex items-center gap-1" style={{ color: '#FFB800' }}>
+                                                                <AlertTriangle className="h-3 w-3" />
+                                                                <span>Links defanged for security</span>
+                                                            </div>
+                                                        )}
                                                     </div>
+
+                                                    {/* Tier Flow Display */}
+                                                    {item.tierFlow && item.tierFlow.length > 0 && (
+                                                        <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: 'rgba(0, 212, 255, 0.05)' }}>
+                                                            <div className="text-xs font-semibold mb-2" style={{ color: '#00D4FF' }}>
+                                                                Moderation Tier Flow
+                                                            </div>
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                {item.tierFlow.map((tier, i) => (
+                                                                    <div key={i} className="flex items-center gap-2">
+                                                                        <div 
+                                                                            className="px-3 py-1.5 rounded-lg text-xs"
+                                                                            style={{ 
+                                                                                backgroundColor: tier.action === 'block' ? '#FF6B6B20' :
+                                                                                               tier.action === 'review' ? '#FFB80020' :
+                                                                                               tier.action === 'allow' ? '#00FF9120' : 'rgba(255,255,255,0.05)',
+                                                                                color: tier.action === 'block' ? '#FF6B6B' :
+                                                                                      tier.action === 'review' ? '#FFB800' :
+                                                                                      tier.action === 'allow' ? '#00FF91' : '#8394A7',
+                                                                                border: `1px solid ${tier.action === 'block' ? '#FF6B6B' :
+                                                                                                     tier.action === 'review' ? '#FFB800' :
+                                                                                                     tier.action === 'allow' ? '#00FF91' : '#8394A7'}40`
+                                                                            }}
+                                                                        >
+                                                                            <div className="font-medium">Tier {tier.tier}: {tier.name}</div>
+                                                                            <div className="flex items-center gap-1 mt-0.5">
+                                                                                {tier.action === 'block' ? <XCircle className="h-3 w-3" /> :
+                                                                                 tier.action === 'review' ? <Clock className="h-3 w-3" /> :
+                                                                                 tier.action === 'allow' ? <CheckCircle className="h-3 w-3" /> :
+                                                                                 <Eye className="h-3 w-3" />}
+                                                                                <span className="capitalize">{tier.action}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                        {i < item.tierFlow.length - 1 && (
+                                                                            <ChevronDown className="h-4 w-4 rotate-[-90deg]" style={{ color: '#8394A7' }} />
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            
+                                                            {/* Show tier checks on expand */}
+                                                            {expandedItems.has(item.id) && (
+                                                                <div className="mt-3 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+                                                                    {item.tierFlow.map((tier, i) => (
+                                                                        tier.checks && tier.checks.length > 0 && (
+                                                                            <div key={i} className="mb-3">
+                                                                                <div className="text-xs font-medium mb-1" style={{ color: '#FFFFFF' }}>
+                                                                                    Tier {tier.tier} Checks:
+                                                                                </div>
+                                                                                <div className="space-y-1">
+                                                                                    {tier.checks.map((check, j) => (
+                                                                                        <div 
+                                                                                            key={j}
+                                                                                            className="text-xs flex items-center gap-2 pl-2"
+                                                                                            style={{ color: check.passed ? '#00FF91' : '#FF6B6B' }}
+                                                                                        >
+                                                                                            {check.passed ? 
+                                                                                                <CheckCircle className="h-3 w-3" /> : 
+                                                                                                <XCircle className="h-3 w-3" />
+                                                                                            }
+                                                                                            <span>{check.message}</span>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        )
+                                                                    ))}
+                                                                    
+                                                                    {/* Show detected URLs with risk levels */}
+                                                                    {item.tier2Result?.urls && item.tier2Result.urls.length > 0 && (
+                                                                        <div className="mt-3">
+                                                                            <div className="text-xs font-medium mb-1" style={{ color: '#FFFFFF' }}>
+                                                                                Detected URLs:
+                                                                            </div>
+                                                                            <div className="space-y-2">
+                                                                                {item.tier2Result.urls.map((url, j) => (
+                                                                                    <div 
+                                                                                        key={j}
+                                                                                        className="text-xs p-2 rounded"
+                                                                                        style={{ 
+                                                                                            backgroundColor: url.safe ? '#00FF9110' : '#FF6B6B10',
+                                                                                            border: `1px solid ${url.safe ? '#00FF91' : '#FF6B6B'}30`
+                                                                                        }}
+                                                                                    >
+                                                                                        <div className="font-mono break-all" style={{ color: '#FFB800' }}>
+                                                                                            {url.defangedUrl}
+                                                                                        </div>
+                                                                                        <div className="flex items-center gap-2 mt-1">
+                                                                                            <span 
+                                                                                                className="px-1.5 py-0.5 rounded uppercase"
+                                                                                                style={{ 
+                                                                                                    backgroundColor: url.riskLevel === 'critical' ? '#FF000020' :
+                                                                                                                   url.riskLevel === 'high' ? '#FF6B6B20' :
+                                                                                                                   url.riskLevel === 'medium' ? '#FFB80020' : '#00FF9120',
+                                                                                                    color: url.riskLevel === 'critical' ? '#FF0000' :
+                                                                                                          url.riskLevel === 'high' ? '#FF6B6B' :
+                                                                                                          url.riskLevel === 'medium' ? '#FFB800' : '#00FF91'
+                                                                                                }}
+                                                                                            >
+                                                                                                {url.riskLevel}
+                                                                                            </span>
+                                                                                            {url.threats.map((threat, k) => (
+                                                                                                <span key={k} style={{ color: '#8394A7' }}>
+                                                                                                    {threat.message}
+                                                                                                </span>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
 
                                                     {/* Violations */}
                                                     <div className="flex flex-wrap gap-2 mb-3">
@@ -564,6 +775,12 @@ export default function AdminModeration() {
                                                             <>
                                                                 <span>•</span>
                                                                 <span>Channel: {item.channelId}</span>
+                                                            </>
+                                                        )}
+                                                        {item.groupId && (
+                                                            <>
+                                                                <span>•</span>
+                                                                <span>Group: {item.groupId}</span>
                                                             </>
                                                         )}
                                                     </div>
@@ -668,6 +885,156 @@ export default function AdminModeration() {
                                     >
                                         <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${config.notifyAdmins ? 'left-7' : 'left-1'}`} />
                                     </button>
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* Tiered Moderation Settings */}
+                        <Card
+                            className="p-6"
+                            style={{ 
+                                backgroundColor: '#051323',
+                                border: '1px solid rgba(0, 255, 145, 0.3)'
+                            }}
+                        >
+                            <h2 className="text-xl font-semibold mb-2" style={{ color: '#FFFFFF' }}>
+                                Tiered Moderation Pipeline
+                            </h2>
+                            <p className="text-sm mb-6" style={{ color: '#8394A7' }}>
+                                Configure the three-tier moderation system: Text Safety → Link Safety → Manual Review
+                            </p>
+
+                            <div className="space-y-4">
+                                {/* Tier 1: Text Content Safety */}
+                                <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div 
+                                                className="p-2 rounded-lg flex items-center justify-center w-10 h-10"
+                                                style={{ backgroundColor: '#00D4FF20' }}
+                                            >
+                                                <span className="text-sm font-bold" style={{ color: '#00D4FF' }}>T1</span>
+                                            </div>
+                                            <div>
+                                                <div className="font-medium" style={{ color: '#FFFFFF' }}>Tier 1: Text Content Safety</div>
+                                                <div className="text-xs" style={{ color: '#8394A7' }}>Azure AI Content Safety for hate, violence, sexual, self-harm detection</div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setConfig({ ...config, tier1Enabled: !config.tier1Enabled })}
+                                            className={`relative w-12 h-6 rounded-full transition-colors ${config.tier1Enabled !== false ? 'bg-green-500' : 'bg-gray-600'}`}
+                                        >
+                                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${config.tier1Enabled !== false ? 'left-7' : 'left-1'}`} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Tier 2: Link Safety */}
+                                <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div 
+                                                className="p-2 rounded-lg flex items-center justify-center w-10 h-10"
+                                                style={{ backgroundColor: '#FFB80020' }}
+                                            >
+                                                <span className="text-sm font-bold" style={{ color: '#FFB800' }}>T2</span>
+                                            </div>
+                                            <div>
+                                                <div className="font-medium" style={{ color: '#FFFFFF' }}>Tier 2: Link Safety Analysis</div>
+                                                <div className="text-xs" style={{ color: '#8394A7' }}>Scans URLs for malicious patterns, phishing, and suspicious domains</div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setConfig({ ...config, tier2Enabled: !config.tier2Enabled })}
+                                            className={`relative w-12 h-6 rounded-full transition-colors ${config.tier2Enabled !== false ? 'bg-green-500' : 'bg-gray-600'}`}
+                                        >
+                                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${config.tier2Enabled !== false ? 'left-7' : 'left-1'}`} />
+                                        </button>
+                                    </div>
+                                    {config.tier2Enabled !== false && (
+                                        <div className="ml-13 pl-4 border-l-2 space-y-3" style={{ borderColor: 'rgba(255, 184, 0, 0.3)' }}>
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <div className="text-sm" style={{ color: '#FFFFFF' }}>Block Malicious Links</div>
+                                                    <div className="text-xs" style={{ color: '#8394A7' }}>Auto-block content with known malicious URLs</div>
+                                                </div>
+                                                <button
+                                                    onClick={() => setConfig({ ...config, blockMaliciousLinks: !config.blockMaliciousLinks })}
+                                                    className={`relative w-10 h-5 rounded-full transition-colors ${config.blockMaliciousLinks !== false ? 'bg-green-500' : 'bg-gray-600'}`}
+                                                >
+                                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${config.blockMaliciousLinks !== false ? 'left-5' : 'left-0.5'}`} />
+                                                </button>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <div className="text-sm" style={{ color: '#FFFFFF' }}>Flag Suspicious Links</div>
+                                                    <div className="text-xs" style={{ color: '#8394A7' }}>Send medium-risk URLs to review queue</div>
+                                                </div>
+                                                <button
+                                                    onClick={() => setConfig({ ...config, flagSuspiciousLinks: !config.flagSuspiciousLinks })}
+                                                    className={`relative w-10 h-5 rounded-full transition-colors ${config.flagSuspiciousLinks !== false ? 'bg-green-500' : 'bg-gray-600'}`}
+                                                >
+                                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${config.flagSuspiciousLinks !== false ? 'left-5' : 'left-0.5'}`} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Tier 3: Manual Review */}
+                                <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div 
+                                                className="p-2 rounded-lg flex items-center justify-center w-10 h-10"
+                                                style={{ backgroundColor: '#00FF9120' }}
+                                            >
+                                                <span className="text-sm font-bold" style={{ color: '#00FF91' }}>T3</span>
+                                            </div>
+                                            <div>
+                                                <div className="font-medium" style={{ color: '#FFFFFF' }}>Tier 3: Manual Review Queue</div>
+                                                <div className="text-xs" style={{ color: '#8394A7' }}>Flagged content goes to admin queue with defanged links</div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setConfig({ ...config, tier3Enabled: !config.tier3Enabled })}
+                                            className={`relative w-12 h-6 rounded-full transition-colors ${config.tier3Enabled !== false ? 'bg-green-500' : 'bg-gray-600'}`}
+                                        >
+                                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${config.tier3Enabled !== false ? 'left-7' : 'left-1'}`} />
+                                        </button>
+                                    </div>
+                                    {config.tier3Enabled !== false && (
+                                        <div className="ml-13 pl-4 border-l-2 space-y-3" style={{ borderColor: 'rgba(0, 255, 145, 0.3)' }}>
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <div className="text-sm" style={{ color: '#FFFFFF' }}>Show Pending Message</div>
+                                                    <div className="text-xs" style={{ color: '#8394A7' }}>Notify users when their content is under review</div>
+                                                </div>
+                                                <button
+                                                    onClick={() => setConfig({ ...config, showPendingMessage: !config.showPendingMessage })}
+                                                    className={`relative w-10 h-5 rounded-full transition-colors ${config.showPendingMessage !== false ? 'bg-green-500' : 'bg-gray-600'}`}
+                                                >
+                                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${config.showPendingMessage !== false ? 'left-5' : 'left-0.5'}`} />
+                                                </button>
+                                            </div>
+                                            {config.showPendingMessage !== false && (
+                                                <div>
+                                                    <div className="text-xs mb-2" style={{ color: '#8394A7' }}>Pending Message Text:</div>
+                                                    <input
+                                                        type="text"
+                                                        value={config.pendingMessageText || 'Your message is being reviewed before posting.'}
+                                                        onChange={(e) => setConfig({ ...config, pendingMessageText: e.target.value })}
+                                                        className="w-full px-3 py-2 rounded-lg text-sm"
+                                                        style={{ 
+                                                            backgroundColor: 'rgba(0,0,0,0.3)',
+                                                            border: '1px solid rgba(255,255,255,0.1)',
+                                                            color: '#FFFFFF'
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </Card>

@@ -25,13 +25,14 @@ import {
     saveModerationConfig,
     analyzeText,
     analyzeImage,
+    analyzeLinks,
     getModerationQueue,
     updateQueueItem,
     getModerationStats,
     setUserBlockStatus,
     updateBlocklist,
     moderateContent
-} from '../shared/moderationService.js';
+} from '../shared/services/moderationService.js';
 
 /**
  * Moderation API Handler

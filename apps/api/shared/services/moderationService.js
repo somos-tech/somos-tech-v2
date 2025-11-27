@@ -1,9 +1,22 @@
 /**
- * Content Moderation Service using Azure AI Content Safety
+ * Tiered Content Moderation Service
  * 
- * Provides comprehensive content moderation for text and images.
- * Detects: Hate, Sexual, Violence, Self-Harm with severity levels.
- * Supports custom blocklists for organization-specific terms.
+ * Provides comprehensive content moderation with three tiers:
+ * 
+ * TIER 1: Text Content Safety (Azure AI Content Safety)
+ * - Detects hate speech, sexual content, violence, self-harm
+ * - Uses configurable severity thresholds
+ * - Supports custom blocklists
+ * 
+ * TIER 2: Link Safety Analysis
+ * - Checks URLs for malicious patterns
+ * - Validates against known threat indicators
+ * - Flags suspicious links for review
+ * 
+ * TIER 3: Manual Review Queue
+ * - Content flagged but not auto-blocked goes to admin queue
+ * - Links are defanged for safe viewing
+ * - Admins can approve, reject, or escalate
  * 
  * @module moderationService
  * @author SOMOS.tech
@@ -11,7 +24,13 @@
 
 import ContentSafetyClient, { isUnexpected } from '@azure-rest/ai-content-safety';
 import { AzureKeyCredential } from '@azure/core-auth';
-import { getContainer } from './db.js';
+import { getContainer } from '../db.js';
+import {
+    extractUrls,
+    defangUrl,
+    analyzeTextForLinks,
+    defangTextUrls
+} from './linkSafetyService.js';
 
 // Content Safety configuration
 const CONTENT_SAFETY_ENDPOINT = process.env.CONTENT_SAFETY_ENDPOINT;
@@ -25,7 +44,7 @@ const DEFAULT_THRESHOLDS = {
     selfHarm: 2
 };
 
-// Container for moderation settings and violations
+// Container names for moderation data
 const CONTAINERS = {
     MODERATION_CONFIG: 'moderation-config',
     MODERATION_QUEUE: 'moderation-queue',
@@ -42,7 +61,7 @@ let contentSafetyClient = null;
 function getContentSafetyClient() {
     if (!contentSafetyClient) {
         if (!CONTENT_SAFETY_ENDPOINT || !CONTENT_SAFETY_KEY) {
-            console.warn('[ModerationService] Content Safety not configured - moderation disabled');
+            console.warn('[ModerationService] Content Safety not configured - Tier 1 moderation disabled');
             return null;
         }
 
@@ -77,16 +96,28 @@ export async function getModerationConfig() {
         }
 
         // Return default config if none exists
-        return {
+        const defaultConfig = {
             id: 'config',
             enabled: true,
             thresholds: DEFAULT_THRESHOLDS,
             autoBlock: true,
             notifyAdmins: true,
             blocklist: [],
+            // Tier configuration
+            tier1Enabled: true,   // Text content safety
+            tier2Enabled: true,   // Link safety
+            tier3Enabled: true,   // Manual review
+            // Link safety settings
+            blockMaliciousLinks: true,
+            flagSuspiciousLinks: true,
+            // User notification
+            showPendingMessage: true,
+            pendingMessageText: 'Your message is being reviewed before posting.',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
+        
+        return defaultConfig;
     } catch (error) {
         console.error('[ModerationService] Error getting moderation config:', error);
         return {
@@ -95,7 +126,14 @@ export async function getModerationConfig() {
             thresholds: DEFAULT_THRESHOLDS,
             autoBlock: true,
             notifyAdmins: true,
-            blocklist: []
+            blocklist: [],
+            tier1Enabled: true,
+            tier2Enabled: true,
+            tier3Enabled: true,
+            blockMaliciousLinks: true,
+            flagSuspiciousLinks: true,
+            showPendingMessage: true,
+            pendingMessageText: 'Your message is being reviewed before posting.'
         };
     }
 }
@@ -123,36 +161,54 @@ export async function saveModerationConfig(config) {
 }
 
 /**
- * Analyze text content for harmful material
+ * TIER 1: Analyze text content for harmful material using Azure AI Content Safety
  * @param {string} text - The text to analyze
  * @param {Object} options - Analysis options
- * @returns {Promise<Object>} Analysis result
+ * @returns {Promise<Object>} Tier 1 analysis result
  */
 export async function analyzeText(text, options = {}) {
+    const tier1Result = {
+        tier: 1,
+        tierName: 'Text Content Safety',
+        passed: true,
+        action: 'allow',
+        categories: [],
+        blocklist: [],
+        reason: null,
+        checks: [],
+        rawAnalysis: null
+    };
+
     const client = getContentSafetyClient();
     
     if (!client) {
-        // If Content Safety is not configured, return safe result
-        console.warn('[ModerationService] Content Safety not configured, skipping text analysis');
-        return {
-            allowed: true,
-            categories: [],
-            blocklist: [],
-            reason: 'moderation_disabled'
-        };
+        tier1Result.checks.push({
+            name: 'content_safety_api',
+            passed: true,
+            message: 'Content Safety not configured - skipped'
+        });
+        tier1Result.reason = 'moderation_disabled';
+        return tier1Result;
     }
 
     try {
         const config = await getModerationConfig();
         
-        if (!config.enabled) {
-            return {
-                allowed: true,
-                categories: [],
-                blocklist: [],
-                reason: 'moderation_disabled'
-            };
+        if (!config.enabled || !config.tier1Enabled) {
+            tier1Result.checks.push({
+                name: 'tier1_enabled',
+                passed: true,
+                message: 'Tier 1 moderation disabled'
+            });
+            tier1Result.reason = 'tier_disabled';
+            return tier1Result;
         }
+
+        tier1Result.checks.push({
+            name: 'tier1_enabled',
+            passed: true,
+            message: 'Tier 1 moderation active'
+        });
 
         // Prepare analysis request
         const analyzeTextOption = {
@@ -170,14 +226,16 @@ export async function analyzeText(text, options = {}) {
 
         // Parse the categories analysis
         const categories = result.body.categoriesAnalysis || [];
-        const violations = [];
-        let allowed = true;
+        tier1Result.rawAnalysis = categories.map(c => ({
+            category: c.category,
+            severity: c.severity
+        }));
 
         for (const category of categories) {
             const categoryName = category.category?.toLowerCase() || '';
             const severity = category.severity || 0;
             
-            // Map category names to our config keys
+            // Map category names to config keys
             const categoryMap = {
                 'hate': 'hate',
                 'sexual': 'sexual',
@@ -189,48 +247,170 @@ export async function analyzeText(text, options = {}) {
             const configKey = categoryMap[categoryName];
             const threshold = config.thresholds?.[configKey] ?? DEFAULT_THRESHOLDS[configKey] ?? 2;
 
+            const checkResult = {
+                name: `category_${categoryName}`,
+                category: category.category,
+                severity: severity,
+                threshold: threshold,
+                passed: severity < threshold,
+                message: severity < threshold 
+                    ? `${category.category}: Safe (${severity} < ${threshold})`
+                    : `${category.category}: Violation (${severity} >= ${threshold})`
+            };
+            tier1Result.checks.push(checkResult);
+
             if (severity >= threshold) {
-                violations.push({
+                tier1Result.categories.push({
                     category: category.category,
                     severity: severity,
                     threshold: threshold
                 });
-                allowed = false;
+                tier1Result.passed = false;
+                tier1Result.action = 'block';
             }
         }
 
         // Check blocklist matches
         const blocklistMatches = result.body.blocklistsMatch || [];
         if (blocklistMatches.length > 0) {
-            allowed = false;
-        }
-
-        return {
-            allowed: allowed,
-            categories: violations,
-            blocklist: blocklistMatches.map(m => ({
+            tier1Result.passed = false;
+            tier1Result.action = 'block';
+            tier1Result.blocklist = blocklistMatches.map(m => ({
                 blocklistName: m.blocklistName,
                 text: m.blocklistItemText,
                 itemId: m.blocklistItemId
-            })),
-            reason: allowed ? 'passed' : 'content_violation',
-            rawAnalysis: categories.map(c => ({
-                category: c.category,
-                severity: c.severity
-            }))
-        };
+            }));
+            tier1Result.checks.push({
+                name: 'blocklist',
+                passed: false,
+                message: `Blocked terms found: ${blocklistMatches.length} match(es)`
+            });
+        } else {
+            tier1Result.checks.push({
+                name: 'blocklist',
+                passed: true,
+                message: 'No blocked terms found'
+            });
+        }
+
+        tier1Result.reason = tier1Result.passed ? 'passed' : 'content_violation';
+        return tier1Result;
 
     } catch (error) {
-        console.error('[ModerationService] Error analyzing text:', error);
+        console.error('[ModerationService] Tier 1 error:', error);
+        tier1Result.checks.push({
+            name: 'api_error',
+            passed: true,
+            message: `Analysis error: ${error.message} - allowing content`
+        });
+        tier1Result.reason = 'analysis_error';
+        tier1Result.error = error.message;
+        return tier1Result;
+    }
+}
+
+/**
+ * TIER 2: Analyze text for malicious links
+ * @param {string} text - Text content to analyze
+ * @param {Object} options - Analysis options
+ * @returns {Promise<Object>} Tier 2 analysis result
+ */
+export async function analyzeLinks(text, options = {}) {
+    const tier2Result = {
+        tier: 2,
+        tierName: 'Link Safety Analysis',
+        passed: true,
+        action: 'allow',
+        hasLinks: false,
+        urls: [],
+        checks: [],
+        reason: null
+    };
+
+    try {
+        const config = await getModerationConfig();
         
-        // On error, allow content but log for review
-        return {
-            allowed: true,
-            categories: [],
-            blocklist: [],
-            reason: 'analysis_error',
-            error: error.message
-        };
+        if (!config.tier2Enabled) {
+            tier2Result.checks.push({
+                name: 'tier2_enabled',
+                passed: true,
+                message: 'Tier 2 link checking disabled'
+            });
+            tier2Result.reason = 'tier_disabled';
+            return tier2Result;
+        }
+
+        tier2Result.checks.push({
+            name: 'tier2_enabled',
+            passed: true,
+            message: 'Tier 2 link checking active'
+        });
+
+        // Analyze links in text
+        const linkAnalysis = analyzeTextForLinks(text);
+        
+        tier2Result.hasLinks = linkAnalysis.hasLinks;
+        tier2Result.urls = linkAnalysis.urls;
+
+        if (!linkAnalysis.hasLinks) {
+            tier2Result.checks.push({
+                name: 'link_detection',
+                passed: true,
+                message: 'No links detected in content'
+            });
+            tier2Result.reason = 'no_links';
+            return tier2Result;
+        }
+
+        tier2Result.checks.push({
+            name: 'link_detection',
+            passed: true,
+            message: `Found ${linkAnalysis.urls.length} link(s)`
+        });
+
+        // Process each URL's checks
+        for (const urlInfo of linkAnalysis.urls) {
+            for (const check of urlInfo.checks) {
+                tier2Result.checks.push({
+                    name: `url_${check.name}`,
+                    url: urlInfo.defangedUrl, // Always use defanged in results
+                    passed: check.passed,
+                    message: check.message
+                });
+            }
+        }
+
+        // Determine action based on config and analysis
+        if (linkAnalysis.tierResult === 'blocked') {
+            if (config.blockMaliciousLinks) {
+                tier2Result.passed = false;
+                tier2Result.action = 'block';
+                tier2Result.reason = 'malicious_link_detected';
+            } else {
+                tier2Result.action = 'review';
+                tier2Result.reason = 'malicious_link_flagged';
+            }
+        } else if (linkAnalysis.tierResult === 'review') {
+            if (config.flagSuspiciousLinks) {
+                tier2Result.action = 'review';
+                tier2Result.reason = 'suspicious_link_flagged';
+            }
+        } else {
+            tier2Result.reason = 'passed';
+        }
+
+        return tier2Result;
+
+    } catch (error) {
+        console.error('[ModerationService] Tier 2 error:', error);
+        tier2Result.checks.push({
+            name: 'link_analysis_error',
+            passed: true,
+            message: `Link analysis error: ${error.message}`
+        });
+        tier2Result.reason = 'analysis_error';
+        tier2Result.error = error.message;
+        return tier2Result;
     }
 }
 
@@ -246,8 +426,12 @@ export async function analyzeImage(base64Image, options = {}) {
     if (!client) {
         console.warn('[ModerationService] Content Safety not configured, skipping image analysis');
         return {
-            allowed: true,
+            tier: 1,
+            tierName: 'Image Content Safety',
+            passed: true,
+            action: 'allow',
             categories: [],
+            checks: [],
             reason: 'moderation_disabled'
         };
     }
@@ -257,13 +441,16 @@ export async function analyzeImage(base64Image, options = {}) {
         
         if (!config.enabled) {
             return {
-                allowed: true,
+                tier: 1,
+                tierName: 'Image Content Safety',
+                passed: true,
+                action: 'allow',
                 categories: [],
+                checks: [{ name: 'moderation', passed: true, message: 'Moderation disabled' }],
                 reason: 'moderation_disabled'
             };
         }
 
-        // Prepare image analysis request
         const analyzeImageOption = {
             image: { content: base64Image }
         };
@@ -275,10 +462,10 @@ export async function analyzeImage(base64Image, options = {}) {
             throw new Error('Content Safety API error');
         }
 
-        // Parse the categories analysis
         const categories = result.body.categoriesAnalysis || [];
         const violations = [];
         let allowed = true;
+        const checks = [];
 
         for (const category of categories) {
             const categoryName = category.category?.toLowerCase() || '';
@@ -295,6 +482,16 @@ export async function analyzeImage(base64Image, options = {}) {
             const configKey = categoryMap[categoryName];
             const threshold = config.thresholds?.[configKey] ?? DEFAULT_THRESHOLDS[configKey] ?? 2;
 
+            checks.push({
+                name: `image_${categoryName}`,
+                severity: severity,
+                threshold: threshold,
+                passed: severity < threshold,
+                message: severity < threshold
+                    ? `${category.category}: Safe (${severity} < ${threshold})`
+                    : `${category.category}: Violation (${severity} >= ${threshold})`
+            });
+
             if (severity >= threshold) {
                 violations.push({
                     category: category.category,
@@ -306,8 +503,12 @@ export async function analyzeImage(base64Image, options = {}) {
         }
 
         return {
-            allowed: allowed,
+            tier: 1,
+            tierName: 'Image Content Safety',
+            passed: allowed,
+            action: allowed ? 'allow' : 'block',
             categories: violations,
+            checks: checks,
             reason: allowed ? 'passed' : 'content_violation',
             rawAnalysis: categories.map(c => ({
                 category: c.category,
@@ -319,8 +520,12 @@ export async function analyzeImage(base64Image, options = {}) {
         console.error('[ModerationService] Error analyzing image:', error);
         
         return {
-            allowed: true,
+            tier: 1,
+            tierName: 'Image Content Safety',
+            passed: true,
+            action: 'allow',
             categories: [],
+            checks: [{ name: 'error', passed: true, message: error.message }],
             reason: 'analysis_error',
             error: error.message
         };
@@ -328,7 +533,7 @@ export async function analyzeImage(base64Image, options = {}) {
 }
 
 /**
- * Add a content violation to the moderation queue
+ * Add a content item to the moderation queue (Tier 3)
  * @param {Object} violation - Violation details
  * @returns {Promise<Object>} Created queue item
  */
@@ -336,18 +541,31 @@ export async function addToModerationQueue(violation) {
     try {
         const container = getContainer(CONTAINERS.MODERATION_QUEUE);
         
+        // Defang any URLs in the content for safe admin viewing
+        let safeContent = violation.content;
+        if (violation.tier2Result?.urls) {
+            safeContent = defangTextUrls(violation.content, violation.tier2Result.urls);
+        }
+        
         const queueItem = {
             id: `violation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             type: violation.type || 'content',
             contentType: violation.contentType || 'text',
             content: violation.content,
+            safeContent: safeContent, // Defanged version for admin viewing
             contentId: violation.contentId,
             userId: violation.userId,
             userEmail: violation.userEmail,
             channelId: violation.channelId,
-            categories: violation.categories || [],
-            blocklist: violation.blocklist || [],
+            groupId: violation.groupId,
+            // Tier analysis results
+            tier1Result: violation.tier1Result || null,
+            tier2Result: violation.tier2Result || null,
+            tierFlow: violation.tierFlow || [],
+            overallAction: violation.overallAction || 'review',
+            // Queue status
             status: 'pending',
+            priority: calculatePriority(violation),
             createdAt: new Date().toISOString(),
             reviewedAt: null,
             reviewedBy: null,
@@ -356,12 +574,42 @@ export async function addToModerationQueue(violation) {
         };
 
         const { resource } = await container.items.create(queueItem);
-        console.log('[ModerationService] Added violation to queue:', resource.id);
+        console.log('[ModerationService] Added item to review queue:', resource.id);
         return resource;
     } catch (error) {
         console.error('[ModerationService] Error adding to moderation queue:', error);
         throw error;
     }
+}
+
+/**
+ * Calculate priority for queue item based on violations
+ * @param {Object} violation - Violation details
+ * @returns {string} Priority level: 'critical', 'high', 'medium', 'low'
+ */
+function calculatePriority(violation) {
+    // High risk links = critical
+    if (violation.tier2Result?.urls?.some(u => u.riskLevel === 'critical')) {
+        return 'critical';
+    }
+    
+    // Content safety violations with high severity
+    if (violation.tier1Result?.categories?.some(c => c.severity >= 4)) {
+        return 'high';
+    }
+    
+    // Malicious links
+    if (violation.tier2Result?.urls?.some(u => !u.safe)) {
+        return 'high';
+    }
+    
+    // Medium risk links or blocklist matches
+    if (violation.tier2Result?.urls?.some(u => u.riskLevel === 'high') || 
+        violation.tier1Result?.blocklist?.length > 0) {
+        return 'medium';
+    }
+    
+    return 'low';
 }
 
 /**
@@ -403,7 +651,6 @@ export async function updateQueueItem(itemId, update) {
     try {
         const container = getContainer(CONTAINERS.MODERATION_QUEUE);
         
-        // Get existing item
         const { resources } = await container.items
             .query({
                 query: 'SELECT * FROM c WHERE c.id = @id',
@@ -473,11 +720,31 @@ export async function getModerationStats() {
             })
             .fetchAll();
 
+        // Get tier breakdown
+        const { resources: tier1Blocks } = await container.items
+            .query({
+                query: 'SELECT VALUE COUNT(1) FROM c WHERE c.tier1Result.action = @action',
+                parameters: [{ name: '@action', value: 'block' }]
+            })
+            .fetchAll();
+
+        const { resources: tier2Blocks } = await container.items
+            .query({
+                query: 'SELECT VALUE COUNT(1) FROM c WHERE c.tier2Result.action = @action',
+                parameters: [{ name: '@action', value: 'block' }]
+            })
+            .fetchAll();
+
         return {
             pending: pendingItems[0] || 0,
             approved: approvedItems[0] || 0,
             rejected: rejectedItems[0] || 0,
-            todayTotal: todayItems[0] || 0
+            todayTotal: todayItems[0] || 0,
+            byTier: {
+                tier1Blocks: tier1Blocks[0] || 0,
+                tier2Blocks: tier2Blocks[0] || 0,
+                tier3Reviews: pendingItems[0] || 0
+            }
         };
     } catch (error) {
         console.error('[ModerationService] Error getting stats:', error);
@@ -485,7 +752,8 @@ export async function getModerationStats() {
             pending: 0,
             approved: 0,
             rejected: 0,
-            todayTotal: 0
+            todayTotal: 0,
+            byTier: { tier1Blocks: 0, tier2Blocks: 0, tier3Reviews: 0 }
         };
     }
 }
@@ -500,7 +768,6 @@ export async function recordUserViolation(userId, violation) {
     try {
         const usersContainer = getContainer(CONTAINERS.USERS);
         
-        // Get existing user
         const { resources } = await usersContainer.items
             .query({
                 query: 'SELECT * FROM c WHERE c.id = @id',
@@ -519,13 +786,13 @@ export async function recordUserViolation(userId, violation) {
         violations.push({
             id: `v-${Date.now()}`,
             type: violation.type,
+            tier: violation.tier,
             categories: violation.categories,
             contentId: violation.contentId,
             action: violation.action,
             timestamp: new Date().toISOString()
         });
 
-        // Update user with new violation
         const updatedUser = {
             ...user,
             violations: violations,
@@ -609,7 +876,6 @@ export async function updateBlocklist(terms) {
     try {
         const blocklistName = 'somos-blocklist';
 
-        // Create or update blocklist
         const createResult = await client
             .path('/text/blocklists/{blocklistName}', blocklistName)
             .patch({
@@ -623,7 +889,6 @@ export async function updateBlocklist(terms) {
             throw createResult;
         }
 
-        // Add items to blocklist
         if (terms && terms.length > 0) {
             const blocklistItems = terms.map(text => ({ text: text.toLowerCase().trim() }));
             
@@ -640,7 +905,6 @@ export async function updateBlocklist(terms) {
             console.log('[ModerationService] Blocklist updated with', terms.length, 'terms');
         }
 
-        // Save blocklist to config
         const config = await getModerationConfig();
         config.blocklist = terms;
         await saveModerationConfig(config);
@@ -657,79 +921,222 @@ export async function updateBlocklist(terms) {
 }
 
 /**
- * Moderate content before it's posted
- * This is the main entry point for content moderation
+ * MAIN ENTRY POINT: Tiered Content Moderation
+ * 
+ * Processes content through all three tiers:
+ * - Tier 1: Text/Image Content Safety (Azure AI)
+ * - Tier 2: Link Safety Analysis
+ * - Tier 3: Manual Review Queue (if needed)
+ * 
  * @param {Object} content - Content to moderate
- * @returns {Promise<Object>} Moderation result
+ * @returns {Promise<Object>} Complete moderation result with tier flow
  */
 export async function moderateContent(content) {
-    const { type, text, image, userId, userEmail, contentId, channelId } = content;
+    const { type, text, image, userId, userEmail, contentId, channelId, groupId } = content;
+
+    const result = {
+        allowed: true,
+        action: 'allow',
+        needsReview: false,
+        showPendingMessage: false,
+        pendingMessageText: null,
+        tierFlow: [],
+        tier1Result: null,
+        tier2Result: null,
+        queueItem: null,
+        reason: null
+    };
 
     try {
-        let textResult = null;
-        let imageResult = null;
+        const config = await getModerationConfig();
+        
+        if (!config.enabled) {
+            result.reason = 'moderation_disabled';
+            result.tierFlow.push({
+                tier: 0,
+                name: 'Moderation Check',
+                action: 'skip',
+                message: 'Moderation is disabled'
+            });
+            return result;
+        }
 
-        // Analyze text if present
+        // ========== TIER 1: Text/Image Content Safety ==========
         if (text) {
-            textResult = await analyzeText(text);
+            const tier1 = await analyzeText(text);
+            result.tier1Result = tier1;
+            result.tierFlow.push({
+                tier: 1,
+                name: 'Text Content Safety',
+                action: tier1.action,
+                passed: tier1.passed,
+                checks: tier1.checks,
+                categories: tier1.categories,
+                blocklist: tier1.blocklist
+            });
+
+            if (!tier1.passed) {
+                result.allowed = false;
+                result.action = 'block';
+                result.reason = 'tier1_content_violation';
+                
+                // Record violation and add to queue
+                if (userId) {
+                    await recordUserViolation(userId, {
+                        type: type || 'message',
+                        tier: 1,
+                        categories: tier1.categories,
+                        contentId: contentId,
+                        action: 'blocked'
+                    });
+                }
+
+                await addToModerationQueue({
+                    type: type || 'message',
+                    contentType: 'text',
+                    content: text.substring(0, 1000),
+                    contentId,
+                    userId,
+                    userEmail,
+                    channelId,
+                    groupId,
+                    tier1Result: tier1,
+                    tierFlow: result.tierFlow,
+                    overallAction: 'blocked'
+                });
+
+                return result;
+            }
         }
 
         // Analyze image if present
         if (image) {
-            imageResult = await analyzeImage(image);
-        }
+            const imageResult = await analyzeImage(image);
+            result.tierFlow.push({
+                tier: 1,
+                name: 'Image Content Safety',
+                action: imageResult.action,
+                passed: imageResult.passed,
+                checks: imageResult.checks,
+                categories: imageResult.categories
+            });
 
-        // Determine overall result
-        const allowed = 
-            (textResult === null || textResult.allowed) && 
-            (imageResult === null || imageResult.allowed);
-
-        // If content is not allowed, add to moderation queue
-        if (!allowed) {
-            const violation = {
-                type: type || 'message',
-                contentType: text && image ? 'mixed' : (text ? 'text' : 'image'),
-                content: text ? text.substring(0, 500) : '[image]',
-                contentId: contentId,
-                userId: userId,
-                userEmail: userEmail,
-                channelId: channelId,
-                categories: [
-                    ...(textResult?.categories || []),
-                    ...(imageResult?.categories || [])
-                ],
-                blocklist: textResult?.blocklist || []
-            };
-
-            await addToModerationQueue(violation);
-
-            // Record user violation
-            if (userId) {
-                await recordUserViolation(userId, {
-                    type: type || 'message',
-                    categories: violation.categories,
-                    contentId: contentId,
-                    action: 'blocked'
-                });
+            if (!imageResult.passed) {
+                result.allowed = false;
+                result.action = 'block';
+                result.reason = 'tier1_image_violation';
+                return result;
             }
         }
 
-        return {
-            allowed: allowed,
-            textResult: textResult,
-            imageResult: imageResult,
-            reason: allowed ? 'passed' : 'content_violation'
-        };
+        // ========== TIER 2: Link Safety Analysis ==========
+        if (text && config.tier2Enabled) {
+            const tier2 = await analyzeLinks(text);
+            result.tier2Result = tier2;
+            result.tierFlow.push({
+                tier: 2,
+                name: 'Link Safety Analysis',
+                action: tier2.action,
+                passed: tier2.passed,
+                hasLinks: tier2.hasLinks,
+                checks: tier2.checks,
+                urls: tier2.urls?.map(u => ({
+                    defangedUrl: u.defangedUrl,
+                    safe: u.safe,
+                    riskLevel: u.riskLevel,
+                    threats: u.threats
+                }))
+            });
+
+            if (tier2.action === 'block') {
+                result.allowed = false;
+                result.action = 'block';
+                result.reason = 'tier2_malicious_link';
+
+                await addToModerationQueue({
+                    type: type || 'message',
+                    contentType: 'text',
+                    content: text.substring(0, 1000),
+                    contentId,
+                    userId,
+                    userEmail,
+                    channelId,
+                    groupId,
+                    tier1Result: result.tier1Result,
+                    tier2Result: tier2,
+                    tierFlow: result.tierFlow,
+                    overallAction: 'blocked'
+                });
+
+                return result;
+            }
+
+            // Tier 2 flagged for review
+            if (tier2.action === 'review') {
+                result.needsReview = true;
+            }
+        }
+
+        // ========== TIER 3: Manual Review Queue ==========
+        if (result.needsReview && config.tier3Enabled) {
+            result.tierFlow.push({
+                tier: 3,
+                name: 'Manual Review Required',
+                action: 'review',
+                passed: null,
+                message: 'Content queued for admin review'
+            });
+
+            const queueItem = await addToModerationQueue({
+                type: type || 'message',
+                contentType: text && image ? 'mixed' : (text ? 'text' : 'image'),
+                content: text ? text.substring(0, 1000) : '[image]',
+                contentId,
+                userId,
+                userEmail,
+                channelId,
+                groupId,
+                tier1Result: result.tier1Result,
+                tier2Result: result.tier2Result,
+                tierFlow: result.tierFlow,
+                overallAction: 'pending_review'
+            });
+
+            result.queueItem = queueItem;
+            result.action = 'pending';
+            result.reason = 'pending_review';
+
+            // Show pending message to user
+            if (config.showPendingMessage) {
+                result.showPendingMessage = true;
+                result.pendingMessageText = config.pendingMessageText || 
+                    'Your message is being reviewed before posting.';
+            }
+        } else {
+            result.tierFlow.push({
+                tier: 3,
+                name: 'Manual Review',
+                action: 'skip',
+                passed: true,
+                message: 'No review needed - content passed all checks'
+            });
+            result.reason = 'passed';
+        }
+
+        return result;
 
     } catch (error) {
         console.error('[ModerationService] Error moderating content:', error);
         
-        // On error, allow content but log
-        return {
-            allowed: true,
-            reason: 'moderation_error',
-            error: error.message
-        };
+        result.tierFlow.push({
+            tier: 0,
+            name: 'Error',
+            action: 'allow',
+            message: `Moderation error: ${error.message}`
+        });
+        result.reason = 'moderation_error';
+        result.error = error.message;
+        return result;
     }
 }
 
@@ -737,6 +1144,7 @@ export default {
     getModerationConfig,
     saveModerationConfig,
     analyzeText,
+    analyzeLinks,
     analyzeImage,
     addToModerationQueue,
     getModerationQueue,
