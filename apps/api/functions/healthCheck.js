@@ -31,8 +31,12 @@ app.http('healthCheck', {
       const envCheck = checkEnvironmentVariables();
       checks.push(envCheck);
 
-      // 3. Check critical API endpoints (internal)
-      const apiChecks = await checkInternalAPIs(context);
+      // 3. Check authentication configuration
+      const authCheck = checkAuthConfiguration();
+      checks.push(authCheck);
+
+      // 4. Check critical API endpoints (internal)
+      const apiChecks = await checkInternalAPIs(context, request);
       checks.push(...apiChecks);
 
       // Calculate overall health
@@ -192,20 +196,89 @@ function checkEnvironmentVariables() {
 }
 
 /**
- * Check internal API endpoints
+ * Check authentication configuration to prevent mock auth in production
+ * This specifically checks for the issue that caused 401 errors
  */
-async function checkInternalAPIs(context) {
+function checkAuthConfiguration() {
+  const check = {
+    name: 'Authentication Config',
+    service: 'configuration',
+    status: 'healthy',
+    message: 'Authentication properly configured',
+    lastChecked: new Date().toISOString(),
+    critical: true,
+    details: {}
+  };
+
+  const isAzureFunctions = !!process.env.FUNCTIONS_EXTENSION_VERSION;
+  const nodeEnv = process.env.NODE_ENV;
+  const azureEnv = process.env.AZURE_FUNCTIONS_ENVIRONMENT;
+
+  check.details.isAzureFunctions = isAzureFunctions;
+  check.details.nodeEnv = nodeEnv || 'not set';
+  check.details.azureEnv = azureEnv || 'not set';
+
+  // Check for the specific issue: mock auth running in production
+  if (isAzureFunctions && nodeEnv === 'dev') {
+    check.status = 'unhealthy';
+    check.message = 'CRITICAL: NODE_ENV=dev in Azure - mock auth may be active!';
+    check.details.error = 'This will cause 401 Unauthorized errors for all users';
+    check.details.fix = 'Set NODE_ENV to production in Azure configuration';
+    return check;
+  }
+
+  if (isAzureFunctions && nodeEnv === 'development') {
+    check.status = 'unhealthy';
+    check.message = 'CRITICAL: NODE_ENV=development in Azure - mock auth may be active!';
+    check.details.error = 'This will cause 401 Unauthorized errors for all users';
+    check.details.fix = 'Set NODE_ENV to production in Azure configuration';
+    return check;
+  }
+
+  // Verify production environment is properly set
+  if (isAzureFunctions) {
+    if (nodeEnv !== 'production') {
+      check.status = 'warning';
+      check.message = `NODE_ENV is "${nodeEnv}" - recommend setting to "production"`;
+    } else {
+      check.message = 'Running in production mode with proper auth';
+    }
+  } else {
+    check.message = 'Local development mode (mock auth allowed)';
+    check.details.note = 'Mock auth is enabled for local development';
+  }
+
+  return check;
+}
+
+/**
+ * Check internal API endpoints by making actual HTTP requests
+ * This tests both the endpoint availability AND authentication middleware
+ */
+async function checkInternalAPIs(context, request) {
   const checks = [];
   
-  // Define API endpoints to check
+  // Get the base URL for internal API calls
+  // In Azure, we use the same host. In local dev, we construct it.
+  const protocol = request.url.startsWith('https') ? 'https' : 'http';
+  const host = request.headers.get('host') || 'localhost:7071';
+  const baseUrl = `${protocol}://${host}`;
+  
+  // Forward auth headers to simulate authenticated requests
+  const authHeader = request.headers.get('x-ms-client-principal');
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  if (authHeader) {
+    headers['x-ms-client-principal'] = authHeader;
+  }
+
+  // Define API endpoints to check with expected behavior
   const endpoints = [
-    { name: 'User Sync', path: '/api/users/sync', method: 'POST', critical: true },
-    { name: 'User Profile', path: '/api/users/me', method: 'GET', critical: true },
-    { name: 'Admin Users List', path: '/api/admin/users', method: 'GET', critical: true },
-    { name: 'Events API', path: '/api/events', method: 'GET', critical: true },
-    { name: 'Groups API', path: '/api/groups', method: 'GET', critical: false },
-    { name: 'Notifications API', path: '/api/notifications', method: 'GET', critical: false },
-    { name: 'User Roles', path: '/api/getuserroles', method: 'GET', critical: true }
+    { name: 'Events API (Public)', path: '/api/events', method: 'GET', critical: true, requiresAuth: false },
+    { name: 'Groups API (Public)', path: '/api/groups', method: 'GET', critical: true, requiresAuth: false },
+    { name: 'Health Status', path: '/api/health/status', method: 'GET', critical: true, requiresAuth: false },
+    { name: 'User Roles', path: '/api/getuserroles', method: 'GET', critical: true, requiresAuth: true }
   ];
 
   for (const endpoint of endpoints) {
@@ -215,20 +288,45 @@ async function checkInternalAPIs(context) {
       path: endpoint.path,
       method: endpoint.method,
       status: 'healthy',
-      message: 'Endpoint available',
+      message: 'Endpoint responding correctly',
       lastChecked: new Date().toISOString(),
       critical: endpoint.critical,
       details: {}
     };
 
     try {
-      // For now, just verify the function exists
-      // In production, you might want to do actual HTTP checks
-      check.details.registered = true;
-      check.message = 'Function registered';
+      const startTime = Date.now();
+      const response = await fetch(`${baseUrl}${endpoint.path}`, {
+        method: endpoint.method,
+        headers: endpoint.requiresAuth ? headers : { 'Content-Type': 'application/json' }
+      });
+      const responseTime = Date.now() - startTime;
+
+      check.details.statusCode = response.status;
+      check.details.responseTime = `${responseTime}ms`;
+
+      // Check for authentication errors (401, 403)
+      if (response.status === 401) {
+        check.status = endpoint.critical ? 'unhealthy' : 'warning';
+        check.message = 'Authentication failed - API returning 401 Unauthorized';
+        check.details.error = 'Users will not be able to access this endpoint';
+      } else if (response.status === 403) {
+        check.status = endpoint.critical ? 'unhealthy' : 'warning';
+        check.message = 'Access denied - API returning 403 Forbidden';
+        check.details.error = 'Authorization issue detected';
+      } else if (response.status >= 500) {
+        check.status = 'unhealthy';
+        check.message = `Server error: ${response.status} ${response.statusText}`;
+        check.details.error = 'Internal server error';
+      } else if (response.status >= 400) {
+        check.status = 'warning';
+        check.message = `Client error: ${response.status} ${response.statusText}`;
+      } else {
+        check.message = `OK (${response.status}) in ${responseTime}ms`;
+      }
     } catch (error) {
       check.status = endpoint.critical ? 'unhealthy' : 'warning';
-      check.message = `Endpoint check failed: ${error.message}`;
+      check.message = `Request failed: ${error.message}`;
       check.details.error = error.message;
     }
 

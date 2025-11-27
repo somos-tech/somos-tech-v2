@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
     Shield, 
     Key, 
@@ -13,11 +13,14 @@ import {
     EyeOff,
     Smartphone,
     Globe,
-    RefreshCw
+    RefreshCw,
+    XCircle,
+    Loader2
 } from 'lucide-react';
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { getHealthCheck, type HealthCheckResponse, type HealthCheck } from '@/api/healthService';
 
 interface SecuritySetting {
     id: string;
@@ -36,6 +39,41 @@ export default function AdminSecurity() {
         { id: 'password-policy', label: 'Strong Password Policy', description: 'Require complex passwords for all users', enabled: true, category: 'authentication' },
         { id: 'brute-force', label: 'Brute Force Protection', description: 'Lock accounts after 5 failed attempts', enabled: true, category: 'protection' },
     ]);
+
+    const [healthData, setHealthData] = useState<HealthCheckResponse | null>(null);
+    const [healthLoading, setHealthLoading] = useState(true);
+    const [healthError, setHealthError] = useState<string | null>(null);
+
+    useEffect(() => {
+        loadHealthData();
+    }, []);
+
+    const loadHealthData = async () => {
+        try {
+            setHealthLoading(true);
+            setHealthError(null);
+            const data = await getHealthCheck();
+            setHealthData(data);
+        } catch (error) {
+            console.error('Failed to load health data:', error);
+            setHealthError(error instanceof Error ? error.message : 'Failed to load health data');
+        } finally {
+            setHealthLoading(false);
+        }
+    };
+
+    // Get security-relevant alerts from health data
+    const getSecurityAlerts = (): HealthCheck[] => {
+        if (!healthData) return [];
+        return healthData.checks.filter(check => 
+            check.status === 'unhealthy' || 
+            check.status === 'warning' ||
+            check.name === 'Authentication Config'
+        );
+    };
+
+    const securityAlerts = getSecurityAlerts();
+    const criticalAlerts = securityAlerts.filter(a => a.critical && a.status === 'unhealthy');
 
     const toggleSetting = (id: string) => {
         setSettings(prev => prev.map(s => 
@@ -75,13 +113,140 @@ export default function AdminSecurity() {
                         </p>
                     </div>
                     <Button
+                        onClick={loadHealthData}
                         className="rounded-lg"
                         style={{ backgroundColor: '#00FF91', color: '#051323' }}
+                        disabled={healthLoading}
                     >
-                        <RefreshCw className="h-4 w-4 mr-2" />
+                        {healthLoading ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                        )}
                         Run Security Scan
                     </Button>
                 </div>
+
+                {/* Security Alerts Banner */}
+                {criticalAlerts.length > 0 && (
+                    <Card
+                        className="p-4 mb-6"
+                        style={{ 
+                            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                            border: '1px solid #ef4444'
+                        }}
+                    >
+                        <div className="flex items-start gap-3">
+                            <XCircle className="h-6 w-6 flex-shrink-0" style={{ color: '#ef4444' }} />
+                            <div className="flex-1">
+                                <h3 className="font-bold text-lg" style={{ color: '#ef4444' }}>
+                                    Critical Security Alerts ({criticalAlerts.length})
+                                </h3>
+                                <div className="mt-2 space-y-2">
+                                    {criticalAlerts.map((alert, index) => (
+                                        <div key={index} className="text-sm" style={{ color: '#FFFFFF' }}>
+                                            <strong>{alert.name}:</strong> {alert.message}
+                                            {alert.details?.fix && (
+                                                <span className="block text-xs mt-1" style={{ color: '#8394A7' }}>
+                                                    Fix: {alert.details.fix}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+                )}
+
+                {/* System Health Alerts */}
+                <Card
+                    className="p-6 mb-6"
+                    style={{ 
+                        backgroundColor: '#051323',
+                        border: `1px solid ${securityAlerts.length > 0 && securityAlerts.some(a => a.status === 'unhealthy') ? '#ef4444' : '#00FF91'}30`
+                    }}
+                >
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-semibold flex items-center gap-2" style={{ color: '#FFFFFF' }}>
+                            <AlertTriangle className="h-5 w-5" style={{ color: securityAlerts.some(a => a.status === 'unhealthy') ? '#ef4444' : '#00FF91' }} />
+                            System Health Alerts
+                        </h2>
+                        <span className="text-xs px-2 py-1 rounded" style={{ 
+                            backgroundColor: healthData?.status === 'healthy' ? 'rgba(0, 255, 145, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                            color: healthData?.status === 'healthy' ? '#00FF91' : '#ef4444'
+                        }}>
+                            {healthData?.status === 'healthy' ? 'All Systems Healthy' : 'Issues Detected'}
+                        </span>
+                    </div>
+                    
+                    {healthLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#8394A7' }} />
+                        </div>
+                    ) : healthError ? (
+                        <div className="text-center py-4" style={{ color: '#ef4444' }}>
+                            {healthError}
+                        </div>
+                    ) : securityAlerts.length === 0 ? (
+                        <div className="flex items-center gap-2 py-4" style={{ color: '#00FF91' }}>
+                            <CheckCircle className="h-5 w-5" />
+                            <span>No security alerts at this time</span>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {securityAlerts.map((alert, index) => (
+                                <div 
+                                    key={index}
+                                    className="flex items-start gap-3 p-3 rounded-lg"
+                                    style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+                                >
+                                    <div 
+                                        className="p-1.5 rounded-full"
+                                        style={{ 
+                                            backgroundColor: alert.status === 'unhealthy' ? 'rgba(239, 68, 68, 0.2)' :
+                                                           alert.status === 'warning' ? 'rgba(255, 184, 0, 0.2)' : 'rgba(0, 255, 145, 0.2)'
+                                        }}
+                                    >
+                                        {alert.status === 'unhealthy' ? (
+                                            <XCircle className="h-4 w-4" style={{ color: '#ef4444' }} />
+                                        ) : alert.status === 'warning' ? (
+                                            <AlertTriangle className="h-4 w-4" style={{ color: '#FFB800' }} />
+                                        ) : (
+                                            <CheckCircle className="h-4 w-4" style={{ color: '#00FF91' }} />
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium" style={{ color: '#FFFFFF' }}>
+                                                {alert.name}
+                                            </span>
+                                            {alert.critical && (
+                                                <span className="text-xs px-1.5 py-0.5 rounded" style={{ 
+                                                    backgroundColor: 'rgba(239, 68, 68, 0.2)', 
+                                                    color: '#ef4444' 
+                                                }}>
+                                                    Critical
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="text-sm mt-1" style={{ color: '#8394A7' }}>
+                                            {alert.message}
+                                        </div>
+                                        {alert.details?.error && (
+                                            <div className="text-xs mt-1" style={{ color: '#ef4444' }}>
+                                                {alert.details.error}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="text-xs" style={{ color: '#8394A7' }}>
+                                        {alert.service}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </Card>
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

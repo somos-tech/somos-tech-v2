@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
     Users, 
@@ -11,9 +12,13 @@ import {
     MessageSquare,
     Activity,
     TrendingUp,
-    Clock
+    AlertTriangle,
+    Loader2
 } from 'lucide-react';
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
+import { getUserStats } from '@/api/userService';
+import eventService from '@/api/eventService';
+import { listGroups } from '@/api/groupsService';
 
 interface AdminCard {
     title: string;
@@ -25,8 +30,63 @@ interface AdminCard {
     stats?: { label: string; value: string | number };
 }
 
+interface DashboardStats {
+    totalUsers: number;
+    activeUsers: number;
+    newSignups: number;
+    totalGroups: number;
+    totalEvents: number;
+    upcomingEvents: number;
+    alerts: number;
+}
+
 export default function AdminDashboard() {
     const navigate = useNavigate();
+    const [stats, setStats] = useState<DashboardStats>({
+        totalUsers: 0,
+        activeUsers: 0,
+        newSignups: 0,
+        totalGroups: 0,
+        totalEvents: 0,
+        upcomingEvents: 0,
+        alerts: 0
+    });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadDashboardStats();
+    }, []);
+
+    const loadDashboardStats = async () => {
+        try {
+            setLoading(true);
+            
+            // Fetch all stats in parallel
+            const [userStats, events, groupsData] = await Promise.all([
+                getUserStats().catch(() => ({ total: 0, active: 0, blocked: 0 })),
+                eventService.getEvents().catch(() => []),
+                listGroups().catch(() => ({ groups: [], total: 0, userMemberships: [] }))
+            ]);
+
+            // Calculate upcoming events (events with date >= today)
+            const now = new Date();
+            const upcomingEvents = events.filter(e => new Date(e.date) >= now).length;
+
+            setStats({
+                totalUsers: userStats.total || 0,
+                activeUsers: userStats.active || 0,
+                newSignups: 0, // Not tracked in current API
+                totalGroups: groupsData.total || groupsData.groups?.length || 0,
+                totalEvents: events.length,
+                upcomingEvents: upcomingEvents,
+                alerts: 0 // We'll check for system alerts
+            });
+        } catch (error) {
+            console.error('Failed to load dashboard stats:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Primary Controls - Main admin sections in priority order
     const primaryControls: AdminCard[] = [
@@ -36,7 +96,7 @@ export default function AdminDashboard() {
             icon: Users,
             path: '/admin/users',
             color: '#00FF91',
-            stats: { label: 'Total Members', value: '1,247' }
+            stats: { label: 'Total Members', value: loading ? '...' : stats.totalUsers.toLocaleString() }
         },
         {
             title: 'Groups',
@@ -44,7 +104,7 @@ export default function AdminDashboard() {
             icon: MapPin,
             path: '/admin/groups',
             color: '#00D4FF',
-            stats: { label: 'Active Groups', value: '24' }
+            stats: { label: 'Active Groups', value: loading ? '...' : stats.totalGroups }
         },
         {
             title: 'Events',
@@ -52,7 +112,7 @@ export default function AdminDashboard() {
             icon: Calendar,
             path: '/admin/events',
             color: '#FF6B6B',
-            stats: { label: 'Upcoming', value: '15' }
+            stats: { label: 'Upcoming', value: loading ? '...' : stats.upcomingEvents }
         },
         {
             title: 'Settings',
@@ -116,10 +176,10 @@ export default function AdminDashboard() {
 
     // Quick stats
     const quickStats = [
-        { label: 'Active Users Today', value: '142', icon: Users, change: '+12%', color: '#00FF91' },
-        { label: 'Events This Week', value: '8', icon: Calendar, change: '+3', color: '#00D4FF' },
-        { label: 'New Signups', value: '47', icon: TrendingUp, change: '+23%', color: '#FF6B6B' },
-        { label: 'Pending Reviews', value: '5', icon: Clock, change: '-2', color: '#FFB800' }
+        { label: 'Total Users', value: loading ? '...' : stats.totalUsers.toLocaleString(), icon: Users, path: '/admin/users', color: '#00FF91' },
+        { label: 'Events This Week', value: loading ? '...' : stats.upcomingEvents.toString(), icon: Calendar, path: '/admin/events', color: '#00D4FF' },
+        { label: 'Active Groups', value: loading ? '...' : stats.totalGroups.toString(), icon: MapPin, path: '/admin/groups', color: '#FF6B6B' },
+        { label: 'Security Alerts', value: loading ? '...' : stats.alerts.toString(), icon: AlertTriangle, path: '/admin/settings/security', color: '#FFB800' }
     ];
 
     const AdminCardComponent = ({ card, size = 'large' }: { card: AdminCard; size?: 'large' | 'small' }) => {
@@ -247,10 +307,11 @@ export default function AdminDashboard() {
                         return (
                             <div
                                 key={stat.label}
-                                className="p-4 rounded-xl"
+                                onClick={() => navigate(stat.path)}
+                                className="p-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
                                 style={{ 
                                     backgroundColor: '#051323',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                                    border: `1px solid ${stat.color}30`
                                 }}
                             >
                                 <div className="flex items-center gap-3">
@@ -261,16 +322,9 @@ export default function AdminDashboard() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-2xl font-bold" style={{ color: '#FFFFFF' }}>
-                                                {stat.value}
-                                            </span>
-                                            <span 
-                                                className="text-xs px-1.5 py-0.5 rounded"
-                                                style={{ 
-                                                    backgroundColor: `${stat.color}20`,
-                                                    color: stat.color 
-                                                }}
-                                            >
-                                                {stat.change}
+                                                {loading ? (
+                                                    <Loader2 className="h-5 w-5 animate-spin" style={{ color: stat.color }} />
+                                                ) : stat.value}
                                             </span>
                                         </div>
                                     </div>
