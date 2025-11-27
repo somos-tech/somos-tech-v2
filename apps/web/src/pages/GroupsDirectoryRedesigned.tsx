@@ -6,8 +6,9 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Users, Calendar, MessageCircle, Search, ArrowRight, Lock, Loader2 } from 'lucide-react';
-import { listGroups } from '@/api/groupsService';
+import { MapPin, Users, Calendar, MessageCircle, Search, ArrowRight, Lock, Loader2, Check } from 'lucide-react';
+import { listGroups, joinGroup } from '@/api/groupsService';
+import { useAuth } from '@/hooks/useAuth';
 import type { CommunityGroup } from '@/types/groups';
 
 // Royalty-free Unsplash skyline images for each city
@@ -37,10 +38,13 @@ const defaultSkyline = 'https://images.unsplash.com/photo-1449824913935-59a10b8d
 
 export default function GroupsDirectoryRedesigned() {
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedFocus, setSelectedFocus] = useState('all');
     const [sortBy, setSortBy] = useState('name');
     const [groups, setGroups] = useState<CommunityGroup[]>([]);
+    const [userMemberships, setUserMemberships] = useState<string[]>([]);
+    const [joiningGroup, setJoiningGroup] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +61,7 @@ export default function GroupsDirectoryRedesigned() {
             // Filter to only show Public groups
             const publicGroups = data.groups.filter(g => g.visibility === 'Public');
             setGroups(publicGroups);
+            setUserMemberships(data.userMemberships || []);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load groups');
             console.error('Error fetching groups:', err);
@@ -78,10 +83,38 @@ export default function GroupsDirectoryRedesigned() {
             return a.name.localeCompare(b.name);
         });
 
-    const handleJoinGroup = (e: React.MouseEvent, groupId: string) => {
+    const handleJoinGroup = async (e: React.MouseEvent, groupId: string) => {
         e.stopPropagation();
-        navigate(`/groups/${groupId}`);
+        
+        // If not authenticated, redirect to register
+        if (!isAuthenticated) {
+            navigate('/register');
+            return;
+        }
+        
+        // If already a member, navigate to group
+        if (userMemberships.includes(groupId)) {
+            navigate(`/groups/${groupId}`);
+            return;
+        }
+        
+        // Join the group
+        try {
+            setJoiningGroup(groupId);
+            await joinGroup(groupId);
+            setUserMemberships(prev => [...prev, groupId]);
+            // Navigate to the group after joining
+            navigate(`/groups/${groupId}`);
+        } catch (err) {
+            console.error('Error joining group:', err);
+            // Still navigate to group page on error - they can try again there
+            navigate(`/groups/${groupId}`);
+        } finally {
+            setJoiningGroup(null);
+        }
     };
+
+    const isMember = (groupId: string) => userMemberships.includes(groupId);
 
     const getGroupImage = (group: CommunityGroup) => {
         return cityImages[group.city] || group.imageUrl || defaultSkyline;
@@ -219,31 +252,51 @@ export default function GroupsDirectoryRedesigned() {
                                         <div className="flex items-center gap-2">
                                             <Users className="w-4 h-4" style={{ color: '#00D4FF' }} />
                                             <span className="text-sm" style={{ color: '#8394A7' }}>
-                                                Join to see members
+                                                {isMember(group.id) && group.memberCount 
+                                                    ? `${group.memberCount} members` 
+                                                    : 'Join to connect'}
                                             </span>
                                         </div>
-                                        <span 
-                                            className="px-2 py-1 rounded-full text-xs font-medium"
-                                            style={{
-                                                backgroundColor: 'rgba(0, 255, 145, 0.1)',
-                                                color: '#00FF91',
-                                            }}
-                                        >
-                                            {group.visibility}
-                                        </span>
+                                        {isMember(group.id) && (
+                                            <span 
+                                                className="px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"
+                                                style={{
+                                                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                                                    color: '#00D4FF',
+                                                }}
+                                            >
+                                                <Check className="w-3 h-3" />
+                                                Member
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* CTA */}
                                     <button 
                                         onClick={(e) => handleJoinGroup(e, group.id)}
-                                        className="w-full py-2.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm group/btn hover:scale-105"
+                                        disabled={joiningGroup === group.id}
+                                        className="w-full py-2.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm group/btn hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
                                         style={{
-                                            backgroundColor: '#00FF91',
+                                            backgroundColor: isMember(group.id) ? '#00D4FF' : '#00FF91',
                                             color: '#051323',
                                         }}
                                     >
-                                        View Group
-                                        <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                                        {joiningGroup === group.id ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                Joining...
+                                            </>
+                                        ) : isMember(group.id) ? (
+                                            <>
+                                                View Group
+                                                <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                                            </>
+                                        ) : (
+                                            <>
+                                                Join Group
+                                                <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </div>
