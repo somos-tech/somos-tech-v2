@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Shield, Plus, Trash2, Edit2, UserCheck, UserX, Users, MapPin, Clock, Camera, Loader2 } from 'lucide-react';
+import { Shield, Plus, Trash2, Edit2, UserCheck, UserX, Users, MapPin, Clock, Camera, Loader2, Ban, CheckCircle, Globe, Monitor, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,7 @@ import { UserAvatar } from '@/components/DefaultAvatar';
 import type { AdminUser } from '@/shared/types';
 import type { UserProfile } from '@/types/user';
 import { adminUsersService } from '@/api/adminUsersService';
-import { listUsers, getUserStats } from '@/api/userService';
+import { listUsers, getUserStats, updateUserStatus } from '@/api/userService';
 import { uploadProfilePhoto, validateFile, ALLOWED_EXTENSIONS } from '@/api/mediaService';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -40,9 +40,15 @@ export default function AdminUsers() {
     const [error, setError] = useState<string | null>(null);
     const [showAddDialog, setShowAddDialog] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
+    const [showStatusDialog, setShowStatusDialog] = useState(false);
+    const [selectedUserForStatus, setSelectedUserForStatus] = useState<UserProfile | null>(null);
+    const [statusAction, setStatusAction] = useState<'block' | 'activate'>('block');
+    const [statusReason, setStatusReason] = useState('');
+    const [updatingStatus, setUpdatingStatus] = useState(false);
     const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
     const [formData, setFormData] = useState({
         email: '',
         name: '',
@@ -196,6 +202,61 @@ export default function AdminUsers() {
                 : [...prev.roles, role],
         }));
     };
+
+    // Handle user status change (block/activate)
+    const openStatusDialog = (userProfile: UserProfile, action: 'block' | 'activate') => {
+        setSelectedUserForStatus(userProfile);
+        setStatusAction(action);
+        setStatusReason('');
+        setShowStatusDialog(true);
+    };
+
+    const handleStatusChange = async () => {
+        if (!selectedUserForStatus) return;
+
+        try {
+            setUpdatingStatus(true);
+            setError(null);
+            
+            const newStatus = statusAction === 'block' ? 'blocked' : 'active';
+            await updateUserStatus(selectedUserForStatus.id, { 
+                status: newStatus as any, 
+                reason: statusReason || undefined 
+            });
+            
+            setShowStatusDialog(false);
+            setSelectedUserForStatus(null);
+            setStatusReason('');
+            
+            // Reload users
+            await loadAllUsers();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : `Failed to ${statusAction} user`);
+            console.error('Error changing user status:', err);
+        } finally {
+            setUpdatingStatus(false);
+        }
+    };
+
+    // Format location for display
+    const formatLocation = (userProfile: UserProfile) => {
+        if (userProfile.lastLoginLocation) {
+            const { city, region, country } = userProfile.lastLoginLocation;
+            const parts = [city, region, country].filter(Boolean);
+            if (parts.length > 0) return parts.join(', ');
+        }
+        if (userProfile.lastLoginIp && userProfile.lastLoginIp !== 'unknown') {
+            return `IP: ${userProfile.lastLoginIp}`;
+        }
+        return 'Unknown';
+    };
+
+    // Filter users by search query
+    const filteredUsers = allUsers.filter(u => 
+        searchQuery === '' || 
+        u.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -617,11 +678,25 @@ export default function AdminUsers() {
 
                 {/* All Users Section */}
                 <div className="mt-12">
-                    <div className="flex items-center gap-3 mb-6">
-                        <Users className="h-8 w-8" style={{ color: '#00D4FF' }} />
-                        <h2 className="text-2xl font-bold" style={{ color: '#FFFFFF' }}>
-                            All Users
-                        </h2>
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <Users className="h-8 w-8" style={{ color: '#00D4FF' }} />
+                            <h2 className="text-2xl font-bold" style={{ color: '#FFFFFF' }}>
+                                All Users
+                            </h2>
+                        </div>
+                        <div className="w-64">
+                            <Input
+                                placeholder="Search users..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                style={{
+                                    backgroundColor: '#0F2744',
+                                    borderColor: '#1E3A5F',
+                                    color: '#FFFFFF',
+                                }}
+                            />
+                        </div>
                     </div>
 
                     {/* User Stats */}
@@ -683,10 +758,11 @@ export default function AdminUsers() {
                                             <TableHead style={{ color: '#8394A7' }}>Status</TableHead>
                                             <TableHead style={{ color: '#8394A7' }}>Last Login</TableHead>
                                             <TableHead style={{ color: '#8394A7' }}>Location</TableHead>
+                                            <TableHead style={{ color: '#8394A7' }}>Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {allUsers.map((userProfile) => (
+                                        {filteredUsers.map((userProfile) => (
                                             <TableRow key={userProfile.id} style={{ borderColor: '#1E3A5F' }}>
                                                 <TableCell>
                                                     <div className="flex items-center gap-3">
@@ -706,9 +782,16 @@ export default function AdminUsers() {
                                                                 </span>
                                                             </div>
                                                         )}
-                                                        <span style={{ color: '#FFFFFF' }}>
-                                                            {userProfile.displayName}
-                                                        </span>
+                                                        <div>
+                                                            <span style={{ color: '#FFFFFF' }}>
+                                                                {userProfile.displayName}
+                                                            </span>
+                                                            {userProfile.metadata?.loginCount && userProfile.metadata.loginCount > 1 && (
+                                                                <div className="text-xs" style={{ color: '#8394A7' }}>
+                                                                    {userProfile.metadata.loginCount} logins
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell style={{ color: '#8394A7' }}>
@@ -728,6 +811,8 @@ export default function AdminUsers() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge className={getStatusColor(userProfile.status)}>
+                                                        {userProfile.status === 'blocked' && <Ban className="h-3 w-3 mr-1" />}
+                                                        {userProfile.status === 'active' && <CheckCircle className="h-3 w-3 mr-1" />}
                                                         {userProfile.status}
                                                     </Badge>
                                                 </TableCell>
@@ -735,16 +820,50 @@ export default function AdminUsers() {
                                                     <div className="flex items-center gap-2" style={{ color: '#8394A7' }}>
                                                         <Clock className="h-4 w-4" />
                                                         <span className="text-sm">
-                                                            {new Date(userProfile.lastLoginAt).toLocaleDateString()} {new Date(userProfile.lastLoginAt).toLocaleTimeString()}
+                                                            {new Date(userProfile.lastLoginAt).toLocaleDateString()} {new Date(userProfile.lastLoginAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2" style={{ color: '#8394A7' }}>
-                                                        <MapPin className="h-4 w-4" />
-                                                        <span className="text-sm">
-                                                            {userProfile.location || userProfile.metadata?.signupIp || 'Unknown'}
-                                                        </span>
+                                                        <Globe className="h-4 w-4" style={{ color: userProfile.lastLoginLocation ? '#00FF91' : '#8394A7' }} />
+                                                        <div>
+                                                            <span className="text-sm">
+                                                                {formatLocation(userProfile)}
+                                                            </span>
+                                                            {userProfile.lastLoginIp && userProfile.lastLoginIp !== 'unknown' && userProfile.lastLoginLocation && (
+                                                                <div className="text-xs" style={{ color: '#5a6f82' }}>
+                                                                    {userProfile.lastLoginIp}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        {userProfile.status === 'active' ? (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => openStatusDialog(userProfile, 'block')}
+                                                                className="text-xs"
+                                                                style={{ borderColor: '#FF4444', color: '#FF4444' }}
+                                                            >
+                                                                <Ban className="h-3 w-3 mr-1" />
+                                                                Disable
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => openStatusDialog(userProfile, 'activate')}
+                                                                className="text-xs"
+                                                                style={{ borderColor: '#00FF91', color: '#00FF91' }}
+                                                            >
+                                                                <CheckCircle className="h-3 w-3 mr-1" />
+                                                                Enable
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -755,6 +874,119 @@ export default function AdminUsers() {
                         </div>
                     </Card>
                 </div>
+
+                {/* User Status Change Dialog */}
+                <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
+                    <DialogContent style={{ backgroundColor: '#0A1929', borderColor: '#1E3A5F' }} className="max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2" style={{ color: statusAction === 'block' ? '#FF4444' : '#00FF91' }}>
+                                {statusAction === 'block' ? (
+                                    <>
+                                        <AlertTriangle className="h-5 w-5" />
+                                        Disable User Account
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle className="h-5 w-5" />
+                                        Enable User Account
+                                    </>
+                                )}
+                            </DialogTitle>
+                            <DialogDescription style={{ color: '#8394A7' }}>
+                                {statusAction === 'block' 
+                                    ? 'This will prevent the user from accessing the platform. They will see a blocked message when trying to sign in.'
+                                    : 'This will restore the user\'s access to the platform.'}
+                            </DialogDescription>
+                        </DialogHeader>
+                        
+                        {selectedUserForStatus && (
+                            <div className="py-4">
+                                <div className="flex items-center gap-4 p-4 rounded-lg" style={{ backgroundColor: '#0F2744' }}>
+                                    {selectedUserForStatus.profilePicture ? (
+                                        <img
+                                            src={selectedUserForStatus.profilePicture}
+                                            alt={selectedUserForStatus.displayName}
+                                            className="w-12 h-12 rounded-full"
+                                        />
+                                    ) : (
+                                        <div
+                                            className="w-12 h-12 rounded-full flex items-center justify-center"
+                                            style={{ backgroundColor: '#1E3A5F' }}
+                                        >
+                                            <span className="text-lg" style={{ color: '#00FF91' }}>
+                                                {selectedUserForStatus.displayName.charAt(0).toUpperCase()}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <div className="font-medium" style={{ color: '#FFFFFF' }}>
+                                            {selectedUserForStatus.displayName}
+                                        </div>
+                                        <div className="text-sm" style={{ color: '#8394A7' }}>
+                                            {selectedUserForStatus.email}
+                                        </div>
+                                        {selectedUserForStatus.lastLoginLocation && (
+                                            <div className="text-xs flex items-center gap-1 mt-1" style={{ color: '#5a6f82' }}>
+                                                <Globe className="h-3 w-3" />
+                                                {formatLocation(selectedUserForStatus)}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="mt-4">
+                                    <Label htmlFor="reason" style={{ color: '#FFFFFF' }}>
+                                        Reason {statusAction === 'block' ? '(recommended)' : '(optional)'}
+                                    </Label>
+                                    <Input
+                                        id="reason"
+                                        placeholder={statusAction === 'block' ? 'e.g., Violated terms of service' : 'e.g., Account review complete'}
+                                        value={statusReason}
+                                        onChange={(e) => setStatusReason(e.target.value)}
+                                        className="mt-2"
+                                        style={{
+                                            backgroundColor: '#0F2744',
+                                            borderColor: '#1E3A5F',
+                                            color: '#FFFFFF',
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        <DialogFooter>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setShowStatusDialog(false);
+                                    setSelectedUserForStatus(null);
+                                    setStatusReason('');
+                                }}
+                                disabled={updatingStatus}
+                                style={{ borderColor: '#1E3A5F', color: '#FFFFFF' }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleStatusChange}
+                                disabled={updatingStatus}
+                                style={{
+                                    backgroundColor: statusAction === 'block' ? '#FF4444' : '#00FF91',
+                                    color: statusAction === 'block' ? '#FFFFFF' : '#051323',
+                                }}
+                            >
+                                {updatingStatus ? (
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                ) : statusAction === 'block' ? (
+                                    <Ban className="h-4 w-4 mr-2" />
+                                ) : (
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                )}
+                                {statusAction === 'block' ? 'Disable Account' : 'Enable Account'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </div>
     );

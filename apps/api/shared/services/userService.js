@@ -120,11 +120,12 @@ async function updateUser(userId, updates) {
 }
 
 /**
- * Update user last login timestamp
+ * Update user last login timestamp and location
  * @param {string} userId - User ID
+ * @param {Object} loginData - Login metadata (ip, userAgent, etc.)
  * @returns {Promise<void>}
  */
-async function updateLastLogin(userId) {
+async function updateLastLogin(userId, loginData = {}) {
   const user = await getUserById(userId);
   
   if (!user) {
@@ -134,7 +135,14 @@ async function updateLastLogin(userId) {
   const updatedUser = {
     ...user,
     lastLoginAt: new Date().toISOString(),
-    'metadata.firstLogin': false
+    lastLoginIp: loginData.ip || user.lastLoginIp || null,
+    lastLoginLocation: loginData.location || user.lastLoginLocation || null,
+    lastLoginUserAgent: loginData.userAgent || user.lastLoginUserAgent || null,
+    metadata: {
+      ...user.metadata,
+      firstLogin: false,
+      loginCount: (user.metadata?.loginCount || 0) + 1
+    }
   };
 
   await getContainer().item(userId, userId).replace(updatedUser);
@@ -241,8 +249,14 @@ async function getOrCreateUser(authUser) {
   if (!user) {
     user = await createUser(authUser);
   } else {
-    // Update last login
-    await updateLastLogin(user.id);
+    // Update last login with location data
+    await updateLastLogin(user.id, {
+      ip: authUser.ip,
+      location: authUser.location,
+      userAgent: authUser.userAgent
+    });
+    // Refresh user data
+    user = await getUserById(user.id);
   }
 
   return user;

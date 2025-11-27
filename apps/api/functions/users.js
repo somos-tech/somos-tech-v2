@@ -203,13 +203,46 @@ app.http('syncUserProfile', {
       const currentUser = getCurrentUser(request);
       context.log('[syncUserProfile] Current user:', currentUser?.userDetails);
       
+      // Extract client IP from various headers (Azure passes through X-Forwarded-For)
+      const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
+        || request.headers.get('x-client-ip')
+        || request.headers.get('x-real-ip')
+        || 'unknown';
+      
+      // Get user agent
+      const userAgent = request.headers.get('user-agent') || 'unknown';
+      
+      // Try to get location from IP using free API (ip-api.com)
+      let locationInfo = null;
+      if (clientIp && clientIp !== 'unknown' && !clientIp.startsWith('10.') && !clientIp.startsWith('192.168.') && !clientIp.startsWith('127.')) {
+        try {
+          const geoResponse = await fetch(`http://ip-api.com/json/${clientIp}?fields=status,country,regionName,city`);
+          if (geoResponse.ok) {
+            const geoData = await geoResponse.json();
+            if (geoData.status === 'success') {
+              locationInfo = {
+                city: geoData.city,
+                region: geoData.regionName,
+                country: geoData.country
+              };
+              context.log('[syncUserProfile] Location resolved:', locationInfo);
+            }
+          }
+        } catch (geoError) {
+          context.log('[syncUserProfile] Geo lookup failed (non-critical):', geoError.message);
+        }
+      }
+      
       // Get or create user profile
       const user = await userService.getOrCreateUser({
         userId: currentUser.userId,
         email: currentUser.userDetails,
         name: currentUser.claims?.find(c => c.typ === 'name')?.val,
         identityProvider: currentUser.identityProvider,
-        emailVerified: currentUser.claims?.find(c => c.typ === 'email_verified')?.val === 'true'
+        emailVerified: currentUser.claims?.find(c => c.typ === 'email_verified')?.val === 'true',
+        ip: clientIp,
+        location: locationInfo,
+        userAgent: userAgent
       });
 
       context.log('[syncUserProfile] User synced successfully');

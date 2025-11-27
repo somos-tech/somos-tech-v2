@@ -33,10 +33,18 @@ export interface UserProfile {
   createdAt: string;
   updatedAt: string;
   lastLoginAt: string;
+  lastLoginIp?: string | null;
+  lastLoginLocation?: {
+    city?: string;
+    region?: string;
+    country?: string;
+  } | null;
+  lastLoginUserAgent?: string | null;
   metadata?: {
     signupIp?: string | null;
     emailVerified?: boolean;
     firstLogin?: boolean;
+    loginCount?: number;
   };
   statusChangedBy?: string;
   statusChangedAt?: string;
