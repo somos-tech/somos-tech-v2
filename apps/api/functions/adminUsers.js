@@ -202,7 +202,7 @@ app.http('adminUsers', {
             // PUT: Update admin user roles/status
             if (method === 'PUT') {
                 const body = await request.json();
-                const { email, roles, status, name } = body;
+                const { email, roles, status, name, profilePhotoUrl } = body;
 
                 if (!email) {
                     return errorResponse(400, 'Email is required');
@@ -233,6 +233,10 @@ app.http('adminUsers', {
                 }
                 if (name) {
                     user.name = name;
+                }
+                // Update profile photo URL (can be set to null/empty to remove)
+                if (profilePhotoUrl !== undefined) {
+                    user.profilePhotoUrl = profilePhotoUrl || null;
                 }
 
                 user.updatedAt = new Date().toISOString();

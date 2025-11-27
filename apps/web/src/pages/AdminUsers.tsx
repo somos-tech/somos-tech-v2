@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Shield, Plus, Trash2, Edit2, UserCheck, UserX, Users, MapPin, Clock } from 'lucide-react';
+import { Shield, Plus, Trash2, Edit2, UserCheck, UserX, Users, MapPin, Clock, Camera, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,10 +22,12 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { AdminNav } from '@/components/AdminNav';
+import { UserAvatar } from '@/components/DefaultAvatar';
 import type { AdminUser } from '@/shared/types';
 import type { UserProfile } from '@/types/user';
 import { adminUsersService } from '@/api/adminUsersService';
 import { listUsers, getUserStats } from '@/api/userService';
+import { uploadProfilePhoto, validateFile, ALLOWED_EXTENSIONS } from '@/api/mediaService';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function AdminUsers() {
@@ -39,11 +41,14 @@ export default function AdminUsers() {
     const [showAddDialog, setShowAddDialog] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         email: '',
         name: '',
         roles: ['admin', 'authenticated'],
         status: 'active' as 'active' | 'inactive' | 'suspended',
+        profilePhotoUrl: '' as string | undefined,
     });
 
     useEffect(() => {
@@ -86,7 +91,7 @@ export default function AdminUsers() {
             setError(null);
             await adminUsersService.createAdminUser(formData);
             setShowAddDialog(false);
-            setFormData({ email: '', name: '', roles: ['admin', 'authenticated'], status: 'active' });
+            setFormData({ email: '', name: '', roles: ['admin', 'authenticated'], status: 'active', profilePhotoUrl: '' });
             await loadAdminUsers();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to create admin user');
@@ -104,10 +109,12 @@ export default function AdminUsers() {
                 name: formData.name,
                 roles: formData.roles,
                 status: formData.status,
+                profilePhotoUrl: formData.profilePhotoUrl,
             });
             setShowEditDialog(false);
             setSelectedUser(null);
-            setFormData({ email: '', name: '', roles: ['admin', 'authenticated'], status: 'active' });
+            setPhotoPreview(null);
+            setFormData({ email: '', name: '', roles: ['admin', 'authenticated'], status: 'active', profilePhotoUrl: '' });
             await loadAdminUsers();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to update admin user');
@@ -137,8 +144,48 @@ export default function AdminUsers() {
             name: adminUser.name,
             roles: adminUser.roles,
             status: adminUser.status,
+            profilePhotoUrl: adminUser.profilePhotoUrl || '',
         });
+        setPhotoPreview(null);
         setShowEditDialog(true);
+    };
+
+    // Handle profile photo upload for admin user
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file
+        const validation = validateFile(file, 'PROFILE_PHOTO');
+        if (!validation.valid) {
+            setError(validation.error || 'Invalid file');
+            return;
+        }
+
+        // Create preview
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            setPhotoPreview(event.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        // Upload file
+        setUploadingPhoto(true);
+        setError(null);
+        try {
+            const result = await uploadProfilePhoto(file);
+            if (result.success && result.data?.url) {
+                setFormData(prev => ({ ...prev, profilePhotoUrl: result.data.url }));
+            } else {
+                setError(result.error || 'Failed to upload photo');
+                setPhotoPreview(null);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to upload photo');
+            setPhotoPreview(null);
+        } finally {
+            setUploadingPhoto(false);
+        }
     };
 
     const toggleRole = (role: string) => {
@@ -238,47 +285,55 @@ export default function AdminUsers() {
                                         className="flex items-center justify-between p-4 rounded-lg border"
                                         style={{ backgroundColor: '#0F2744', borderColor: '#1E3A5F' }}
                                     >
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <h3 className="text-lg font-semibold" style={{ color: '#FFFFFF' }}>
-                                                    {adminUser.name}
-                                                </h3>
-                                                <Badge className={getStatusColor(adminUser.status)}>
-                                                    {adminUser.status === 'active' ? (
-                                                        <UserCheck className="h-3 w-3 mr-1" />
-                                                    ) : (
-                                                        <UserX className="h-3 w-3 mr-1" />
-                                                    )}
-                                                    {adminUser.status}
-                                                </Badge>
-                                            </div>
-                                            <p className="text-sm mb-2" style={{ color: '#8394A7' }}>
-                                                {adminUser.email}
-                                            </p>
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="text-xs" style={{ color: '#8394A7' }}>
-                                                    Roles:
-                                                </span>
-                                                {adminUser.roles.map((role) => (
-                                                    <Badge
-                                                        key={role}
-                                                        variant="outline"
-                                                        className="text-xs"
-                                                        style={{
-                                                            borderColor: '#00FF91',
-                                                            color: '#00FF91',
-                                                            backgroundColor: 'rgba(0, 255, 145, 0.1)',
-                                                        }}
-                                                    >
-                                                        {role}
+                                        <div className="flex items-center gap-4 flex-1">
+                                            {/* Profile Photo */}
+                                            <UserAvatar
+                                                photoUrl={adminUser.profilePhotoUrl}
+                                                name={adminUser.name}
+                                                size="lg"
+                                            />
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <h3 className="text-lg font-semibold" style={{ color: '#FFFFFF' }}>
+                                                        {adminUser.name}
+                                                    </h3>
+                                                    <Badge className={getStatusColor(adminUser.status)}>
+                                                        {adminUser.status === 'active' ? (
+                                                            <UserCheck className="h-3 w-3 mr-1" />
+                                                        ) : (
+                                                            <UserX className="h-3 w-3 mr-1" />
+                                                        )}
+                                                        {adminUser.status}
                                                     </Badge>
-                                                ))}
-                                            </div>
-                                            <div className="mt-2 text-xs" style={{ color: '#8394A7' }}>
-                                                Created: {new Date(adminUser.createdAt).toLocaleDateString()}
-                                                {adminUser.lastLogin && (
-                                                    <> • Last login: {new Date(adminUser.lastLogin).toLocaleDateString()}</>
-                                                )}
+                                                </div>
+                                                <p className="text-sm mb-2" style={{ color: '#8394A7' }}>
+                                                    {adminUser.email}
+                                                </p>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-xs" style={{ color: '#8394A7' }}>
+                                                        Roles:
+                                                    </span>
+                                                    {adminUser.roles.map((role) => (
+                                                        <Badge
+                                                            key={role}
+                                                            variant="outline"
+                                                            className="text-xs"
+                                                            style={{
+                                                                borderColor: '#00FF91',
+                                                                color: '#00FF91',
+                                                                backgroundColor: 'rgba(0, 255, 145, 0.1)',
+                                                            }}
+                                                        >
+                                                            {role}
+                                                        </Badge>
+                                                    ))}
+                                                </div>
+                                                <div className="mt-2 text-xs" style={{ color: '#8394A7' }}>
+                                                    Created: {new Date(adminUser.createdAt).toLocaleDateString()}
+                                                    {adminUser.lastLogin && (
+                                                        <> • Last login: {new Date(adminUser.lastLogin).toLocaleDateString()}</>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -383,7 +438,7 @@ export default function AdminUsers() {
                                 variant="outline"
                                 onClick={() => {
                                     setShowAddDialog(false);
-                                    setFormData({ email: '', name: '', roles: ['admin', 'authenticated'], status: 'active' });
+                                    setFormData({ email: '', name: '', roles: ['admin', 'authenticated'], status: 'active', profilePhotoUrl: '' });
                                 }}
                                 style={{ borderColor: '#1E3A5F', color: '#FFFFFF' }}
                             >
@@ -405,14 +460,63 @@ export default function AdminUsers() {
 
                 {/* Edit Admin User Dialog */}
                 <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                    <DialogContent style={{ backgroundColor: '#0A1929', borderColor: '#1E3A5F' }}>
+                    <DialogContent style={{ backgroundColor: '#0A1929', borderColor: '#1E3A5F' }} className="max-w-md">
                         <DialogHeader>
                             <DialogTitle style={{ color: '#FFFFFF' }}>Edit Admin User</DialogTitle>
                             <DialogDescription style={{ color: '#8394A7' }}>
-                                Update user roles and status.
+                                Update profile photo, roles and status.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4">
+                            {/* Profile Photo Upload */}
+                            <div className="flex flex-col items-center gap-3">
+                                <Label style={{ color: '#FFFFFF' }} className="self-start">Profile Photo</Label>
+                                <div className="relative">
+                                    <div
+                                        className="w-24 h-24 rounded-full overflow-hidden border-2 cursor-pointer hover:opacity-80 transition-opacity"
+                                        style={{ borderColor: '#00FF91' }}
+                                        onClick={() => document.getElementById('admin-photo-input')?.click()}
+                                    >
+                                        {photoPreview || formData.profilePhotoUrl ? (
+                                            <img
+                                                src={photoPreview || formData.profilePhotoUrl}
+                                                alt={formData.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <UserAvatar
+                                                name={formData.name || formData.email}
+                                                size="xl"
+                                            />
+                                        )}
+                                    </div>
+                                    {uploadingPhoto && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                                            <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#00FF91' }} />
+                                        </div>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => document.getElementById('admin-photo-input')?.click()}
+                                        className="absolute bottom-0 right-0 p-2 rounded-full"
+                                        style={{ backgroundColor: '#00FF91' }}
+                                        disabled={uploadingPhoto}
+                                    >
+                                        <Camera className="w-4 h-4" style={{ color: '#051323' }} />
+                                    </button>
+                                </div>
+                                <input
+                                    id="admin-photo-input"
+                                    type="file"
+                                    accept={ALLOWED_EXTENSIONS.join(',')}
+                                    onChange={handlePhotoUpload}
+                                    className="hidden"
+                                />
+                                <p className="text-xs" style={{ color: '#8394A7' }}>
+                                    JPG, JPEG, PNG only • Max 5MB
+                                </p>
+                            </div>
+
                             <div>
                                 <Label style={{ color: '#FFFFFF' }}>Email</Label>
                                 <Input
@@ -491,7 +595,8 @@ export default function AdminUsers() {
                                 onClick={() => {
                                     setShowEditDialog(false);
                                     setSelectedUser(null);
-                                    setFormData({ email: '', name: '', roles: ['admin', 'authenticated'], status: 'active' });
+                                    setPhotoPreview(null);
+                                    setFormData({ email: '', name: '', roles: ['admin', 'authenticated'], status: 'active', profilePhotoUrl: '' });
                                 }}
                                 style={{ borderColor: '#1E3A5F', color: '#FFFFFF' }}
                             >

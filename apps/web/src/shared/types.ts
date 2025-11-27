@@ -160,6 +160,7 @@ export interface AdminUser {
     name: string;
     roles: string[];
     status: 'active' | 'inactive' | 'suspended';
+    profilePhotoUrl?: string;
     identityProvider?: string;
     createdAt: string;
     createdBy?: string;
@@ -178,6 +179,7 @@ export interface CreateAdminUserDto {
 export interface UpdateAdminUserDto {
     email: string;
     name?: string;
+    profilePhotoUrl?: string;
     roles?: string[];
     status?: 'active' | 'inactive' | 'suspended';
 }
