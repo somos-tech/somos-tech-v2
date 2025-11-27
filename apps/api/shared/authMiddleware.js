@@ -115,15 +115,21 @@ function isAdmin(request) {
  * Middleware to require authentication
  * Returns an error response if not authenticated
  * @param {import('@azure/functions').HttpRequest} request - The HTTP request
- * @returns {Promise<Object>} Object with authenticated status
+ * @returns {Promise<Object>} Object with authenticated status and proper HTTP error response
  */
 async function requireAuth(request) {
     if (!isAuthenticated(request)) {
         return {
             authenticated: false,
-            status: 401,
-            error: 'Authentication required',
-            message: 'You must be logged in to access this resource'
+            error: {
+                status: 401,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Authentication required',
+                    message: 'You must be logged in to access this resource'
+                })
+            }
         };
     }
     return { authenticated: true };
@@ -133,7 +139,7 @@ async function requireAuth(request) {
  * Middleware to require admin role
  * Returns an error response if not admin
  * @param {import('@azure/functions').HttpRequest} request - The HTTP request
- * @returns {Promise<Object>} Object with authenticated and isAdmin status
+ * @returns {Promise<Object>} Object with authenticated and isAdmin status, and proper HTTP error response
  */
 async function requireAdmin(request) {
     // First check if authenticated
@@ -147,9 +153,15 @@ async function requireAdmin(request) {
         return {
             authenticated: true,
             isAdmin: false,
-            status: 403,
-            error: 'Insufficient permissions',
-            message: 'Admin role required to access this resource'
+            error: {
+                status: 403,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Insufficient permissions',
+                    message: 'Admin role required to access this resource'
+                })
+            }
         };
     }
 
