@@ -1,5 +1,6 @@
 import { app } from '@azure/functions';
 import * as userService from '../shared/services/userService.js';
+import * as graphService from '../shared/services/graphService.js';
 import { successResponse, errorResponse } from '../shared/httpResponse.js';
 import { requireAuth, getCurrentUser } from '../shared/authMiddleware.js';
 
@@ -212,24 +213,49 @@ app.http('syncUserProfile', {
       // Get user agent
       const userAgent = request.headers.get('user-agent') || 'unknown';
       
-      // Try to get location from IP using free API (ip-api.com)
+      // First, try to get location from Microsoft Graph sign-in logs (most accurate)
       let locationInfo = null;
-      if (clientIp && clientIp !== 'unknown' && !clientIp.startsWith('10.') && !clientIp.startsWith('192.168.') && !clientIp.startsWith('127.')) {
+      let locationSource = null;
+      
+      if (graphService.isGraphEnabled() && currentUser?.userDetails) {
         try {
-          const geoResponse = await fetch(`http://ip-api.com/json/${clientIp}?fields=status,country,regionName,city`);
+          const signInData = await graphService.getLatestSignIn(currentUser.userDetails);
+          if (signInData?.location) {
+            locationInfo = {
+              city: signInData.location.city,
+              region: signInData.location.state,
+              country: signInData.location.country,
+              latitude: signInData.location.latitude,
+              longitude: signInData.location.longitude
+            };
+            locationSource = 'entra';
+            context.log('[syncUserProfile] Location from Entra sign-in logs:', locationInfo);
+          }
+        } catch (graphError) {
+          context.log('[syncUserProfile] Entra sign-in lookup failed (falling back to IP):', graphError.message);
+        }
+      }
+      
+      // Fallback: Try to get location from IP using free API (ip-api.com)
+      if (!locationInfo && clientIp && clientIp !== 'unknown' && !clientIp.startsWith('10.') && !clientIp.startsWith('192.168.') && !clientIp.startsWith('127.')) {
+        try {
+          const geoResponse = await fetch(`http://ip-api.com/json/${clientIp}?fields=status,country,regionName,city,lat,lon`);
           if (geoResponse.ok) {
             const geoData = await geoResponse.json();
             if (geoData.status === 'success') {
               locationInfo = {
                 city: geoData.city,
                 region: geoData.regionName,
-                country: geoData.country
+                country: geoData.country,
+                latitude: geoData.lat,
+                longitude: geoData.lon
               };
-              context.log('[syncUserProfile] Location resolved:', locationInfo);
+              locationSource = 'ip-api';
+              context.log('[syncUserProfile] Location from IP lookup:', locationInfo);
             }
           }
         } catch (geoError) {
-          context.log('[syncUserProfile] Geo lookup failed (non-critical):', geoError.message);
+          context.log('[syncUserProfile] IP geo lookup failed (non-critical):', geoError.message);
         }
       }
       
@@ -242,6 +268,7 @@ app.http('syncUserProfile', {
         emailVerified: currentUser.claims?.find(c => c.typ === 'email_verified')?.val === 'true',
         ip: clientIp,
         location: locationInfo,
+        locationSource: locationSource,
         userAgent: userAgent
       });
 

@@ -18,6 +18,28 @@ export enum AuthProvider {
 }
 
 /**
+ * Login Location Info
+ */
+export interface LoginLocation {
+  city?: string | null;
+  region?: string | null;
+  country?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+/**
+ * Login History Entry
+ */
+export interface LoginHistoryEntry {
+  timestamp: string;
+  ip?: string | null;
+  location?: LoginLocation | null;
+  locationSource?: 'entra' | 'ip-api' | null;
+  userAgent?: string | null;
+}
+
+/**
  * User Profile Interface
  */
 export interface UserProfile {
@@ -34,12 +56,10 @@ export interface UserProfile {
   updatedAt: string;
   lastLoginAt: string;
   lastLoginIp?: string | null;
-  lastLoginLocation?: {
-    city?: string;
-    region?: string;
-    country?: string;
-  } | null;
+  lastLoginLocation?: LoginLocation | null;
+  lastLoginLocationSource?: 'entra' | 'ip-api' | null;
   lastLoginUserAgent?: string | null;
+  loginHistory?: LoginHistoryEntry[];
   metadata?: {
     signupIp?: string | null;
     emailVerified?: boolean;

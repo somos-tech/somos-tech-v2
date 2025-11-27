@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Shield, Plus, Trash2, Edit2, UserCheck, UserX, Users, MapPin, Clock, Camera, Loader2, Ban, CheckCircle, Globe, Monitor, AlertTriangle } from 'lucide-react';
+import { Shield, Plus, Trash2, Edit2, UserCheck, UserX, Users, MapPin, Clock, Camera, Loader2, Ban, CheckCircle, Globe, Monitor, AlertTriangle, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,7 @@ import { adminUsersService } from '@/api/adminUsersService';
 import { listUsers, getUserStats, updateUserStatus } from '@/api/userService';
 import { uploadProfilePhoto, validateFile, ALLOWED_EXTENSIONS } from '@/api/mediaService';
 import { useAuth } from '@/hooks/useAuth';
+import type { LoginHistoryEntry } from '@/types/user';
 
 export default function AdminUsers() {
     const { user } = useAuth();
@@ -41,6 +42,8 @@ export default function AdminUsers() {
     const [showAddDialog, setShowAddDialog] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [showStatusDialog, setShowStatusDialog] = useState(false);
+    const [showLoginHistoryDialog, setShowLoginHistoryDialog] = useState(false);
+    const [selectedUserForHistory, setSelectedUserForHistory] = useState<UserProfile | null>(null);
     const [selectedUserForStatus, setSelectedUserForStatus] = useState<UserProfile | null>(null);
     const [statusAction, setStatusAction] = useState<'block' | 'activate'>('block');
     const [statusReason, setStatusReason] = useState('');
@@ -249,6 +252,22 @@ export default function AdminUsers() {
             return `IP: ${userProfile.lastLoginIp}`;
         }
         return 'Unknown';
+    };
+
+    // Format location source badge
+    const getLocationSourceBadge = (source?: string | null) => {
+        if (source === 'entra') {
+            return <Badge variant="outline" className="ml-2 text-xs bg-blue-500/10 text-blue-400 border-blue-500/30">Entra ID</Badge>;
+        } else if (source === 'ip-api') {
+            return <Badge variant="outline" className="ml-2 text-xs bg-gray-500/10 text-gray-400 border-gray-500/30">IP Lookup</Badge>;
+        }
+        return null;
+    };
+
+    // Open login history dialog
+    const handleViewLoginHistory = (userProfile: UserProfile) => {
+        setSelectedUserForHistory(userProfile);
+        setShowLoginHistoryDialog(true);
     };
 
     // Filter users by search query
@@ -841,6 +860,16 @@ export default function AdminUsers() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleViewLoginHistory(userProfile)}
+                                                            className="text-xs"
+                                                            style={{ borderColor: '#00D4FF', color: '#00D4FF' }}
+                                                            title="View login history"
+                                                        >
+                                                            <History className="h-3 w-3" />
+                                                        </Button>
                                                         {userProfile.status === 'active' ? (
                                                             <Button
                                                                 variant="outline"
@@ -983,6 +1012,125 @@ export default function AdminUsers() {
                                     <CheckCircle className="h-4 w-4 mr-2" />
                                 )}
                                 {statusAction === 'block' ? 'Disable Account' : 'Enable Account'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Login History Dialog */}
+                <Dialog open={showLoginHistoryDialog} onOpenChange={setShowLoginHistoryDialog}>
+                    <DialogContent style={{ backgroundColor: '#0A1929', borderColor: '#1E3A5F' }} className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2" style={{ color: '#00D4FF' }}>
+                                <History className="h-5 w-5" />
+                                Login History
+                            </DialogTitle>
+                            <DialogDescription style={{ color: '#8394A7' }}>
+                                {selectedUserForHistory && (
+                                    <span>
+                                        Showing recent login activity for <strong style={{ color: '#FFFFFF' }}>{selectedUserForHistory.displayName}</strong> ({selectedUserForHistory.email})
+                                    </span>
+                                )}
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {selectedUserForHistory && (
+                            <div className="space-y-4">
+                                {/* Current Session Info */}
+                                <div className="p-4 rounded-lg" style={{ backgroundColor: '#051323', border: '1px solid #1E3A5F' }}>
+                                    <h4 className="text-sm font-medium mb-3" style={{ color: '#00FF91' }}>Latest Login</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <span className="text-xs" style={{ color: '#8394A7' }}>Time</span>
+                                            <p className="text-sm" style={{ color: '#FFFFFF' }}>
+                                                {new Date(selectedUserForHistory.lastLoginAt).toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs" style={{ color: '#8394A7' }}>IP Address</span>
+                                            <p className="text-sm" style={{ color: '#FFFFFF' }}>
+                                                {selectedUserForHistory.lastLoginIp || 'Unknown'}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs" style={{ color: '#8394A7' }}>Location</span>
+                                            <p className="text-sm flex items-center" style={{ color: '#FFFFFF' }}>
+                                                {formatLocation(selectedUserForHistory)}
+                                                {getLocationSourceBadge(selectedUserForHistory.lastLoginLocationSource)}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs" style={{ color: '#8394A7' }}>Total Logins</span>
+                                            <p className="text-sm" style={{ color: '#FFFFFF' }}>
+                                                {selectedUserForHistory.metadata?.loginCount || 1}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {selectedUserForHistory.lastLoginUserAgent && (
+                                        <div className="mt-3">
+                                            <span className="text-xs" style={{ color: '#8394A7' }}>Device / Browser</span>
+                                            <p className="text-xs mt-1" style={{ color: '#5a6f82' }}>
+                                                {selectedUserForHistory.lastLoginUserAgent}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Login History Table */}
+                                {selectedUserForHistory.loginHistory && selectedUserForHistory.loginHistory.length > 0 ? (
+                                    <div>
+                                        <h4 className="text-sm font-medium mb-3" style={{ color: '#FFFFFF' }}>Login History (Last 10)</h4>
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow style={{ borderColor: '#1E3A5F' }}>
+                                                    <TableHead style={{ color: '#8394A7' }}>Time</TableHead>
+                                                    <TableHead style={{ color: '#8394A7' }}>IP Address</TableHead>
+                                                    <TableHead style={{ color: '#8394A7' }}>Location</TableHead>
+                                                    <TableHead style={{ color: '#8394A7' }}>Source</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {selectedUserForHistory.loginHistory.map((entry, index) => (
+                                                    <TableRow key={index} style={{ borderColor: '#1E3A5F' }}>
+                                                        <TableCell style={{ color: '#FFFFFF' }}>
+                                                            {new Date(entry.timestamp).toLocaleString()}
+                                                        </TableCell>
+                                                        <TableCell style={{ color: '#8394A7' }}>
+                                                            {entry.ip || 'Unknown'}
+                                                        </TableCell>
+                                                        <TableCell style={{ color: '#8394A7' }}>
+                                                            {entry.location ? (
+                                                                [entry.location.city, entry.location.region, entry.location.country].filter(Boolean).join(', ') || 'Unknown'
+                                                            ) : 'Unknown'}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {getLocationSourceBadge(entry.locationSource)}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-6" style={{ color: '#8394A7' }}>
+                                        <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                        <p>No detailed login history available yet.</p>
+                                        <p className="text-xs mt-1">History will be recorded for future logins.</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <DialogFooter>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setShowLoginHistoryDialog(false);
+                                    setSelectedUserForHistory(null);
+                                }}
+                                style={{ borderColor: '#1E3A5F', color: '#FFFFFF' }}
+                            >
+                                Close
                             </Button>
                         </DialogFooter>
                     </DialogContent>

@@ -122,7 +122,7 @@ async function updateUser(userId, updates) {
 /**
  * Update user last login timestamp and location
  * @param {string} userId - User ID
- * @param {Object} loginData - Login metadata (ip, userAgent, etc.)
+ * @param {Object} loginData - Login metadata (ip, userAgent, location, etc.)
  * @returns {Promise<void>}
  */
 async function updateLastLogin(userId, loginData = {}) {
@@ -132,12 +132,30 @@ async function updateLastLogin(userId, loginData = {}) {
     return;
   }
 
+  // Build login history entry
+  const loginEntry = {
+    timestamp: new Date().toISOString(),
+    ip: loginData.ip || null,
+    location: loginData.location || null,
+    locationSource: loginData.locationSource || null,
+    userAgent: loginData.userAgent || null
+  };
+
+  // Keep last 10 login entries in history
+  const loginHistory = user.loginHistory || [];
+  loginHistory.unshift(loginEntry);
+  if (loginHistory.length > 10) {
+    loginHistory.pop();
+  }
+
   const updatedUser = {
     ...user,
     lastLoginAt: new Date().toISOString(),
     lastLoginIp: loginData.ip || user.lastLoginIp || null,
     lastLoginLocation: loginData.location || user.lastLoginLocation || null,
+    lastLoginLocationSource: loginData.locationSource || user.lastLoginLocationSource || null,
     lastLoginUserAgent: loginData.userAgent || user.lastLoginUserAgent || null,
+    loginHistory: loginHistory,
     metadata: {
       ...user.metadata,
       firstLogin: false,
