@@ -106,11 +106,10 @@ export default function GroupsDirectoryRedesigned() {
                                 placeholder="Search by city, state, or group name..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 rounded-lg border text-white placeholder-gray-400 transition-all focus:outline-none focus:ring-2"
+                                className="w-full pl-12 pr-4 py-3 rounded-lg border text-white placeholder-gray-400 transition-all focus:outline-none focus:ring-2 focus:ring-[#00FF91]/50"
                                 style={{
                                     backgroundColor: '#0A1628',
-                                    borderColor: 'rgba(0, 255, 145, 0.2)',
-                                    focusRingColor: 'rgba(0, 255, 145, 0.5)'
+                                    borderColor: 'rgba(0, 255, 145, 0.2)'
                                 }}
                             />
                         </div>
