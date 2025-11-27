@@ -38,6 +38,7 @@ interface DashboardStats {
     totalEvents: number;
     upcomingEvents: number;
     alerts: number;
+    moderationPending: number;
 }
 
 export default function AdminDashboard() {
@@ -49,7 +50,8 @@ export default function AdminDashboard() {
         totalGroups: 0,
         totalEvents: 0,
         upcomingEvents: 0,
-        alerts: 0
+        alerts: 0,
+        moderationPending: 0
     });
     const [loading, setLoading] = useState(true);
 
@@ -62,10 +64,11 @@ export default function AdminDashboard() {
             setLoading(true);
             
             // Fetch all stats in parallel
-            const [userStats, events, groupsData] = await Promise.all([
+            const [userStats, events, groupsData, moderationStats] = await Promise.all([
                 getUserStats().catch(() => ({ total: 0, active: 0, blocked: 0 })),
                 eventService.getEvents().catch(() => []),
-                listGroups().catch(() => ({ groups: [], total: 0, userMemberships: [] }))
+                listGroups().catch(() => ({ groups: [], total: 0, userMemberships: [] })),
+                fetch('/api/moderation/stats').then(r => r.ok ? r.json() : { pending: 0 }).catch(() => ({ pending: 0 }))
             ]);
 
             // Calculate upcoming events (events with date >= today)
@@ -79,7 +82,8 @@ export default function AdminDashboard() {
                 totalGroups: groupsData.total || groupsData.groups?.length || 0,
                 totalEvents: events.length,
                 upcomingEvents: upcomingEvents,
-                alerts: 0 // We'll check for system alerts
+                alerts: moderationStats.pending || 0, // Use moderation pending as alerts
+                moderationPending: moderationStats.pending || 0
             });
         } catch (error) {
             console.error('Failed to load dashboard stats:', error);
@@ -179,7 +183,7 @@ export default function AdminDashboard() {
         { label: 'Total Users', value: loading ? '...' : stats.totalUsers.toLocaleString(), icon: Users, path: '/admin/users', color: '#00FF91' },
         { label: 'Events This Week', value: loading ? '...' : stats.upcomingEvents.toString(), icon: Calendar, path: '/admin/events', color: '#00D4FF' },
         { label: 'Active Groups', value: loading ? '...' : stats.totalGroups.toString(), icon: MapPin, path: '/admin/groups', color: '#FF6B6B' },
-        { label: 'Security Alerts', value: loading ? '...' : stats.alerts.toString(), icon: AlertTriangle, path: '/admin/settings/security', color: '#FFB800' }
+        { label: 'Moderation Queue', value: loading ? '...' : stats.moderationPending.toString(), icon: AlertTriangle, path: '/admin/settings/moderation', color: '#FFB800' }
     ];
 
     const AdminCardComponent = ({ card, size = 'large' }: { card: AdminCard; size?: 'large' | 'small' }) => {

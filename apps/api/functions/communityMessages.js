@@ -15,6 +15,7 @@ import { app } from '@azure/functions';
 import { requireAuth, getClientPrincipal } from '../shared/authMiddleware.js';
 import { getContainer } from '../shared/db.js';
 import { successResponse, errorResponse } from '../shared/httpResponse.js';
+import { moderateContent, getModerationConfig } from '../shared/moderationService.js';
 
 const CONTAINERS = {
     MESSAGES: 'community-messages',
@@ -173,6 +174,28 @@ app.http('communityMessages', {
 
                 if (!content || !content.trim()) {
                     return errorResponse(400, 'Message content is required');
+                }
+
+                // Content moderation check
+                try {
+                    const moderationResult = await moderateContent({
+                        type: 'message',
+                        text: content.trim(),
+                        userId: principal.userId,
+                        userEmail: principal.userDetails,
+                        channelId: channelId
+                    });
+
+                    if (!moderationResult.allowed) {
+                        context.log(`[CommunityMessages] Content blocked for user ${principal.userDetails}:`, moderationResult);
+                        return errorResponse(400, 'Your message contains content that violates our community guidelines.', {
+                            reason: 'content_moderation',
+                            categories: moderationResult.textResult?.categories?.map(c => c.category) || []
+                        });
+                    }
+                } catch (moderationError) {
+                    // Log but don't block on moderation errors
+                    context.warn('[CommunityMessages] Moderation check failed, allowing message:', moderationError.message);
                 }
 
                 // Get user profile for display
