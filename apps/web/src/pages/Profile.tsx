@@ -53,27 +53,38 @@ export default function Profile() {
                 setError(null);
                 
                 // First, sync/create user profile
-                const syncResponse = await fetch('/api/users/sync', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                
-                if (!syncResponse.ok) {
-                    console.warn('User sync failed, continuing with profile fetch');
+                try {
+                    const syncResponse = await fetch('/api/users/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    if (!syncResponse.ok) {
+                        console.warn('User sync failed, status:', syncResponse.status);
+                    }
+                } catch (syncErr) {
+                    console.warn('User sync error:', syncErr);
                 }
                 
                 // Then get full profile
                 const response = await fetch('/api/users/me');
                 
                 if (response.ok) {
-                    const data = await response.json();
-                    setProfile(data);
-                    setEditForm({
-                        displayName: data.displayName || '',
-                        bio: data.bio || '',
-                        location: data.location || '',
-                        website: data.website || ''
-                    });
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const data = await response.json();
+                        setProfile(data);
+                        setEditForm({
+                            displayName: data.displayName || '',
+                            bio: data.bio || '',
+                            location: data.location || '',
+                            website: data.website || ''
+                        });
+                    } else {
+                        // Non-JSON response, use defaults
+                        console.warn('Profile API returned non-JSON response');
+                        setProfile(null);
+                    }
                 } else if (response.status === 404) {
                     // Profile doesn't exist yet, use auth data
                     setProfile(null);
@@ -84,11 +95,14 @@ export default function Profile() {
                         website: ''
                     });
                 } else {
-                    throw new Error('Failed to load profile');
+                    console.warn('Profile fetch failed with status:', response.status);
+                    // Don't throw error, just use defaults
+                    setProfile(null);
                 }
             } catch (err) {
                 console.error('Error fetching profile:', err);
-                setError('Failed to load profile. Please try again.');
+                // Don't show error to user for profile fetch, just use defaults
+                setProfile(null);
             } finally {
                 setIsLoading(false);
             }

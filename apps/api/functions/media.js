@@ -58,7 +58,14 @@ app.http('mediaUpload', {
                 }
 
                 // Parse multipart form data
-                const formData = await request.formData();
+                let formData;
+                try {
+                    formData = await request.formData();
+                } catch (formError) {
+                    context.error(`[Media] Form data parse error: ${formError.message}`);
+                    return errorResponse(400, 'Invalid form data. Please try again.');
+                }
+                
                 const file = formData.get('file');
 
                 if (!file) {
@@ -66,10 +73,16 @@ app.http('mediaUpload', {
                 }
 
                 // Get file details
-                const arrayBuffer = await file.arrayBuffer();
-                const buffer = Buffer.from(arrayBuffer);
-                const contentType = file.type;
-                const originalFilename = file.name;
+                let arrayBuffer, buffer, contentType, originalFilename;
+                try {
+                    arrayBuffer = await file.arrayBuffer();
+                    buffer = Buffer.from(arrayBuffer);
+                    contentType = file.type;
+                    originalFilename = file.name;
+                } catch (fileError) {
+                    context.error(`[Media] File processing error: ${fileError.message}`);
+                    return errorResponse(400, 'Failed to process file');
+                }
 
                 context.log(`[Media] Uploading profile photo for ${userId}: ${originalFilename} (${contentType}, ${buffer.length} bytes)`);
 

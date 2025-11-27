@@ -116,6 +116,16 @@ export async function uploadProfilePhoto(file: File): Promise<{ success: boolean
             body: formData
         });
 
+        // Check content-type before parsing
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error('Media API returned non-JSON response:', response.status);
+            return {
+                success: false,
+                error: `Server error (${response.status}). Please try again.`
+            };
+        }
+
         const result = await response.json();
 
         if (!response.ok) {
@@ -130,6 +140,7 @@ export async function uploadProfilePhoto(file: File): Promise<{ success: boolean
             data: result.data || result
         };
     } catch (error) {
+        console.error('Profile photo upload error:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Network error'
