@@ -51,7 +51,8 @@ jobs:
           api_location: ''  # Empty - using linked Azure Function App backend
           output_location: 'dist'
         env:
-          VITE_API_URL: 'https://func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net'
+          # IMPORTANT: Do NOT set VITE_API_URL here!
+          # API calls must go through SWA proxy (/api/...) to get auth headers
           VITE_ENVIRONMENT: dev
 
       - name: Azure Login
@@ -96,7 +97,8 @@ jobs:
           api_location: ''  # Empty - using linked Azure Function App backend
           output_location: 'dist'
         env:
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          # IMPORTANT: Do NOT set VITE_API_URL here!
+          # API calls must go through SWA proxy (/api/...) to get auth headers
           VITE_ENVIRONMENT: prod
 
       - name: Azure Login
@@ -141,7 +143,8 @@ jobs:
           api_location: ''  # Empty - using linked Azure Function App backend
           output_location: 'dist'
         env:
-          VITE_API_URL: https://func-somos-tech-dev-64qb73pzvgekw.azurewebsites.net
+          # IMPORTANT: Do NOT set VITE_API_URL here!
+          # API calls must go through SWA proxy (/api/...) to get auth headers
           VITE_ENVIRONMENT: preview
 
   close_pull_request_job:
