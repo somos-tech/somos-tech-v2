@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { AdminNav } from '@/components/AdminNav';
+import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
 import { UserAvatar } from '@/components/DefaultAvatar';
 import type { AdminUser } from '@/shared/types';
 import type { UserProfile } from '@/types/user';
