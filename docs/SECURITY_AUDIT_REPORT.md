@@ -129,6 +129,8 @@ const isDevelopment = process.env.NODE_ENV === 'development' ||
                       process.env.NODE_ENV === 'dev';
 ```
 
+**Note:** Both `NODE_ENV=development` and `NODE_ENV=dev` trigger development mode, which creates inconsistency and increases the risk of accidental activation.
+
 In development mode, a mock admin user is automatically returned, bypassing all authentication:
 ```javascript
 function getMockClientPrincipal() {
@@ -175,10 +177,10 @@ The AI Agent API endpoints implement rate limiting but do NOT require authentica
 ```javascript
 app.http('InvokeAgent', {
     methods: ['POST'],
-    authLevel: 'anonymous',  // ← No auth check
+    authLevel: 'anonymous',  // NOTE: No authentication check here
     route: 'agent/invoke',
     handler: async (request, context) => {
-        // Rate limiting only, no requireAuth()
+        // Rate limiting only, no requireAuth() call
         const rateLimitError = rateLimitMiddleware(request, 10, 300000);
 ```
 
