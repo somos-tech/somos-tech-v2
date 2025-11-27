@@ -85,6 +85,7 @@ export default function AdminMedia() {
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
     const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
@@ -203,6 +204,7 @@ export default function AdminMedia() {
 
         setIsUploading(true);
         setError(null);
+        setSuccessMessage(null);
 
         try {
             // Use the selected folder or 'root' if no folder selected
@@ -210,6 +212,11 @@ export default function AdminMedia() {
             const result = await uploadSiteAsset(file, folder, uploadContainer);
             
             if (result.success) {
+                // Show success message
+                const folderPath = folder === 'root' ? '' : `${folder}/`;
+                setSuccessMessage(`File uploaded successfully to ${uploadContainer}/${folderPath}`);
+                setTimeout(() => setSuccessMessage(null), 5000);
+                
                 // Refresh the current container if we're viewing the upload target
                 if (selectedContainer === uploadContainer) {
                     await loadContainerFiles(selectedContainer);
@@ -234,7 +241,8 @@ export default function AdminMedia() {
         }
     };
 
-    // Handle creating a new folder (by uploading to a new path)
+    // Handle creating a new folder (by setting it as the upload destination)
+    // Note: In Azure Blob Storage, folders are virtual - they only exist when files are uploaded to them
     const handleCreateFolder = () => {
         if (!newFolderName.trim()) {
             setError('Please enter a folder name');
@@ -249,6 +257,10 @@ export default function AdminMedia() {
         setUploadFolder(newFolderName.trim());
         setNewFolderName('');
         setShowNewFolderInput(false);
+        // Show info message that folder will be created on upload
+        setError(null);
+        setSuccessMessage(`Folder "${newFolderName.trim()}" set as upload destination. Upload a file to create it.`);
+        setTimeout(() => setSuccessMessage(null), 5000);
     };
 
     const handleDeleteFile = async (filename: string) => {
@@ -361,6 +373,24 @@ export default function AdminMedia() {
                             onClick={() => setError(null)} 
                             className="ml-auto"
                             style={{ color: '#ef4444' }}
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
+
+                {/* Success Message */}
+                {successMessage && (
+                    <div 
+                        className="flex items-center gap-2 p-4 rounded-lg"
+                        style={{ backgroundColor: 'rgba(0, 255, 145, 0.2)', color: '#00FF91' }}
+                    >
+                        <Check className="w-5 h-5" />
+                        {successMessage}
+                        <button 
+                            onClick={() => setSuccessMessage(null)} 
+                            className="ml-auto"
+                            style={{ color: '#00FF91' }}
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -499,6 +529,9 @@ export default function AdminMedia() {
                     </div>
                     <p className="text-xs mt-3" style={{ color: '#8394A7' }}>
                         JPG, JPEG, PNG only • Max 20MB • Upload to: <span style={{ color: '#00FF91' }}>{uploadContainer}/{uploadFolder || 'root'}</span>
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
+                        💡 Tip: Folders are created when you upload a file. Enter a folder name and upload an image to create it.
                     </p>
                 </Card>
 

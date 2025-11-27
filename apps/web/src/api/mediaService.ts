@@ -35,6 +35,35 @@ export const SIZE_LIMITS = {
 };
 
 /**
+ * Generate a default avatar URL for users without a profile photo
+ * Uses ui-avatars.com to create consistent, initials-based avatars
+ * 
+ * @param name - User's display name (used to generate initials)
+ * @param size - Avatar size in pixels (default: 128)
+ * @returns URL to the generated avatar image
+ */
+export function getDefaultAvatarUrl(name: string = 'User', size: number = 128): string {
+    const encodedName = encodeURIComponent(name);
+    // Uses SOMOS brand colors: #00FF91 (neon green) background, #051323 (dark blue) text
+    return `https://ui-avatars.com/api/?name=${encodedName}&size=${size}&background=00FF91&color=051323&bold=true`;
+}
+
+/**
+ * Get the appropriate avatar URL - returns profile photo if available, otherwise default avatar
+ * 
+ * @param photoUrl - User's profile photo URL (may be null/undefined)
+ * @param name - User's display name for fallback avatar
+ * @param size - Avatar size in pixels
+ * @returns URL to display as the user's avatar
+ */
+export function getAvatarUrl(photoUrl: string | null | undefined, name: string = 'User', size: number = 128): string {
+    if (photoUrl && photoUrl.trim()) {
+        return photoUrl;
+    }
+    return getDefaultAvatarUrl(name, size);
+}
+
+/**
  * Validate file before upload (client-side)
  */
 export function validateFile(file: File, category: 'PROFILE_PHOTO' | 'SITE_ASSET' | 'DEFAULT' = 'DEFAULT'): { valid: boolean; error?: string } {

@@ -246,7 +246,7 @@ export default function ProfilePhotoUpload({
             {/* Upload Hints */}
             <p className="text-xs text-center" style={{ color: '#8394A7' }}>
                 Drag & drop or click to upload<br />
-                JPG, PNG, GIF, WebP • Max 5MB
+                JPG, JPEG, PNG only • Max 5MB
             </p>
         </div>
     );

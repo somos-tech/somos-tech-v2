@@ -139,20 +139,17 @@ function validateFileSize(size, category = 'DEFAULT') {
 
 /**
  * Validate image magic bytes (file signature)
+ * Only allows JPG/JPEG and PNG for security
  */
 function validateMagicBytes(buffer) {
     if (!buffer || buffer.length < 8) {
         return { valid: false, error: 'File too small to validate' };
     }
     
+    // Only allow JPEG and PNG signatures for security
     const signatures = {
         jpeg: [0xFF, 0xD8, 0xFF],
-        png: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
-        gif87a: [0x47, 0x49, 0x46, 0x38, 0x37, 0x61],
-        gif89a: [0x47, 0x49, 0x46, 0x38, 0x39, 0x61],
-        webp: [0x52, 0x49, 0x46, 0x46], // RIFF header (WebP starts with RIFF)
-        svg: [0x3C, 0x3F, 0x78, 0x6D, 0x6C], // <?xml or <svg
-        svgDirect: [0x3C, 0x73, 0x76, 0x67] // <svg
+        png: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
     };
     
     const bytes = new Uint8Array(buffer.slice(0, 8));
@@ -161,16 +158,11 @@ function validateMagicBytes(buffer) {
     const matchesSignature = (sig) => sig.every((byte, i) => bytes[i] === byte);
     
     if (matchesSignature(signatures.jpeg) ||
-        matchesSignature(signatures.png) ||
-        matchesSignature(signatures.gif87a) ||
-        matchesSignature(signatures.gif89a) ||
-        matchesSignature(signatures.webp) ||
-        matchesSignature(signatures.svg) ||
-        matchesSignature(signatures.svgDirect)) {
+        matchesSignature(signatures.png)) {
         return { valid: true };
     }
     
-    return { valid: false, error: 'File signature does not match allowed image types' };
+    return { valid: false, error: 'Invalid file format. Only JPG, JPEG, and PNG files are allowed.' };
 }
 
 /**
@@ -409,6 +401,47 @@ export async function getStorageStats() {
     }
     
     return stats;
+}
+
+/**
+ * Generate a default avatar URL using UI Avatars service
+ * This provides a consistent, professional-looking default avatar
+ * based on the user's name or email
+ */
+export function getDefaultAvatarUrl(name, email, options = {}) {
+    const {
+        size = 128,
+        background = '00FF91',
+        color = '051323',
+        bold = true,
+        rounded = true
+    } = options;
+    
+    // Get initials from name or email
+    let initials = '';
+    if (name && name.trim()) {
+        const parts = name.trim().split(/\s+/);
+        initials = parts.length >= 2 
+            ? parts[0][0] + parts[parts.length - 1][0]
+            : parts[0].substring(0, 2);
+    } else if (email) {
+        initials = email.split('@')[0].substring(0, 2);
+    } else {
+        initials = 'U';
+    }
+    
+    // Use UI Avatars service for consistent default avatars
+    const params = new URLSearchParams({
+        name: initials.toUpperCase(),
+        size: size.toString(),
+        background,
+        color,
+        bold: bold.toString(),
+        rounded: rounded.toString(),
+        format: 'png'
+    });
+    
+    return `https://ui-avatars.com/api/?${params.toString()}`;
 }
 
 // Export containers for reference
