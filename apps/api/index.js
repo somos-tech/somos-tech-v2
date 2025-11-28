@@ -18,6 +18,7 @@ import "./functions/groupMessages.js";
 import "./functions/groupEvents.js";
 import "./functions/communityMessages.js";
 import "./functions/broadcastNotifications.js";
-import "./functions/syncUserProfile.js";
+// Note: syncUserProfile is already defined in users.js - don't import duplicate
+// import "./functions/syncUserProfile.js";
 //import "./functions/testAdmin.js";
 
