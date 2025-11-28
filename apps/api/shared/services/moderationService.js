@@ -107,6 +107,48 @@ const DEFAULT_BLOCKLIST = [
     'b*tch', 'stfu', 'gtfo'
 ];
 
+// ============== DEFAULT BLOCKED DOMAINS ==============
+
+/**
+ * Default list of blocked domains for Tier 1
+ * Categories: URL shorteners (can hide malicious links), known malicious domains,
+ * adult content, piracy sites, known scam domains
+ * 
+ * Note: URL shorteners are blocked because they can mask malicious destinations
+ */
+const DEFAULT_BLOCKED_DOMAINS = [
+    // URL Shorteners (can hide malicious links)
+    'bit.ly', 'tinyurl.com', 'goo.gl', 't.co', 'ow.ly', 'is.gd', 'buff.ly',
+    'adf.ly', 'bit.do', 'mcaf.ee', 'su.pr', 'tiny.cc', 'shorte.st', 'bc.vc',
+    'j.mp', 'v.gd', 'tr.im', 'soo.gd', 'cutt.ly', 's.id', 'rb.gy', 'clck.ru',
+    'shorturl.at', '1url.com', 'hyperurl.co', 'urlzs.com', 'u.to', '0rz.tw',
+    
+    // Known malicious/phishing patterns
+    'freegiftcard', 'free-iphone', 'claim-prize', 'you-won', 'winner-alert',
+    'urgent-action', 'verify-account', 'suspended-account', 'security-alert',
+    'login-verify', 'account-update', 'confirm-identity', 'password-reset-now',
+    
+    // Crypto scam domains
+    'double-bitcoin', 'free-crypto', 'crypto-giveaway', 'elon-giveaway',
+    'btc-double', 'eth-airdrop', 'nft-free', 'token-airdrop',
+    
+    // Adult content domains (explicit - commonly blocked in professional communities)
+    'pornhub.com', 'xvideos.com', 'xnxx.com', 'xhamster.com', 'redtube.com',
+    'youporn.com', 'spankbang.com', 'porn.com', 'tube8.com', 'beeg.com',
+    
+    // Piracy/illegal streaming
+    '123movies', 'putlocker', 'fmovies', 'soap2day', 'yts.mx', 'rarbg',
+    'thepiratebay', '1337x', 'kickass', 'torrentz',
+    
+    // Known scam TLDs and patterns (be careful - some legit sites use these)
+    // These are patterns, not full domains
+    '.xyz/free', '.top/claim', '.tk/', '.ml/', '.ga/', '.cf/', '.gq/',
+    
+    // Discord phishing (common patterns)
+    'discord-nitro-free', 'discordgift', 'dlscord', 'd1scord', 'discordc',
+    'nitro-gift', 'free-nitro', 'steam-gift', 'roblox-robux'
+];
+
 // ============== TIER 3: AZURE AI CONTENT SAFETY ==============
 
 /**
@@ -190,8 +232,9 @@ function getDefaultConfig() {
         tier1: {
             enabled: true,
             name: 'Keyword Filter',
-            description: 'Custom blocklist of words and phrases',
+            description: 'Custom blocklist of words, phrases, and domains',
             blocklist: [...DEFAULT_BLOCKLIST],
+            blockedDomains: [...DEFAULT_BLOCKED_DOMAINS],
             caseSensitive: false,
             matchWholeWord: false,
             action: 'block' // 'block' | 'review' | 'flag'
@@ -386,7 +429,7 @@ function fuzzyMatch(text, term, matchWholeWord = false) {
 }
 
 /**
- * TIER 1: Check text against custom blocklist
+ * TIER 1: Check text against custom blocklist and blocked domains
  * Uses fuzzy matching to catch variations with repeated chars, leetspeak, etc.
  * @param {string} text - Text to check
  * @param {Object} tier1Config - Tier 1 configuration
@@ -399,6 +442,7 @@ function runTier1KeywordFilter(text, tier1Config) {
         passed: true,
         action: 'allow',
         matches: [],
+        blockedUrls: [],
         checks: []
     };
 
@@ -411,45 +455,122 @@ function runTier1KeywordFilter(text, tier1Config) {
         return result;
     }
 
+    // Check blocklist keywords
     const blocklist = tier1Config.blocklist || [];
-    if (blocklist.length === 0) {
-        result.checks.push({
-            name: 'blocklist_check',
-            passed: true,
-            message: 'Blocklist is empty - no filtering applied'
-        });
-        return result;
+    if (blocklist.length > 0) {
+        for (const term of blocklist) {
+            // Use fuzzy matching to catch variations
+            const matched = fuzzyMatch(text, term, tier1Config.matchWholeWord);
+            
+            if (matched) {
+                result.matches.push({
+                    term: term,
+                    type: 'blocklist'
+                });
+            }
+        }
     }
 
-    for (const term of blocklist) {
-        // Use fuzzy matching to catch variations
-        const matched = fuzzyMatch(text, term, tier1Config.matchWholeWord);
+    // Check blocked domains (URL shorteners, malicious, adult, etc.)
+    const blockedDomains = tier1Config.blockedDomains || [];
+    if (blockedDomains.length > 0) {
+        const urls = extractUrlsFromText(text);
+        for (const url of urls) {
+            const domain = extractDomainFromUrl(url);
+            if (domain) {
+                // Check if the URL contains any blocked domain pattern
+                for (const blockedDomain of blockedDomains) {
+                    // Handle patterns (like ".xyz/free") vs full domains (like "bit.ly")
+                    const urlLower = url.toLowerCase();
+                    const blockedLower = blockedDomain.toLowerCase();
+                    
+                    if (blockedLower.startsWith('.')) {
+                        // Pattern matching (e.g., ".xyz/free")
+                        if (urlLower.includes(blockedLower)) {
+                            result.blockedUrls.push({
+                                url: url,
+                                domain: blockedDomain,
+                                type: 'pattern',
+                                reason: 'Matches blocked URL pattern'
+                            });
+                            result.matches.push({
+                                term: blockedDomain,
+                                type: 'blocked_domain'
+                            });
+                            break;
+                        }
+                    } else {
+                        // Full domain matching
+                        if (domain.endsWith(blockedLower) || domain === blockedLower || urlLower.includes(blockedLower)) {
+                            result.blockedUrls.push({
+                                url: url,
+                                domain: blockedDomain,
+                                type: 'domain',
+                                reason: 'Domain is in blocked list'
+                            });
+                            result.matches.push({
+                                term: blockedDomain,
+                                type: 'blocked_domain'
+                            });
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Add check results
+    if (result.matches.length > 0) {
+        result.passed = false;
+        result.action = tier1Config.action || 'block';
         
-        if (matched) {
-            result.matches.push({
-                term: term,
-                type: 'blocklist'
+        const keywordMatches = result.matches.filter(m => m.type === 'blocklist');
+        const domainMatches = result.matches.filter(m => m.type === 'blocked_domain');
+        
+        if (keywordMatches.length > 0) {
+            result.checks.push({
+                name: 'blocklist_check',
+                passed: false,
+                message: `Found ${keywordMatches.length} blocked term(s): ${keywordMatches.map(m => m.term).join(', ')}`
+            });
+        }
+        
+        if (domainMatches.length > 0) {
+            result.checks.push({
+                name: 'domain_blocklist_check',
+                passed: false,
+                message: `Found ${domainMatches.length} blocked domain(s): ${domainMatches.map(m => m.term).join(', ')}`
+            });
+        }
+    } else {
+        if (blocklist.length > 0) {
+            result.checks.push({
+                name: 'blocklist_check',
+                passed: true,
+                message: `Checked against ${blocklist.length} terms - no matches`
+            });
+        }
+        if (blockedDomains.length > 0) {
+            result.checks.push({
+                name: 'domain_blocklist_check',
+                passed: true,
+                message: `Checked against ${blockedDomains.length} blocked domains - no matches`
             });
         }
     }
 
-    if (result.matches.length > 0) {
-        result.passed = false;
-        result.action = tier1Config.action || 'block';
-        result.checks.push({
-            name: 'blocklist_check',
-            passed: false,
-            message: `Found ${result.matches.length} blocked term(s): ${result.matches.map(m => m.term).join(', ')}`
-        });
-    } else {
-        result.checks.push({
-            name: 'blocklist_check',
-            passed: true,
-            message: `Checked against ${blocklist.length} terms - no matches`
-        });
-    }
-
     return result;
+}
+
+/**
+ * Extract URLs from text (simple regex extraction)
+ * @param {string} text - Text to extract URLs from
+ * @returns {string[]} Array of URLs
+ */
+function extractUrlsFromText(text) {
+    const urlRegex = /https?:\/\/[^\s<>"{}|\\^`[\]]+/gi;
+    return text.match(urlRegex) || [];
 }
 
 /**
