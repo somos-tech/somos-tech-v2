@@ -3,6 +3,8 @@
  * Validates Azure Static Web Apps authentication headers
  */
 
+import { getContainer } from './db.js';
+
 // SECURITY: Development mode authentication should ONLY be enabled in local development
 // Flex Consumption plans don't set FUNCTIONS_EXTENSION_VERSION, so we use multiple indicators
 // to detect if we're running in Azure
@@ -143,7 +145,7 @@ async function requireAuth(request) {
 
 /**
  * Middleware to require admin role
- * Returns an error response if not admin
+ * Checks both userRoles from auth header AND admin-users container in Cosmos DB
  * @param {import('@azure/functions').HttpRequest} request - The HTTP request
  * @returns {Promise<Object>} Object with authenticated and isAdmin status, and proper HTTP error response
  */
@@ -154,24 +156,59 @@ async function requireAdmin(request) {
         return authResult;
     }
 
-    // Then check for admin role
-    if (!isAdmin(request)) {
-        return {
-            authenticated: true,
-            isAdmin: false,
-            error: {
-                status: 403,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    success: false,
-                    error: 'Insufficient permissions',
-                    message: 'Admin role required to access this resource'
+    const principal = getClientPrincipal(request);
+    const email = principal?.userDetails?.toLowerCase();
+    
+    // Check 1: userRoles from auth header (local dev mock or SWA role mappings)
+    if (isAdmin(request)) {
+        console.log(`[Auth] Admin access granted via userRoles for ${email}`);
+        return { authenticated: true, isAdmin: true };
+    }
+    
+    // Check 2: Query admin-users container in Cosmos DB
+    // This is the primary way to determine admin status in production
+    if (email) {
+        try {
+            const container = getContainer('admin-users');
+            const { resources: users } = await container.items
+                .query({
+                    query: 'SELECT * FROM c WHERE c.email = @email',
+                    parameters: [{ name: '@email', value: email }]
                 })
+                .fetchAll();
+            
+            if (users.length > 0) {
+                const adminUser = users[0];
+                const hasAdminRole = adminUser.status === 'active' && 
+                                     Array.isArray(adminUser.roles) && 
+                                     adminUser.roles.includes('admin');
+                
+                if (hasAdminRole) {
+                    console.log(`[Auth] Admin access granted via Cosmos DB for ${email}`);
+                    return { authenticated: true, isAdmin: true };
+                }
             }
-        };
+            console.log(`[Auth] User ${email} not found in admin-users or not active admin`);
+        } catch (dbError) {
+            console.error(`[Auth] Error checking admin-users container:`, dbError.message);
+            // Fall through to deny access - don't fail open
+        }
     }
 
-    return { authenticated: true, isAdmin: true };
+    // Not an admin
+    return {
+        authenticated: true,
+        isAdmin: false,
+        error: {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                success: false,
+                error: 'Insufficient permissions',
+                message: 'Admin role required to access this resource'
+            })
+        }
+    };
 }
 
 /**
