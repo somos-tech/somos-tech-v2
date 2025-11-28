@@ -3,10 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { UserPlus } from 'lucide-react';
-import { GoogleOneTap, GoogleSignInButton } from '@/components/GoogleOneTap';
-
-// Check if Google auth is configured
-const GOOGLE_ENABLED = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
 export default function Register() {
     const { isAuthenticated, isAdmin, isLoading } = useAuth();
@@ -44,20 +40,6 @@ export default function Register() {
 
     return (
         <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#051323' }}>
-            {/* Google One Tap - shows popup prompt for quick signup */}
-            {GOOGLE_ENABLED && !isAuthenticated && (
-                <GoogleOneTap 
-                    autoPrompt={true}
-                    context="signup"
-                    onSuccess={(credential, email) => {
-                        console.log('Google One Tap signup success:', email);
-                    }}
-                    onError={(error) => {
-                        console.log('Google One Tap error:', error);
-                    }}
-                />
-            )}
-            
             <div className="max-w-md w-full mx-auto px-4">
                 <div className="text-center mb-8">
                     <img 
@@ -75,34 +57,13 @@ export default function Register() {
                 </div>
 
                 <div className="space-y-4">
-                    {/* Google Sign-In Button - quick signup with Google */}
-                    {GOOGLE_ENABLED && (
-                        <>
-                            <div className="flex justify-center">
-                                <GoogleSignInButton 
-                                    theme="outline"
-                                    size="large"
-                                    text="signup_with"
-                                    shape="pill"
-                                    width={320}
-                                />
-                            </div>
-
-                            <div className="flex items-center gap-4">
-                                <div className="flex-1 h-px" style={{ backgroundColor: '#1a3a52' }}></div>
-                                <span className="text-sm" style={{ color: '#8394A7' }}>or</span>
-                                <div className="flex-1 h-px" style={{ backgroundColor: '#1a3a52' }}></div>
-                            </div>
-                        </>
-                    )}
-
                     <Button
                         onClick={handleRegister}
                         className="w-full rounded-full py-6 text-lg font-semibold transition-all hover:scale-105"
                         style={{ backgroundColor: '#00FF91', color: '#051323' }}
                     >
                         <UserPlus className="mr-2 h-5 w-5" />
-                        Sign Up with Email
+                        Sign Up with Microsoft
                     </Button>
                 </div>
 
