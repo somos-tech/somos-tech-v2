@@ -1,7 +1,19 @@
 import { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, Upload, X, Loader2, Check, AlertCircle } from 'lucide-react';
-import { uploadProfilePhoto, validateFile, ALLOWED_EXTENSIONS } from '@/api/mediaService';
+import { Camera, Upload, X, Loader2, Check, AlertCircle, FileCheck, FileX, FileImage } from 'lucide-react';
+import { uploadProfilePhoto, validateFile, ALLOWED_EXTENSIONS, ALLOWED_IMAGE_TYPES, SIZE_LIMITS, formatFileSize } from '@/api/mediaService';
+
+// Interface for file validation results
+interface FileValidation {
+    file: File | null;
+    typeCheck: 'pending' | 'pass' | 'fail';
+    sizeCheck: 'pending' | 'pass' | 'fail';
+    extensionCheck: 'pending' | 'pass' | 'fail';
+    typeError?: string;
+    sizeError?: string;
+    extensionError?: string;
+    isValid: boolean;
+}
 
 interface ProfilePhotoUploadProps {
     currentPhotoUrl?: string;
@@ -9,6 +21,7 @@ interface ProfilePhotoUploadProps {
     onUploadSuccess?: (url: string) => void;
     onUploadError?: (error: string) => void;
     size?: 'sm' | 'md' | 'lg';
+    showValidation?: boolean; // New prop to show/hide validation details
 }
 
 export default function ProfilePhotoUpload({
@@ -16,13 +29,21 @@ export default function ProfilePhotoUpload({
     userName = 'User',
     onUploadSuccess,
     onUploadError,
-    size = 'lg'
+    size = 'lg',
+    showValidation = true
 }: ProfilePhotoUploadProps) {
     const [isUploading, setIsUploading] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [uploadSuccess, setUploadSuccess] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [dragActive, setDragActive] = useState(false);
+    const [fileValidation, setFileValidation] = useState<FileValidation>({
+        file: null,
+        typeCheck: 'pending',
+        sizeCheck: 'pending',
+        extensionCheck: 'pending',
+        isValid: false
+    });
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const sizeClasses = {
@@ -46,15 +67,68 @@ export default function ProfilePhotoUpload({
             .slice(0, 2);
     };
 
+    // Validate file and update state with detailed feedback
+    const validateSelectedFile = (file: File): FileValidation => {
+        const validation: FileValidation = {
+            file,
+            typeCheck: 'pending',
+            sizeCheck: 'pending',
+            extensionCheck: 'pending',
+            isValid: false
+        };
+
+        // Check file type (MIME type)
+        if (ALLOWED_IMAGE_TYPES.includes(file.type)) {
+            validation.typeCheck = 'pass';
+        } else {
+            validation.typeCheck = 'fail';
+            validation.typeError = `"${file.type || 'unknown'}" not allowed`;
+        }
+
+        // Check file extension
+        const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+        if (ALLOWED_EXTENSIONS.includes(ext)) {
+            validation.extensionCheck = 'pass';
+        } else {
+            validation.extensionCheck = 'fail';
+            validation.extensionError = `"${ext}" not allowed`;
+        }
+
+        // Check file size (profile photos: 5MB limit)
+        const sizeLimit = SIZE_LIMITS.PROFILE_PHOTO;
+        if (file.size <= sizeLimit) {
+            validation.sizeCheck = 'pass';
+        } else {
+            validation.sizeCheck = 'fail';
+            validation.sizeError = `${formatFileSize(file.size)} exceeds ${formatFileSize(sizeLimit)}`;
+        }
+
+        // Overall validation
+        validation.isValid = 
+            validation.typeCheck === 'pass' && 
+            validation.extensionCheck === 'pass' && 
+            validation.sizeCheck === 'pass';
+
+        return validation;
+    };
+
     const handleFileSelect = useCallback(async (file: File) => {
         setUploadError(null);
         setUploadSuccess(false);
 
-        // Validate file
-        const validation = validateFile(file, 'PROFILE_PHOTO');
-        if (!validation.valid) {
-            setUploadError(validation.error || 'Invalid file');
-            onUploadError?.(validation.error || 'Invalid file');
+        // Validate file with detailed feedback
+        const validation = validateSelectedFile(file);
+        setFileValidation(validation);
+
+        if (!validation.isValid) {
+            // Build error message from all failed checks
+            const errors = [];
+            if (validation.typeError) errors.push(validation.typeError);
+            if (validation.extensionError) errors.push(validation.extensionError);
+            if (validation.sizeError) errors.push(validation.sizeError);
+            const errorMessage = errors.join(', ');
+            setUploadError(errorMessage);
+            onUploadError?.(errorMessage);
             return;
         }
 
@@ -74,8 +148,17 @@ export default function ProfilePhotoUpload({
                 setUploadSuccess(true);
                 onUploadSuccess?.(result.data.url);
                 
-                // Clear success after 3 seconds
-                setTimeout(() => setUploadSuccess(false), 3000);
+                // Clear validation state after successful upload
+                setTimeout(() => {
+                    setUploadSuccess(false);
+                    setFileValidation({
+                        file: null,
+                        typeCheck: 'pending',
+                        sizeCheck: 'pending',
+                        extensionCheck: 'pending',
+                        isValid: false
+                    });
+                }, 3000);
             } else {
                 setUploadError(result.error || 'Upload failed');
                 setPreviewUrl(null);
@@ -126,12 +209,47 @@ export default function ProfilePhotoUpload({
     const clearPreview = () => {
         setPreviewUrl(null);
         setUploadError(null);
+        setFileValidation({
+            file: null,
+            typeCheck: 'pending',
+            sizeCheck: 'pending',
+            extensionCheck: 'pending',
+            isValid: false
+        });
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
     };
 
     const displayUrl = previewUrl || currentPhotoUrl;
+
+    // Validation check indicator component
+    const ValidationCheck = ({ 
+        status, 
+        label, 
+        detail 
+    }: { 
+        status: 'pending' | 'pass' | 'fail'; 
+        label: string; 
+        detail: string;
+    }) => (
+        <div 
+            className="flex items-center gap-1.5 text-xs"
+            style={{ 
+                color: status === 'pass' ? '#00FF91' : status === 'fail' ? '#ef4444' : '#8394A7'
+            }}
+        >
+            {status === 'pass' ? (
+                <FileCheck className="w-3.5 h-3.5" />
+            ) : status === 'fail' ? (
+                <FileX className="w-3.5 h-3.5" />
+            ) : (
+                <div className="w-3.5 h-3.5 rounded-full border" style={{ borderColor: '#6B7280' }} />
+            )}
+            <span className="font-medium">{label}:</span>
+            <span className="opacity-80">{detail}</span>
+        </div>
+    );
 
     return (
         <div className="flex flex-col items-center gap-4">
@@ -229,8 +347,75 @@ export default function ProfilePhotoUpload({
                 )}
             </Button>
 
+            {/* Validation Feedback - shown when file is selected */}
+            {showValidation && fileValidation.file && (
+                <div 
+                    className="w-full max-w-xs p-3 rounded-lg space-y-2"
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+                >
+                    {/* File name */}
+                    <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5" style={{ color: '#FFFFFF' }}>
+                            <FileImage className="w-3.5 h-3.5" style={{ color: '#00FF91' }} />
+                            <span className="truncate max-w-[180px]">{fileValidation.file.name}</span>
+                        </div>
+                        <button 
+                            onClick={clearPreview}
+                            className="p-0.5 hover:opacity-70"
+                            style={{ color: '#8394A7' }}
+                        >
+                            <X className="w-3 h-3" />
+                        </button>
+                    </div>
+                    
+                    {/* Validation checks */}
+                    <div className="space-y-1.5">
+                        <ValidationCheck 
+                            status={fileValidation.typeCheck}
+                            label="Type"
+                            detail={fileValidation.typeCheck === 'pass' 
+                                ? fileValidation.file?.type.split('/')[1]?.toUpperCase() || 'OK'
+                                : fileValidation.typeError || 'JPG, PNG'}
+                        />
+                        <ValidationCheck 
+                            status={fileValidation.extensionCheck}
+                            label="Extension"
+                            detail={fileValidation.extensionCheck === 'pass' 
+                                ? `.${fileValidation.file?.name.split('.').pop()}`
+                                : fileValidation.extensionError || '.jpg, .png'}
+                        />
+                        <ValidationCheck 
+                            status={fileValidation.sizeCheck}
+                            label="Size"
+                            detail={fileValidation.sizeCheck === 'pass' 
+                                ? `${formatFileSize(fileValidation.file?.size || 0)} ✓`
+                                : fileValidation.sizeError || 'Max 5MB'}
+                        />
+                    </div>
+
+                    {/* Overall status */}
+                    <div 
+                        className="text-xs text-center pt-1 border-t"
+                        style={{ 
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            color: fileValidation.isValid ? '#00FF91' : '#ef4444'
+                        }}
+                    >
+                        {fileValidation.isValid ? (
+                            <span className="flex items-center justify-center gap-1">
+                                <Check className="w-3 h-3" /> Ready to upload
+                            </span>
+                        ) : (
+                            <span className="flex items-center justify-center gap-1">
+                                <AlertCircle className="w-3 h-3" /> Fix errors above
+                            </span>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Error Message */}
-            {uploadError && (
+            {uploadError && !fileValidation.file && (
                 <div 
                     className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg"
                     style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#ef4444' }}
@@ -243,11 +428,20 @@ export default function ProfilePhotoUpload({
                 </div>
             )}
 
-            {/* Upload Hints */}
-            <p className="text-xs text-center" style={{ color: '#8394A7' }}>
-                Drag & drop or click to upload<br />
-                JPG, JPEG, PNG only • Max 5MB
-            </p>
+            {/* Upload Hints - shown when no file selected */}
+            {!fileValidation.file && (
+                <p className="text-xs text-center" style={{ color: '#8394A7' }}>
+                    Drag & drop or click to upload<br />
+                    <span className="flex items-center justify-center gap-2 mt-1">
+                        <span className="flex items-center gap-0.5">
+                            <FileCheck className="w-3 h-3" style={{ color: '#00FF91' }} /> JPG, PNG
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                            <FileCheck className="w-3 h-3" style={{ color: '#00FF91' }} /> Max 5MB
+                        </span>
+                    </span>
+                </p>
+            )}
         </div>
     );
 }

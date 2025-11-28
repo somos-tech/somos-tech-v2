@@ -38,7 +38,10 @@ import {
     ChevronLeft,
     ExternalLink,
     Filter,
-    X
+    X,
+    FileImage,
+    FileCheck,
+    FileX
 } from 'lucide-react';
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
 import {
@@ -48,8 +51,23 @@ import {
     deleteFile,
     uploadSiteAsset,
     formatFileSize,
-    validateFile
+    validateFile,
+    ALLOWED_IMAGE_TYPES,
+    ALLOWED_EXTENSIONS,
+    SIZE_LIMITS
 } from '@/api/mediaService';
+
+// Interface for file validation results
+interface FileValidation {
+    file: File | null;
+    typeCheck: 'pending' | 'pass' | 'fail';
+    sizeCheck: 'pending' | 'pass' | 'fail';
+    extensionCheck: 'pending' | 'pass' | 'fail';
+    typeError?: string;
+    sizeError?: string;
+    extensionError?: string;
+    isValid: boolean;
+}
 
 interface Container {
     key: string;
@@ -95,6 +113,14 @@ export default function AdminMedia() {
     const [uploadFolder, setUploadFolder] = useState('');
     const [showNewFolderInput, setShowNewFolderInput] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
+    const [fileValidation, setFileValidation] = useState<FileValidation>({
+        file: null,
+        typeCheck: 'pending',
+        sizeCheck: 'pending',
+        extensionCheck: 'pending',
+        isValid: false
+    });
+    const [dragActive, setDragActive] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Load containers and stats on mount
@@ -193,13 +219,101 @@ export default function AdminMedia() {
         }
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    // Validate file and show real-time feedback
+    const validateSelectedFile = (file: File): FileValidation => {
+        const validation: FileValidation = {
+            file,
+            typeCheck: 'pending',
+            sizeCheck: 'pending',
+            extensionCheck: 'pending',
+            isValid: false
+        };
 
-        const validation = validateFile(file, 'SITE_ASSET');
-        if (!validation.valid) {
-            setError(validation.error || 'Invalid file');
+        // Check file type (MIME type)
+        if (ALLOWED_IMAGE_TYPES.includes(file.type)) {
+            validation.typeCheck = 'pass';
+        } else {
+            validation.typeCheck = 'fail';
+            validation.typeError = `File type "${file.type || 'unknown'}" is not allowed`;
+        }
+
+        // Check file extension
+        const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+        if (ALLOWED_EXTENSIONS.includes(ext)) {
+            validation.extensionCheck = 'pass';
+        } else {
+            validation.extensionCheck = 'fail';
+            validation.extensionError = `Extension "${ext}" is not allowed`;
+        }
+
+        // Check file size (for site assets: 20MB limit)
+        const sizeLimit = SIZE_LIMITS.SITE_ASSET;
+        if (file.size <= sizeLimit) {
+            validation.sizeCheck = 'pass';
+        } else {
+            validation.sizeCheck = 'fail';
+            validation.sizeError = `File size ${formatFileSize(file.size)} exceeds ${formatFileSize(sizeLimit)} limit`;
+        }
+
+        // Overall validation
+        validation.isValid = 
+            validation.typeCheck === 'pass' && 
+            validation.extensionCheck === 'pass' && 
+            validation.sizeCheck === 'pass';
+
+        return validation;
+    };
+
+    // Handle drag events
+    const handleDrag = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === 'dragenter' || e.type === 'dragover') {
+            setDragActive(true);
+        } else if (e.type === 'dragleave') {
+            setDragActive(false);
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(false);
+        
+        const file = e.dataTransfer.files?.[0];
+        if (file) {
+            const validation = validateSelectedFile(file);
+            setFileValidation(validation);
+            
+            // Don't auto-upload on drop - let user review validation first
+        }
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const validation = validateSelectedFile(file);
+            setFileValidation(validation);
+        }
+    };
+
+    const clearFileSelection = () => {
+        setFileValidation({
+            file: null,
+            typeCheck: 'pending',
+            sizeCheck: 'pending',
+            extensionCheck: 'pending',
+            isValid: false
+        });
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const handleFileUpload = async () => {
+        const file = fileValidation.file;
+        if (!file || !fileValidation.isValid) {
+            setError('Please select a valid file first');
             return;
         }
 
@@ -217,6 +331,9 @@ export default function AdminMedia() {
                 const folderPath = folder === 'root' ? '' : `${folder}/`;
                 setSuccessMessage(`File uploaded successfully to ${uploadContainer}/${folderPath}`);
                 setTimeout(() => setSuccessMessage(null), 5000);
+                
+                // Clear file selection
+                clearFileSelection();
                 
                 // Refresh the current container if we're viewing the upload target
                 if (selectedContainer === uploadContainer) {
@@ -236,9 +353,6 @@ export default function AdminMedia() {
             setError(err instanceof Error ? err.message : 'Upload failed');
         } finally {
             setIsUploading(false);
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
         }
     };
 
@@ -403,14 +517,29 @@ export default function AdminMedia() {
 
                 {/* Quick Upload */}
                 <Card 
-                    className="p-6 rounded-xl"
-                    style={{ backgroundColor: '#0a1f35', border: '1px solid rgba(0, 255, 145, 0.2)' }}
+                    className={`p-6 rounded-xl transition-all ${dragActive ? 'scale-[1.02]' : ''}`}
+                    style={{ 
+                        backgroundColor: '#0a1f35', 
+                        border: dragActive 
+                            ? '2px dashed #00FF91' 
+                            : '1px solid rgba(0, 255, 145, 0.2)',
+                        boxShadow: dragActive ? '0 0 30px rgba(0, 255, 145, 0.3)' : 'none'
+                    }}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
                 >
                     <h2 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: '#FFFFFF' }}>
                         <Upload className="w-5 h-5" style={{ color: '#00FF91' }} />
                         Quick Upload
+                        {dragActive && (
+                            <span className="text-sm font-normal ml-2" style={{ color: '#00FF91' }}>
+                                Drop file here!
+                            </span>
+                        )}
                     </h2>
-                    <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex flex-wrap items-start gap-4">
                         {/* Container Selection */}
                         <div className="flex flex-col gap-1">
                             <label className="text-xs" style={{ color: '#8394A7' }}>Container</label>
@@ -501,21 +630,39 @@ export default function AdminMedia() {
                             </div>
                         </div>
 
-                        {/* Upload Button */}
+                        {/* File Selection */}
                         <div className="flex flex-col gap-1">
-                            <label className="text-xs" style={{ color: '#8394A7' }}>&nbsp;</label>
+                            <label className="text-xs" style={{ color: '#8394A7' }}>Select File</label>
                             <input
                                 ref={fileInputRef}
                                 type="file"
                                 accept=".jpg,.jpeg,.png"
-                                onChange={handleFileUpload}
+                                onChange={handleFileSelect}
                                 className="hidden"
                             />
                             <Button
                                 onClick={() => fileInputRef.current?.click()}
-                                disabled={isUploading}
-                                className="rounded-full"
-                                style={{ backgroundColor: '#00FF91', color: '#051323' }}
+                                variant="outline"
+                                className="rounded-lg min-w-[160px]"
+                                style={{ borderColor: '#00FF91', color: '#00FF91' }}
+                            >
+                                <FileImage className="w-4 h-4 mr-2" />
+                                {fileValidation.file ? 'Change File' : 'Choose File'}
+                            </Button>
+                        </div>
+
+                        {/* Upload Button */}
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs" style={{ color: '#8394A7' }}>&nbsp;</label>
+                            <Button
+                                onClick={handleFileUpload}
+                                disabled={isUploading || !fileValidation.isValid}
+                                className="rounded-full min-w-[140px]"
+                                style={{ 
+                                    backgroundColor: fileValidation.isValid ? '#00FF91' : '#4a5568', 
+                                    color: fileValidation.isValid ? '#051323' : '#8394A7',
+                                    cursor: (!fileValidation.isValid && !isUploading) ? 'not-allowed' : 'pointer'
+                                }}
                             >
                                 {isUploading ? (
                                     <>
@@ -525,18 +672,208 @@ export default function AdminMedia() {
                                 ) : (
                                     <>
                                         <Upload className="w-4 h-4 mr-2" />
-                                        Upload Image
+                                        Upload
                                     </>
                                 )}
                             </Button>
                         </div>
                     </div>
-                    <p className="text-xs mt-3" style={{ color: '#8394A7' }}>
-                        JPG, JPEG, PNG only • Max 20MB • Upload to: <span style={{ color: '#00FF91' }}>{uploadContainer}/{uploadFolder || 'root'}</span>
-                    </p>
-                    <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
-                        💡 Tip: Folders are created when you upload a file. Enter a folder name and upload an image to create it.
-                    </p>
+
+                    {/* File Validation Feedback */}
+                    {fileValidation.file && (
+                        <div 
+                            className="mt-4 p-4 rounded-lg"
+                            style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+                        >
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <FileImage className="w-5 h-5" style={{ color: '#00FF91' }} />
+                                    <span className="font-medium" style={{ color: '#FFFFFF' }}>
+                                        {fileValidation.file.name}
+                                    </span>
+                                    <span className="text-sm" style={{ color: '#8394A7' }}>
+                                        ({formatFileSize(fileValidation.file.size)})
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={clearFileSelection}
+                                    className="p-1 rounded hover:bg-opacity-20 hover:bg-white transition-colors"
+                                    style={{ color: '#8394A7' }}
+                                    title="Clear selection"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                            
+                            {/* Validation Checklist */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {/* File Type Check */}
+                                <div 
+                                    className="flex items-center gap-2 p-2 rounded-lg"
+                                    style={{ 
+                                        backgroundColor: fileValidation.typeCheck === 'pass' 
+                                            ? 'rgba(0, 255, 145, 0.15)' 
+                                            : fileValidation.typeCheck === 'fail' 
+                                                ? 'rgba(239, 68, 68, 0.15)'
+                                                : 'rgba(107, 114, 128, 0.15)'
+                                    }}
+                                >
+                                    {fileValidation.typeCheck === 'pass' ? (
+                                        <FileCheck className="w-5 h-5 flex-shrink-0" style={{ color: '#00FF91' }} />
+                                    ) : fileValidation.typeCheck === 'fail' ? (
+                                        <FileX className="w-5 h-5 flex-shrink-0" style={{ color: '#ef4444' }} />
+                                    ) : (
+                                        <div className="w-5 h-5 rounded-full border-2 flex-shrink-0" style={{ borderColor: '#6B7280' }} />
+                                    )}
+                                    <div className="flex flex-col">
+                                        <span 
+                                            className="text-sm font-medium"
+                                            style={{ 
+                                                color: fileValidation.typeCheck === 'pass' 
+                                                    ? '#00FF91' 
+                                                    : fileValidation.typeCheck === 'fail' 
+                                                        ? '#ef4444' 
+                                                        : '#8394A7'
+                                            }}
+                                        >
+                                            Media Type
+                                        </span>
+                                        <span className="text-xs" style={{ color: '#8394A7' }}>
+                                            {fileValidation.typeCheck === 'pass' 
+                                                ? `✓ ${fileValidation.file?.type || 'image'}`
+                                                : fileValidation.typeError || 'JPG, PNG only'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* File Extension Check */}
+                                <div 
+                                    className="flex items-center gap-2 p-2 rounded-lg"
+                                    style={{ 
+                                        backgroundColor: fileValidation.extensionCheck === 'pass' 
+                                            ? 'rgba(0, 255, 145, 0.15)' 
+                                            : fileValidation.extensionCheck === 'fail' 
+                                                ? 'rgba(239, 68, 68, 0.15)'
+                                                : 'rgba(107, 114, 128, 0.15)'
+                                    }}
+                                >
+                                    {fileValidation.extensionCheck === 'pass' ? (
+                                        <FileCheck className="w-5 h-5 flex-shrink-0" style={{ color: '#00FF91' }} />
+                                    ) : fileValidation.extensionCheck === 'fail' ? (
+                                        <FileX className="w-5 h-5 flex-shrink-0" style={{ color: '#ef4444' }} />
+                                    ) : (
+                                        <div className="w-5 h-5 rounded-full border-2 flex-shrink-0" style={{ borderColor: '#6B7280' }} />
+                                    )}
+                                    <div className="flex flex-col">
+                                        <span 
+                                            className="text-sm font-medium"
+                                            style={{ 
+                                                color: fileValidation.extensionCheck === 'pass' 
+                                                    ? '#00FF91' 
+                                                    : fileValidation.extensionCheck === 'fail' 
+                                                        ? '#ef4444' 
+                                                        : '#8394A7'
+                                            }}
+                                        >
+                                            File Extension
+                                        </span>
+                                        <span className="text-xs" style={{ color: '#8394A7' }}>
+                                            {fileValidation.extensionCheck === 'pass' 
+                                                ? `✓ ${fileValidation.file?.name.split('.').pop()?.toUpperCase()}`
+                                                : fileValidation.extensionError || '.jpg, .jpeg, .png'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* File Size Check */}
+                                <div 
+                                    className="flex items-center gap-2 p-2 rounded-lg"
+                                    style={{ 
+                                        backgroundColor: fileValidation.sizeCheck === 'pass' 
+                                            ? 'rgba(0, 255, 145, 0.15)' 
+                                            : fileValidation.sizeCheck === 'fail' 
+                                                ? 'rgba(239, 68, 68, 0.15)'
+                                                : 'rgba(107, 114, 128, 0.15)'
+                                    }}
+                                >
+                                    {fileValidation.sizeCheck === 'pass' ? (
+                                        <FileCheck className="w-5 h-5 flex-shrink-0" style={{ color: '#00FF91' }} />
+                                    ) : fileValidation.sizeCheck === 'fail' ? (
+                                        <FileX className="w-5 h-5 flex-shrink-0" style={{ color: '#ef4444' }} />
+                                    ) : (
+                                        <div className="w-5 h-5 rounded-full border-2 flex-shrink-0" style={{ borderColor: '#6B7280' }} />
+                                    )}
+                                    <div className="flex flex-col">
+                                        <span 
+                                            className="text-sm font-medium"
+                                            style={{ 
+                                                color: fileValidation.sizeCheck === 'pass' 
+                                                    ? '#00FF91' 
+                                                    : fileValidation.sizeCheck === 'fail' 
+                                                        ? '#ef4444' 
+                                                        : '#8394A7'
+                                            }}
+                                        >
+                                            File Size
+                                        </span>
+                                        <span className="text-xs" style={{ color: '#8394A7' }}>
+                                            {fileValidation.sizeCheck === 'pass' 
+                                                ? `✓ ${formatFileSize(fileValidation.file?.size || 0)} (max 20MB)`
+                                                : fileValidation.sizeError || 'Max 20MB'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Overall Status */}
+                            <div 
+                                className="mt-3 p-2 rounded-lg flex items-center gap-2"
+                                style={{ 
+                                    backgroundColor: fileValidation.isValid 
+                                        ? 'rgba(0, 255, 145, 0.2)' 
+                                        : 'rgba(239, 68, 68, 0.2)'
+                                }}
+                            >
+                                {fileValidation.isValid ? (
+                                    <>
+                                        <Check className="w-5 h-5" style={{ color: '#00FF91' }} />
+                                        <span style={{ color: '#00FF91' }}>
+                                            All checks passed! Ready to upload to <strong>{uploadContainer}/{uploadFolder || 'root'}</strong>
+                                        </span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <AlertCircle className="w-5 h-5" style={{ color: '#ef4444' }} />
+                                        <span style={{ color: '#ef4444' }}>
+                                            Please fix the validation errors above before uploading
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Default upload hints when no file selected */}
+                    {!fileValidation.file && (
+                        <>
+                            <p className="text-xs mt-3" style={{ color: '#8394A7' }}>
+                                Drag & drop a file here, or click "Choose File" • Upload to: <span style={{ color: '#00FF91' }}>{uploadContainer}/{uploadFolder || 'root'}</span>
+                            </p>
+                            <div className="flex items-center gap-4 mt-2 text-xs" style={{ color: '#6B7280' }}>
+                                <span className="flex items-center gap-1">
+                                    <FileCheck className="w-3 h-3" style={{ color: '#00FF91' }} />
+                                    JPG, JPEG, PNG only
+                                </span>
+                                <span className="flex items-center gap-1">
+                                    <FileCheck className="w-3 h-3" style={{ color: '#00FF91' }} />
+                                    Max 20MB
+                                </span>
+                                <span className="flex items-center gap-1">
+                                    💡 Folders are created on upload
+                                </span>
+                            </div>
+                        </>
+                    )}
                 </Card>
 
                 {/* Container Folders */}
