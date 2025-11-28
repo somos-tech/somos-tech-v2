@@ -635,6 +635,9 @@ resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2023-01-01' = {
       AZURE_CLIENT_ID: azureAdClientId
       AZURE_CLIENT_SECRET: azureAdClientSecret
       AZURE_TENANT_ID: azureAdTenantId
+      // Admin AAD settings referenced by staticwebapp.config.json auth configuration
+      ADMIN_AAD_CLIENT_ID: azureAdClientId
+      ADMIN_AAD_CLIENT_SECRET: azureAdClientSecret
     },
     !empty(externalTenantId) && !empty(externalAdminClientId)
       ? {
