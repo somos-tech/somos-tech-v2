@@ -1268,6 +1268,27 @@ export default function AdminModeration() {
                                                                     ))}
                                                                 </div>
                                                             )}
+                                                            
+                                                            {/* Azure AI / Tier checks detail */}
+                                                            {tier.checks && tier.checks.length > 0 && (
+                                                                <div className="mt-2 p-2 rounded text-xs space-y-1" style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}>
+                                                                    <div className="font-medium mb-1" style={{ color: '#8394A7' }}>
+                                                                        {tier.tier === 3 ? '🤖 Azure AI Analysis:' : 'Details:'}
+                                                                    </div>
+                                                                    {tier.checks.map((check: TierCheck, i: number) => (
+                                                                        <div key={i} className="flex items-start gap-2">
+                                                                            {check.passed ? (
+                                                                                <CheckCircle className="h-3 w-3 mt-0.5 flex-shrink-0" style={{ color: '#00FF91' }} />
+                                                                            ) : (
+                                                                                <XCircle className="h-3 w-3 mt-0.5 flex-shrink-0" style={{ color: '#FF6B6B' }} />
+                                                                            )}
+                                                                            <span style={{ color: check.passed ? '#00FF91' : '#FF6B6B' }}>
+                                                                                {check.message}
+                                                                            </span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 ))}

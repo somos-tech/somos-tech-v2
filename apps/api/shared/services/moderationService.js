@@ -2006,6 +2006,7 @@ export async function moderateContent(content) {
 
         // ========== TIER 3: AZURE AI CONTENT SAFETY ==========
         if (text && workflowConfig.tier3 && config.tier3?.enabled) {
+            console.log(`[ModerationService] Running Tier 3 AI analysis for workflow: ${workflow}`);
             const tier3 = await runTier3AzureAI(text, config.tier3);
             result.tier3Result = tier3;
             result.tierFlow.push({
@@ -2048,6 +2049,25 @@ export async function moderateContent(content) {
                     result.needsReview = true;
                 }
             }
+        } else if (text) {
+            // Add skip message to tier flow when Tier 3 is not enabled
+            const skipReason = !config.tier3?.enabled 
+                ? 'AI Content Safety is disabled globally'
+                : !workflowConfig.tier3 
+                    ? `AI Content Safety disabled for ${workflow} workflow`
+                    : 'No text to analyze';
+            result.tierFlow.push({
+                tier: 3,
+                name: 'AI Content Safety',
+                action: 'skip',
+                passed: null,
+                message: skipReason,
+                checks: [{
+                    name: 'tier3_skipped',
+                    passed: true,
+                    message: skipReason
+                }]
+            });
         }
 
         // Analyze image if present and Tier 3 is enabled
