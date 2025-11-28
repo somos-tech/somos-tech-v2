@@ -74,9 +74,9 @@
         "identityProviders": {
             "azureActiveDirectory": {
                 "registration": {
-                    "openIdIssuer": "https://login.microsoftonline.com/ea315caf-5fa1-4348-a3f8-e50867ae19d4/v2.0",
-                    "clientIdSettingName": "EXTERNAL_ADMIN_CLIENT_ID",
-                    "clientSecretSettingName": "EXTERNAL_ADMIN_CLIENT_SECRET"
+                    "openIdIssuer": "https://login.microsoftonline.com/cff2ae9c-4810-4a92-a3e8-46e649cbdbe4/v2.0",
+                    "clientIdSettingName": "ADMIN_AAD_CLIENT_ID",
+                    "clientSecretSettingName": "ADMIN_AAD_CLIENT_SECRET"
                 },
                 "login": {
                     "loginParameters": ["scope=openid profile email"]
