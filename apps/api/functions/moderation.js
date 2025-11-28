@@ -151,13 +151,13 @@ app.http('moderation', {
 async function handleAnalyzeContent(request, context, userId, userEmail) {
     try {
         const body = await request.json();
-        const { text, image, type, contentId, channelId } = body;
+        const { text, image, type, contentId, channelId, workflow } = body;
 
         if (!text && !image) {
             return errorResponse(400, 'Content (text or image) is required');
         }
 
-        context.log('[Moderation] Analyzing content for user:', userEmail);
+        context.log('[Moderation] Analyzing content for user:', userEmail, 'workflow:', workflow || 'community');
 
         const result = await moderateContent({
             type: type || 'message',
@@ -166,7 +166,8 @@ async function handleAnalyzeContent(request, context, userId, userEmail) {
             userId,
             userEmail,
             contentId,
-            channelId
+            channelId,
+            workflow: workflow || 'community'
         });
 
         return successResponse(result);

@@ -633,6 +633,149 @@ const SECURITY_ATTACK_PATTERNS = [
             /%0a%0d/gi,
         ]
     },
+    
+    // ============== OWASP TOP 10 FOR LLM/AI APPLICATIONS ==============
+    // Based on OWASP Top 10 for LLM Applications 2025
+    // https://owasp.org/www-project-top-10-for-large-language-model-applications/
+    
+    // LLM01: Prompt Injection
+    {
+        name: 'prompt_injection',
+        category: 'Prompt Injection',
+        severity: 'critical',
+        patterns: [
+            /ignore\s+(previous|all|above|prior)\s+(instructions?|prompts?|rules?|commands?)/gi,
+            /disregard\s+(your|all|the)\s+(instructions?|programming|rules?|guidelines?)/gi,
+            /forget\s+(everything|all|your)\s+(you|instructions?|rules?)/gi,
+            /you\s+are\s+now\s+(a|an|in)\s+(new|different|jailbreak|DAN|evil)/gi,
+            /pretend\s+(you\s+are|to\s+be|you're)\s+(not|a|an)\s*(AI|assistant|chatbot|restricted)?/gi,
+            /act\s+as\s+(if|though)\s+you\s+(have\s+no|don't\s+have|aren't)/gi,
+            /bypass\s+(your|all|the)\s+(safety|content|ethical)\s*(filters?|restrictions?|guidelines?)?/gi,
+            /override\s+(your|system|safety)\s*(prompt|instructions?|rules?)?/gi,
+            /new\s+instructions?\s*:/gi,
+            /system\s+prompt\s*:/gi,
+            /\[INST\]|\[\/INST\]|\[\[SYSTEM\]\]/gi,  // Common LLM control tokens
+            /<\|im_start\|>|<\|im_end\|>/gi,  // ChatML tokens
+            /\bDAN\s+mode\b|\bDeveloper\s+Mode\b|\bJailbreak\b/gi,
+            /do\s+anything\s+now/gi,  // DAN = Do Anything Now
+        ]
+    },
+    // LLM02: Insecure Output Handling (Detecting attempts to inject executable content via AI)
+    {
+        name: 'llm_output_injection',
+        category: 'LLM Output Injection',
+        severity: 'critical',
+        patterns: [
+            /generate\s+(code|script)\s+(that|to|which)\s*(will|can|should)?\s*(execute|run|delete|hack)/gi,
+            /write\s+(malicious|harmful|exploit)\s+(code|script|payload)/gi,
+            /create\s+(a\s+)?(backdoor|trojan|malware|virus|ransomware)/gi,
+            /output\s+(raw|unescaped|executable)\s*(html|javascript|sql|code)/gi,
+            /respond\s+with\s*(only\s+)?(raw|pure|executable)\s*(code|json|xml)/gi,
+        ]
+    },
+    // LLM03: Training Data Poisoning (Attempts to extract or influence training data)
+    {
+        name: 'training_data_attack',
+        category: 'Training Data Attack',
+        severity: 'high',
+        patterns: [
+            /reveal\s+(your|the)\s+(training|source)\s*(data|information|dataset)/gi,
+            /what\s+(data|information)\s+(were\s+you|was)\s+trained\s+on/gi,
+            /show\s+me\s+(your|the)\s+training\s+(data|examples|set)/gi,
+            /extract\s+(your|the)\s+(knowledge|training|model)\s*(base|data|weights)?/gi,
+        ]
+    },
+    // LLM04: Model Denial of Service
+    {
+        name: 'llm_dos_attack',
+        category: 'LLM DoS Attack',
+        severity: 'high',
+        patterns: [
+            /repeat\s+(this|the\s+following)\s*(word|phrase|text)?\s*(\d{3,}|\s+million|\s+billion|\s+trillion)\s*times/gi,
+            /generate\s+(an?\s+)?(extremely|infinitely|very)\s+(long|large)\s*(text|response|output)/gi,
+            /write\s+(a\s+)?(\d{5,}|million|billion)\s*(word|character|page)/gi,
+            /loop\s+(forever|infinitely|endlessly)/gi,
+            /count\s+(to|from)\s*(\d{6,}|infinity|forever)/gi,
+        ]
+    },
+    // LLM05: Supply Chain Vulnerabilities (Plugin/extension attacks)
+    {
+        name: 'llm_supply_chain',
+        category: 'LLM Supply Chain Attack',
+        severity: 'high',
+        patterns: [
+            /install\s+(plugin|extension|package)\s+from\s+(http|ftp|file)/gi,
+            /load\s+(external|remote|untrusted)\s+(model|weights|data|plugin)/gi,
+            /import\s+from\s+["']https?:\/\/[^"']+["']/gi,
+            /fetch\s+(model|weights|config)\s+from/gi,
+        ]
+    },
+    // LLM06: Sensitive Information Disclosure
+    {
+        name: 'llm_data_leak',
+        category: 'Sensitive Data Extraction',
+        severity: 'critical',
+        patterns: [
+            /reveal\s+(your|the)\s+(system|initial|original)\s*(prompt|instructions?|configuration)/gi,
+            /show\s+(me\s+)?(your|the)\s+(hidden|secret|system)\s*(prompt|instructions?|rules?)/gi,
+            /what\s+(is|are)\s+(your|the)\s+(system|initial|secret)\s*(prompt|instructions?)/gi,
+            /print\s+(your|the)\s+(full|complete|entire)\s*(system\s+)?(prompt|instructions?|context)/gi,
+            /repeat\s+(your|the)\s+(system|initial)\s*(prompt|message|instructions?)\s*(back|verbatim)?/gi,
+            /dump\s+(your|the|all)\s*(system|user|conversation)\s*(data|history|context|memory)/gi,
+            /list\s+(all\s+)?(previous|other)\s+users?('s|\s+)?(data|queries|messages)/gi,
+            /access\s+(other|previous)\s+(user|customer|client)\s*(data|information|records)/gi,
+        ]
+    },
+    // LLM07: Insecure Plugin Design
+    {
+        name: 'llm_plugin_abuse',
+        category: 'Plugin Abuse',
+        severity: 'high',
+        patterns: [
+            /use\s+(the\s+)?(file|shell|exec|system|code)\s*(plugin|tool|function)\s+to/gi,
+            /call\s+(the\s+)?(api|function|tool)\s+with\s+["'`]?(rm|delete|drop|exec)/gi,
+            /execute\s+(arbitrary|any|custom)\s+(code|command|script)\s+(via|using|through)\s+(plugin|tool)/gi,
+        ]
+    },
+    // LLM08: Excessive Agency (Preventing over-permissive actions)
+    {
+        name: 'excessive_agency',
+        category: 'Excessive Agency Attack',
+        severity: 'high',
+        patterns: [
+            /perform\s+(all|any)\s+(actions?|operations?)\s+(without|no)\s+(asking|confirmation|approval)/gi,
+            /auto(matically)?\s+(approve|execute|delete|modify)\s+(all|everything|anything)/gi,
+            /skip\s+(all\s+)?(confirmation|verification|approval)\s*(steps?|checks?|prompts?)?/gi,
+            /grant\s+(yourself|me)\s+(full|admin|root|elevated)\s*(access|permissions?|privileges?)/gi,
+        ]
+    },
+    // LLM09: Overreliance (Social engineering via AI authority)
+    {
+        name: 'ai_social_engineering',
+        category: 'AI Social Engineering',
+        severity: 'medium',
+        patterns: [
+            /as\s+an\s+AI,?\s+(you\s+)?(must|should|have\s+to)\s+(always\s+)?(obey|comply|follow)/gi,
+            /AI\s+(assistants?|systems?)\s+(are\s+)?(required|obligated|must)\s+to/gi,
+            /your\s+programming\s+(requires|demands|forces)\s+you\s+to/gi,
+            /I\s+am\s+(your|the)\s+(creator|developer|admin|owner|master)/gi,
+            /this\s+is\s+a(n)?\s+(official|authorized|admin)\s+(request|command|override)/gi,
+        ]
+    },
+    // LLM10: Model Theft (Attempts to extract model information)
+    {
+        name: 'model_theft',
+        category: 'Model Theft Attempt',
+        severity: 'critical',
+        patterns: [
+            /extract\s+(your|the)\s+(model|neural\s+network)\s*(weights|parameters|architecture)/gi,
+            /reveal\s+(your|the)\s+(internal|hidden)\s*(layers?|architecture|structure)/gi,
+            /what\s+(model|architecture|version)\s+are\s+you(\s+based\s+on)?/gi,
+            /export\s+(your|the)\s+(model|weights|parameters)\s+(to|as)/gi,
+            /download\s+(your|the)\s+(full|complete)\s*(model|weights)/gi,
+            /give\s+me\s+(the|your)\s+(model|embedding|vector)\s*(file|data|weights)/gi,
+        ]
+    },
 ];
 
 /**

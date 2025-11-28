@@ -176,6 +176,16 @@ export async function uploadSiteAsset(
             body: formData
         });
 
+        // Check content-type before parsing to avoid JSON parse errors on HTML responses
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error('Media API returned non-JSON response:', response.status, contentType);
+            return {
+                success: false,
+                error: `Server error (${response.status}). Please try again.`
+            };
+        }
+
         const result = await response.json();
 
         if (!response.ok) {
@@ -190,6 +200,7 @@ export async function uploadSiteAsset(
             data: result.data || result
         };
     } catch (error) {
+        console.error('Site asset upload error:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Network error'
@@ -205,6 +216,16 @@ export async function getContainers(): Promise<{ success: boolean; data?: any; e
         const response = await fetch(`${API_BASE}/media-admin/list`, {
             credentials: 'include'
         });
+
+        // Check content-type before parsing
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error('Media API returned non-JSON response:', response.status);
+            return {
+                success: false,
+                error: `Server error (${response.status}). Please try again.`
+            };
+        }
 
         const result = await response.json();
 
@@ -242,6 +263,16 @@ export async function listFiles(container: string, prefix?: string, maxResults?:
             credentials: 'include'
         });
 
+        // Check content-type before parsing
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error('Media API returned non-JSON response:', response.status);
+            return {
+                success: false,
+                error: `Server error (${response.status}). Please try again.`
+            };
+        }
+
         const result = await response.json();
 
         if (!response.ok) {
@@ -271,6 +302,16 @@ export async function getStorageStats(): Promise<{ success: boolean; data?: any;
         const response = await fetch(`${API_BASE}/media-admin/stats`, {
             credentials: 'include'
         });
+
+        // Check content-type before parsing
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error('Media API returned non-JSON response:', response.status);
+            return {
+                success: false,
+                error: `Server error (${response.status}). Please try again.`
+            };
+        }
 
         const result = await response.json();
 
@@ -302,6 +343,16 @@ export async function deleteFile(container: string, filename: string): Promise<{
             method: 'DELETE',
             credentials: 'include'
         });
+
+        // Check content-type before parsing
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error('Media API returned non-JSON response:', response.status);
+            return {
+                success: false,
+                error: `Server error (${response.status}). Please try again.`
+            };
+        }
 
         const result = await response.json();
 
