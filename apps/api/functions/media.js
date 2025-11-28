@@ -262,6 +262,40 @@ app.http('mediaAdmin', {
 });
 
 /**
+ * Debug endpoint to check auth status
+ * GET /api/media-admin/auth-debug
+ */
+app.http('mediaAuthDebug', {
+    methods: ['GET'],
+    authLevel: 'anonymous',
+    route: 'media-admin/auth-debug',
+    handler: async (request, context) => {
+        try {
+            const principal = getClientPrincipal(request);
+            const authResult = await requireAdmin(request);
+            
+            return successResponse({
+                principal: principal ? {
+                    userId: principal.userId,
+                    userDetails: principal.userDetails,
+                    identityProvider: principal.identityProvider,
+                    userRoles: principal.userRoles || []
+                } : null,
+                authResult: {
+                    authenticated: authResult.authenticated,
+                    isAdmin: authResult.isAdmin
+                },
+                headers: {
+                    hasClientPrincipal: !!request.headers.get('x-ms-client-principal')
+                }
+            });
+        } catch (error) {
+            return errorResponse(500, 'Debug error', error.message);
+        }
+    }
+});
+
+/**
  * Get container description for UI
  */
 function getContainerDescription(key) {
