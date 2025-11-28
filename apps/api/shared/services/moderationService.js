@@ -290,7 +290,99 @@ export async function saveModerationConfig(config) {
 // ============== TIER 1: KEYWORD FILTER ==============
 
 /**
+ * Normalize text by collapsing repeated characters
+ * e.g., "FFFUUUCCCKKK" -> "fuck", "niiiggggaaa" -> "niga"
+ * @param {string} text - Text to normalize
+ * @returns {string} Normalized text
+ */
+function normalizeRepeatedChars(text) {
+    // Collapse repeated characters (3+ of same char becomes 1)
+    return text.replace(/(.)\1{2,}/gi, '$1');
+}
+
+/**
+ * Create a regex pattern that matches a term with optional repeated characters
+ * e.g., "fuck" matches "fuck", "fuuuck", "fffuuuccckkk", "f.u.c.k", etc.
+ * @param {string} term - The term to create pattern for
+ * @returns {RegExp} Regex pattern
+ */
+function createFuzzyPattern(term) {
+    // Build pattern where each character can be repeated multiple times
+    // and optionally separated by common obfuscation characters
+    const obfuscationChars = '[\\s.*_\\-]*'; // spaces, dots, asterisks, underscores, hyphens
+    
+    let pattern = '';
+    for (let i = 0; i < term.length; i++) {
+        const char = term[i];
+        const escapedChar = escapeRegex(char);
+        
+        // Each character can appear 1 or more times, optionally followed by obfuscation
+        if (i < term.length - 1) {
+            pattern += `${escapedChar}+${obfuscationChars}`;
+        } else {
+            pattern += `${escapedChar}+`;
+        }
+    }
+    
+    return new RegExp(pattern, 'gi');
+}
+
+/**
+ * Check if text contains a blocklist term using fuzzy matching
+ * Catches variations like: FUCK, FuCk, FFFUUUCCCKKK, f*ck, f.u.c.k
+ * @param {string} text - Text to check
+ * @param {string} term - Term to look for
+ * @param {boolean} matchWholeWord - Whether to match whole words only
+ * @returns {boolean} True if match found
+ */
+function fuzzyMatch(text, term, matchWholeWord = false) {
+    // First, try exact match on normalized text (faster)
+    const normalizedText = normalizeRepeatedChars(text.toLowerCase());
+    const normalizedTerm = term.toLowerCase().replace(/[*]/g, ''); // Remove asterisks from term
+    
+    if (normalizedText.includes(normalizedTerm)) {
+        return true;
+    }
+    
+    // Try fuzzy pattern match for obfuscated text
+    const fuzzyPattern = createFuzzyPattern(normalizedTerm);
+    if (fuzzyPattern.test(text)) {
+        return true;
+    }
+    
+    // Check for common letter substitutions (leetspeak)
+    const leetMap = {
+        'a': '[a@4]',
+        'e': '[e3]',
+        'i': '[i1!|]',
+        'o': '[o0]',
+        's': '[s$5]',
+        't': '[t7+]',
+        'l': '[l1|]',
+        'b': '[b8]',
+        'g': '[g9]'
+    };
+    
+    let leetPattern = '';
+    for (const char of normalizedTerm) {
+        if (leetMap[char]) {
+            leetPattern += leetMap[char] + '+';
+        } else {
+            leetPattern += escapeRegex(char) + '+';
+        }
+    }
+    
+    const leetRegex = new RegExp(leetPattern, 'gi');
+    if (leetRegex.test(normalizeRepeatedChars(text))) {
+        return true;
+    }
+    
+    return false;
+}
+
+/**
  * TIER 1: Check text against custom blocklist
+ * Uses fuzzy matching to catch variations with repeated chars, leetspeak, etc.
  * @param {string} text - Text to check
  * @param {Object} tier1Config - Tier 1 configuration
  * @returns {Object} Tier 1 result
@@ -324,20 +416,9 @@ function runTier1KeywordFilter(text, tier1Config) {
         return result;
     }
 
-    const textToCheck = tier1Config.caseSensitive ? text : text.toLowerCase();
-    
     for (const term of blocklist) {
-        const termToMatch = tier1Config.caseSensitive ? term : term.toLowerCase();
-        let matched = false;
-        
-        if (tier1Config.matchWholeWord) {
-            // Match whole word only
-            const wordBoundaryRegex = new RegExp(`\\b${escapeRegex(termToMatch)}\\b`, 'gi');
-            matched = wordBoundaryRegex.test(textToCheck);
-        } else {
-            // Match anywhere
-            matched = textToCheck.includes(termToMatch);
-        }
+        // Use fuzzy matching to catch variations
+        const matched = fuzzyMatch(text, term, tier1Config.matchWholeWord);
         
         if (matched) {
             result.matches.push({
