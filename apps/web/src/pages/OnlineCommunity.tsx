@@ -428,6 +428,7 @@ export default function OnlineCommunity() {
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [moderationWarning, setModerationWarning] = useState<string | null>(null);
     
     const [onlineUsers, setOnlineUsers] = useState<CommunityUser[]>([]);
     const [offlineUsers, setOfflineUsers] = useState<CommunityUser[]>([]);
@@ -535,6 +536,7 @@ export default function OnlineCommunity() {
         
         setIsSending(true);
         setError(null);
+        setModerationWarning(null);
         
         try {
             const response = await fetch(`/api/community-messages/${selectedChannel}`, {
@@ -543,11 +545,24 @@ export default function OnlineCommunity() {
                 body: JSON.stringify({ content: messageInput.trim() })
             });
             
+            const json = await response.json();
+            
             if (!response.ok) {
-                throw new Error('Failed to send message');
+                // Check if it's a moderation block
+                const errorData = json.error || json;
+                if (errorData.reason === 'tier1_keyword_match' || 
+                    errorData.reason === 'tier2_malicious_link' || 
+                    errorData.reason === 'tier3_ai_violation' ||
+                    errorData.reason === 'content_moderation') {
+                    setModerationWarning(errorData.message || 'Your message was blocked due to content policy violations.');
+                    // Auto-clear warning after 8 seconds
+                    setTimeout(() => setModerationWarning(null), 8000);
+                } else {
+                    setError('Failed to send message');
+                }
+                return;
             }
             
-            const json = await response.json();
             // API returns { success, data: { message } }
             const data = json.data || json;
             setMessages(prev => [...prev, data.message]);
@@ -711,12 +726,15 @@ export default function OnlineCommunity() {
                 <div className="p-4 flex-shrink-0 border-t" style={{ borderColor: 'rgba(0, 255, 145, 0.1)' }}>
                     <div 
                         className="flex items-center gap-3 px-4 py-3 rounded-xl border focus-within:border-[#00FF91] transition-colors"
-                        style={{ backgroundColor: '#0a1628', borderColor: 'rgba(255,255,255,0.1)' }}
+                        style={{ backgroundColor: '#0a1628', borderColor: moderationWarning ? '#FF4444' : 'rgba(255,255,255,0.1)' }}
                     >
                         <input
                             type="text"
                             value={messageInput}
-                            onChange={(e) => setMessageInput(e.target.value)}
+                            onChange={(e) => {
+                                setMessageInput(e.target.value);
+                                if (moderationWarning) setModerationWarning(null);
+                            }}
                             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                             placeholder={`Message #${getCurrentChannelName()}`}
                             className="flex-1 bg-transparent border-none outline-none text-white placeholder-gray-500"
@@ -734,6 +752,23 @@ export default function OnlineCommunity() {
                             )}
                         </button>
                     </div>
+                    
+                    {/* Moderation Warning */}
+                    {moderationWarning && (
+                        <div className="mt-2 px-4 py-2 rounded-lg flex items-center gap-2 text-sm animate-pulse" 
+                             style={{ backgroundColor: 'rgba(255, 68, 68, 0.15)', border: '1px solid rgba(255, 68, 68, 0.3)' }}>
+                            <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <span className="text-red-400">{moderationWarning}</span>
+                            <button 
+                                onClick={() => setModerationWarning(null)}
+                                className="ml-auto text-red-400 hover:text-red-300"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 

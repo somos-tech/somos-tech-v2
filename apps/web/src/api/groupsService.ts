@@ -29,7 +29,11 @@ async function handleResponse<T>(response: Response): Promise<T> {
     const data = await response.json();
     
     if (!response.ok) {
-        throw new Error(data.error || data.message || `Request failed with status ${response.status}`);
+        // Create error with moderation details if present
+        const error = new Error(data.error?.message || data.error || data.message || `Request failed with status ${response.status}`);
+        // Attach reason for moderation errors
+        (error as any).reason = data.error?.reason || data.reason;
+        throw error;
     }
     
     return data.data || data;

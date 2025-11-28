@@ -211,6 +211,7 @@ export default function GroupDetail() {
     const [loading, setLoading] = useState(true);
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [moderationWarning, setModerationWarning] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState('chat');
     const [messageInput, setMessageInput] = useState('');
     const [sending, setSending] = useState(false);
@@ -322,6 +323,7 @@ export default function GroupDetail() {
 
         try {
             setSending(true);
+            setModerationWarning(null);
             const newMessage = await sendMessage(groupId!, {
                 content: messageInput.trim(),
                 replyToId: replyTo?.id
@@ -330,8 +332,19 @@ export default function GroupDetail() {
             setMessageInput('');
             setReplyTo(null);
             inputRef.current?.focus();
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error sending message:', err);
+            // Check if it's a moderation block
+            if (err.reason === 'tier1_keyword_match' || 
+                err.reason === 'tier2_malicious_link' || 
+                err.reason === 'tier3_ai_violation' ||
+                err.message?.includes('violates') ||
+                err.message?.includes('prohibited') ||
+                err.message?.includes('blocked')) {
+                setModerationWarning(err.message || 'Your message was blocked due to content policy violations.');
+                // Auto-clear warning after 8 seconds
+                setTimeout(() => setModerationWarning(null), 8000);
+            }
         } finally {
             setSending(false);
         }
@@ -589,34 +602,57 @@ export default function GroupDetail() {
                                 {/* Message Input */}
                                 <form 
                                     onSubmit={handleSendMessage}
-                                    className="p-4 border-t flex gap-2"
+                                    className="p-4 border-t"
                                     style={{ borderColor: '#1E3A5F' }}
                                 >
-                                    <Input
-                                        ref={inputRef}
-                                        placeholder="Type a message..."
-                                        value={messageInput}
-                                        onChange={(e) => setMessageInput(e.target.value)}
-                                        disabled={sending}
-                                        className="flex-1"
-                                        style={{
-                                            backgroundColor: '#0A1929',
-                                            borderColor: '#1E3A5F',
-                                            color: '#FFFFFF'
-                                        }}
-                                    />
-                                    <Button
-                                        type="submit"
-                                        disabled={!messageInput.trim() || sending}
-                                        className="rounded-full"
-                                        style={{ backgroundColor: '#00FF91', color: '#051323' }}
-                                    >
-                                        {sending ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                            <Send className="w-4 h-4" />
-                                        )}
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            ref={inputRef}
+                                            placeholder="Type a message..."
+                                            value={messageInput}
+                                            onChange={(e) => {
+                                                setMessageInput(e.target.value);
+                                                if (moderationWarning) setModerationWarning(null);
+                                            }}
+                                            disabled={sending}
+                                            className="flex-1"
+                                            style={{
+                                                backgroundColor: '#0A1929',
+                                                borderColor: moderationWarning ? '#FF4444' : '#1E3A5F',
+                                                color: '#FFFFFF'
+                                            }}
+                                        />
+                                        <Button
+                                            type="submit"
+                                            disabled={!messageInput.trim() || sending}
+                                            className="rounded-full"
+                                            style={{ backgroundColor: '#00FF91', color: '#051323' }}
+                                        >
+                                            {sending ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <Send className="w-4 h-4" />
+                                            )}
+                                        </Button>
+                                    </div>
+                                    
+                                    {/* Moderation Warning */}
+                                    {moderationWarning && (
+                                        <div className="mt-2 px-3 py-2 rounded-lg flex items-center gap-2 text-sm animate-pulse" 
+                                             style={{ backgroundColor: 'rgba(255, 68, 68, 0.15)', border: '1px solid rgba(255, 68, 68, 0.3)' }}>
+                                            <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                            </svg>
+                                            <span className="text-red-400">{moderationWarning}</span>
+                                            <button 
+                                                type="button"
+                                                onClick={() => setModerationWarning(null)}
+                                                className="ml-auto text-red-400 hover:text-red-300"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    )}
                                 </form>
                             </>
                         )}
