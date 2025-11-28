@@ -23,7 +23,12 @@ import {
     MessageSquare,
     ExternalLink,
     RefreshCw,
-    Trash2
+    Trash2,
+    Reply,
+    Heart,
+    ThumbsUp,
+    Flame,
+    X
 } from 'lucide-react';
 import { UserAvatar } from '@/components/DefaultAvatar';
 import { useUserContext } from '@/contexts/UserContext';
@@ -93,7 +98,7 @@ const CHANNEL_CATEGORIES = [
 ];
 
 /**
- * Channel Sidebar Component
+ * Channel Sidebar Component - Modern design
  */
 function ChannelSidebar({ 
     selectedChannel, 
@@ -115,43 +120,59 @@ function ChannelSidebar({
     return (
         <div 
             className="w-64 flex-shrink-0 flex flex-col h-full border-r"
-            style={{ backgroundColor: '#0a1628', borderColor: 'rgba(0, 255, 145, 0.1)' }}
+            style={{ 
+                backgroundColor: '#0a1628', 
+                borderColor: 'rgba(0, 255, 145, 0.08)',
+                boxShadow: 'inset -1px 0 0 rgba(0, 255, 145, 0.05)'
+            }}
         >
-            {/* Server Header */}
+            {/* Server Header - Glassmorphism effect */}
             <div 
-                className="h-14 px-4 flex items-center justify-between border-b"
-                style={{ borderColor: 'rgba(0, 255, 145, 0.1)' }}
+                className="h-16 px-4 flex items-center justify-between border-b"
+                style={{ 
+                    borderColor: 'rgba(0, 255, 145, 0.1)',
+                    background: 'linear-gradient(180deg, rgba(0, 255, 145, 0.05) 0%, transparent 100%)'
+                }}
             >
                 <div className="flex items-center gap-3">
-                    <img 
-                        src="https://static.wixstatic.com/media/0c204d_5f310ee2b2a848ceac8e68b25c0c39eb~mv2.png"
-                        alt="SOMOS.tech"
-                        className="w-8 h-8 rounded-full"
-                    />
-                    <span className="font-bold text-white">SOMOS Community</span>
+                    <div className="relative">
+                        <div className="absolute inset-0 rounded-full bg-[#00FF91]/20 blur-md" />
+                        <img 
+                            src="https://static.wixstatic.com/media/0c204d_5f310ee2b2a848ceac8e68b25c0c39eb~mv2.png"
+                            alt="SOMOS.tech"
+                            className="w-9 h-9 rounded-full relative z-10 ring-2 ring-[#00FF91]/30"
+                        />
+                    </div>
+                    <div>
+                        <span className="font-bold text-white text-[15px]">SOMOS</span>
+                        <span className="text-[#00FF91] text-xs ml-1.5 font-medium">.tech</span>
+                    </div>
                 </div>
             </div>
 
-            {/* Quick Links */}
-            <div className="px-3 py-3 space-y-1 border-b" style={{ borderColor: 'rgba(0, 255, 145, 0.1)' }}>
+            {/* Quick Links - Subtle card style */}
+            <div className="px-3 py-3 border-b" style={{ borderColor: 'rgba(0, 255, 145, 0.1)' }}>
                 <button 
                     onClick={() => navigate('/groups')}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-[#00FF91]/10 transition-colors group"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group hover:bg-gradient-to-r hover:from-[#00FF91]/10 hover:to-transparent"
+                    style={{ border: '1px solid transparent' }}
                 >
-                    <Users className="w-4 h-4 text-[#00FF91]" />
-                    <span className="text-sm text-gray-300 group-hover:text-white">Browse Groups</span>
-                    <ExternalLink className="w-3 h-3 ml-auto text-gray-500 opacity-0 group-hover:opacity-100" />
+                    <div className="p-1.5 rounded-lg bg-[#00FF91]/10 group-hover:bg-[#00FF91]/20 transition-colors">
+                        <Users className="w-4 h-4 text-[#00FF91]" />
+                    </div>
+                    <span className="text-sm text-gray-300 group-hover:text-white font-medium">Browse Groups</span>
+                    <ExternalLink className="w-3 h-3 ml-auto text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
             </div>
 
-            {/* Channel Categories */}
-            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+            {/* Channel Categories - Modern spacing */}
+            <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
                 {CHANNEL_CATEGORIES.map(category => (
                     <div key={category.name}>
                         <button
                             onClick={() => toggleCategory(category.name)}
-                            className="w-full flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wider hover:text-white transition-colors mb-1"
-                            style={{ color: '#8394A7' }}
+                            className="w-full flex items-center gap-2 px-2 text-[11px] font-bold uppercase tracking-[0.08em] hover:text-white transition-colors mb-2"
+                            style={{ color: '#6B7A8A' }}
                         >
                             {collapsedCategories.has(category.name) ? (
                                 <ChevronRight className="w-3 h-3" />
@@ -163,19 +184,24 @@ function ChannelSidebar({
                         </button>
                         
                         {!collapsedCategories.has(category.name) && (
-                            <div className="space-y-0.5">
+                            <div className="space-y-1">
                                 {category.channels.map(channel => (
                                     <button
                                         key={channel.id}
                                         onClick={() => onSelectChannel(channel.id)}
-                                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all ${
+                                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all duration-200 ${
                                             selectedChannel === channel.id 
-                                                ? 'bg-[#00FF91]/20 text-white border border-[#00FF91]/30' 
+                                                ? 'bg-gradient-to-r from-[#00FF91]/20 to-[#00FF91]/5 text-white shadow-[0_0_20px_rgba(0,255,145,0.1)]' 
                                                 : 'hover:bg-white/5 text-gray-400 hover:text-gray-200'
                                         }`}
+                                        style={{
+                                            border: selectedChannel === channel.id 
+                                                ? '1px solid rgba(0, 255, 145, 0.2)' 
+                                                : '1px solid transparent'
+                                        }}
                                     >
-                                        <channel.icon className={`w-4 h-4 ${selectedChannel === channel.id ? 'text-[#00FF91]' : ''}`} />
-                                        <span className="text-sm">{channel.name}</span>
+                                        <channel.icon className={`w-4 h-4 ${selectedChannel === channel.id ? 'text-[#00FF91]' : 'text-gray-500'}`} />
+                                        <span className="text-sm font-medium">{channel.name}</span>
                                     </button>
                                 ))}
                             </div>
@@ -184,64 +210,83 @@ function ChannelSidebar({
                 ))}
             </div>
 
-            {/* User Panel */}
+            {/* User Panel - Modern card style */}
             <div 
-                className="h-16 px-3 flex items-center gap-3 border-t cursor-pointer hover:bg-white/5 transition-colors"
-                style={{ backgroundColor: '#071018', borderColor: 'rgba(0, 255, 145, 0.1)' }}
-                onClick={onNavigateToProfile}
+                className="px-3 py-3 border-t"
+                style={{ borderColor: 'rgba(0, 255, 145, 0.1)' }}
             >
-                <div className="relative">
-                    <UserAvatar 
-                        name={currentUser?.name || 'You'} 
-                        photoUrl={currentUser?.photoUrl}
-                        size="sm" 
-                    />
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#00FF91] border-2 border-[#071018]" />
+                <div 
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 hover:bg-white/5 group"
+                    onClick={onNavigateToProfile}
+                >
+                    <div className="relative">
+                        <UserAvatar 
+                            name={currentUser?.name || 'You'} 
+                            photoUrl={currentUser?.photoUrl}
+                            size="sm" 
+                        />
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#00FF91] border-2 border-[#0a1628] shadow-[0_0_8px_rgba(0,255,145,0.5)]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-white truncate">{currentUser?.name || 'You'}</div>
+                        <div className="text-xs text-[#00FF91] font-medium">Online</div>
+                    </div>
+                    <Settings className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
                 </div>
-                <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-white truncate">{currentUser?.name || 'You'}</div>
-                    <div className="text-xs text-[#00FF91]">Online</div>
-                </div>
-                <Settings className="w-4 h-4 text-gray-500 hover:text-white transition-colors" />
             </div>
         </div>
     );
 }
 
 /**
- * Chat Message Component
+ * Chat Message Component - Modern design with hover actions
  */
 function ChatMessageItem({ 
     message, 
     currentUserId,
     onDelete,
-    onReact
+    onReact,
+    onReply
 }: { 
     message: Message;
     currentUserId: string;
     onDelete: (messageId: string) => void;
     onReact: (messageId: string, emoji: string) => void;
+    onReply: (message: Message) => void;
 }) {
     const isOwn = message.userId === currentUserId;
     const [showActions, setShowActions] = useState(false);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    
+    const quickEmojis = ['❤️', '👍', '🔥', '😂', '🎉', '👀'];
     
     return (
         <div 
-            className="group flex gap-4 py-3 px-4 hover:bg-white/5 transition-colors rounded-lg mx-2"
+            className="group relative flex gap-4 py-4 px-5 transition-all duration-200 rounded-xl mx-3 my-1"
+            style={{ 
+                backgroundColor: showActions ? 'rgba(0, 255, 145, 0.03)' : 'transparent',
+            }}
             onMouseEnter={() => setShowActions(true)}
-            onMouseLeave={() => setShowActions(false)}
+            onMouseLeave={() => { setShowActions(false); setShowEmojiPicker(false); }}
         >
-            <UserAvatar
-                photoUrl={message.userPhoto || undefined}
-                name={message.userName}
-                size="md"
-            />
+            {/* Avatar with modern glow effect */}
+            <div className="relative flex-shrink-0">
+                <div className={`absolute inset-0 rounded-full blur-md transition-opacity duration-300 ${isOwn ? 'bg-[#00FF91]/20' : 'bg-white/5'} ${showActions ? 'opacity-100' : 'opacity-0'}`} />
+                <UserAvatar
+                    photoUrl={message.userPhoto || undefined}
+                    name={message.userName}
+                    size="md"
+                />
+            </div>
+            
             <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                    <span className={`font-semibold ${isOwn ? 'text-[#00FF91]' : 'text-white'}`}>
+                {/* Header with name and time */}
+                <div className="flex items-center gap-3 mb-1.5">
+                    <span className={`font-semibold text-[15px] ${isOwn ? 'text-[#00FF91]' : 'text-white'}`}>
                         {message.userName}
+                        {isOwn && <span className="ml-1.5 text-xs opacity-60">(you)</span>}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 font-medium">
                         {new Date(message.createdAt).toLocaleString('en-US', { 
                             month: 'short', 
                             day: 'numeric',
@@ -251,76 +296,120 @@ function ChatMessageItem({
                     </span>
                 </div>
 
-                {/* Reply Preview */}
+                {/* Reply Preview - Modern card style */}
                 {message.replyTo && (
                     <div 
-                        className="text-xs mb-2 pl-3 py-1 border-l-2 rounded-r bg-white/5"
+                        className="mb-3 pl-4 py-2 pr-3 rounded-lg border-l-2 bg-gradient-to-r from-white/5 to-transparent"
                         style={{ borderColor: '#00FF91' }}
                     >
-                        <span className="text-[#00FF91]">@{message.replyTo.userName}</span>
-                        <span className="text-gray-400 ml-2 truncate">{message.replyTo.content}</span>
+                        <div className="flex items-center gap-2 text-xs">
+                            <Reply className="w-3 h-3 text-[#00FF91]" />
+                            <span className="text-[#00FF91] font-medium">@{message.replyTo.userName}</span>
+                        </div>
+                        <p className="text-gray-400 text-sm mt-1 truncate">{message.replyTo.content}</p>
                     </div>
                 )}
 
-                {/* Message Content */}
-                <p className="text-gray-200 whitespace-pre-wrap break-words leading-relaxed">
+                {/* Message Content - Better typography */}
+                <p className="text-gray-200 whitespace-pre-wrap break-words leading-relaxed text-[15px]">
                     {message.content}
                 </p>
 
-                {/* Reactions */}
+                {/* Reactions - Pill style */}
                 {message.reactions && message.reactions.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                        {message.reactions.map((reaction, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => onReact(message.id, reaction.emoji)}
-                                className="flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-all hover:scale-105"
-                                style={{ 
-                                    backgroundColor: reaction.users.includes(currentUserId) 
-                                        ? 'rgba(0, 255, 145, 0.2)' 
-                                        : 'rgba(255, 255, 255, 0.1)',
-                                    border: reaction.users.includes(currentUserId) 
-                                        ? '1px solid rgba(0, 255, 145, 0.5)' 
-                                        : '1px solid transparent'
-                                }}
-                            >
-                                <span>{reaction.emoji}</span>
-                                <span className={reaction.users.includes(currentUserId) ? 'text-[#00FF91]' : 'text-gray-400'}>
-                                    {reaction.count}
-                                </span>
-                            </button>
-                        ))}
+                    <div className="flex flex-wrap gap-2 mt-3">
+                        {message.reactions.map((reaction, idx) => {
+                            const isReacted = reaction.users.includes(currentUserId);
+                            return (
+                                <button
+                                    key={idx}
+                                    onClick={() => onReact(message.id, reaction.emoji)}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                                        isReacted 
+                                            ? 'bg-[#00FF91]/20 border border-[#00FF91]/50 shadow-[0_0_12px_rgba(0,255,145,0.15)]' 
+                                            : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                                    }`}
+                                >
+                                    <span className="text-base">{reaction.emoji}</span>
+                                    <span className={isReacted ? 'text-[#00FF91]' : 'text-gray-400'}>
+                                        {reaction.count}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
                 )}
             </div>
 
-            {/* Message Actions (shown on hover) */}
-            {showActions && (
-                <div className="flex items-start gap-1">
+            {/* Floating Action Bar - Only visible on hover */}
+            <div 
+                className={`absolute -top-3 right-4 flex items-center gap-1 p-1.5 rounded-xl border shadow-xl transition-all duration-200 ${
+                    showActions ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+                }`}
+                style={{ 
+                    backgroundColor: 'rgba(13, 31, 45, 0.95)',
+                    borderColor: 'rgba(0, 255, 145, 0.2)',
+                    backdropFilter: 'blur(8px)'
+                }}
+            >
+                {/* Quick Reactions */}
+                <div className="relative">
                     <button 
-                        onClick={() => onReact(message.id, '❤️')}
-                        className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                        title="React"
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                        title="Add reaction"
                     >
-                        <Smile className="w-4 h-4 text-gray-400 hover:text-white" />
+                        <Smile className="w-4 h-4 text-gray-400 hover:text-[#00FF91]" />
                     </button>
-                    {isOwn && (
-                        <button 
-                            onClick={() => onDelete(message.id)}
-                            className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors"
-                            title="Delete"
+                    
+                    {/* Emoji Picker Popup */}
+                    {showEmojiPicker && (
+                        <div 
+                            className="absolute top-full right-0 mt-2 p-2 rounded-xl border shadow-2xl flex gap-1 z-50"
+                            style={{ 
+                                backgroundColor: 'rgba(13, 31, 45, 0.98)',
+                                borderColor: 'rgba(0, 255, 145, 0.2)'
+                            }}
                         >
-                            <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-400" />
-                        </button>
+                            {quickEmojis.map(emoji => (
+                                <button
+                                    key={emoji}
+                                    onClick={() => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
+                                    className="p-2 rounded-lg hover:bg-white/10 transition-all hover:scale-110 text-lg"
+                                >
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
                     )}
                 </div>
-            )}
+                
+                {/* Reply Button */}
+                <button 
+                    onClick={() => onReply(message)}
+                    className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                    title="Reply"
+                >
+                    <Reply className="w-4 h-4 text-gray-400 hover:text-[#00FF91]" />
+                </button>
+                
+                {/* Delete Button - Only for own messages */}
+                {isOwn && (
+                    <button 
+                        onClick={() => onDelete(message.id)}
+                        className="p-2 rounded-lg hover:bg-red-500/20 transition-colors"
+                        title="Delete"
+                    >
+                        <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-400" />
+                    </button>
+                )}
+            </div>
         </div>
     );
 }
 
 /**
- * Member Sidebar Component
+ * Member Sidebar Component - Modern design
  */
 function MemberSidebar({ 
     onlineUsers, 
@@ -336,40 +425,46 @@ function MemberSidebar({
     return (
         <div 
             className="w-60 flex-shrink-0 h-full overflow-y-auto border-l"
-            style={{ backgroundColor: '#0a1628', borderColor: 'rgba(0, 255, 145, 0.1)' }}
+            style={{ 
+                backgroundColor: '#0a1628', 
+                borderColor: 'rgba(0, 255, 145, 0.08)',
+                boxShadow: 'inset 1px 0 0 rgba(0, 255, 145, 0.05)'
+            }}
         >
             <div className="p-4">
-                <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                    <Users className="w-4 h-4 text-[#00FF91]" />
+                <h3 className="text-sm font-bold text-white mb-5 flex items-center gap-2.5 uppercase tracking-wider">
+                    <div className="p-1.5 rounded-lg bg-[#00FF91]/10">
+                        <Users className="w-4 h-4 text-[#00FF91]" />
+                    </div>
                     Members
-                    {isLoading && <Loader2 className="w-3 h-3 animate-spin text-gray-400" />}
+                    {isLoading && <Loader2 className="w-3 h-3 animate-spin text-[#00FF91] ml-auto" />}
                 </h3>
 
                 {/* Online Members */}
                 {onlineUsers.length > 0 && (
                     <div className="mb-6">
-                        <div className="text-xs font-medium uppercase tracking-wider mb-2 flex items-center gap-2" style={{ color: '#00FF91' }}>
-                            <div className="w-2 h-2 rounded-full bg-[#00FF91]" />
+                        <div className="text-[11px] font-bold uppercase tracking-[0.08em] mb-3 flex items-center gap-2 px-1" style={{ color: '#00FF91' }}>
+                            <div className="w-2 h-2 rounded-full bg-[#00FF91] shadow-[0_0_8px_rgba(0,255,145,0.5)] animate-pulse" />
                             Online — {onlineUsers.length}
                         </div>
                         <div className="space-y-1">
                             {onlineUsers.map(user => (
                                 <div 
                                     key={user.id}
-                                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors"
+                                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl transition-all duration-200 cursor-pointer hover:bg-gradient-to-r hover:from-white/5 hover:to-transparent group"
                                 >
                                     <div className="relative">
                                         <UserAvatar name={user.name} photoUrl={user.photoUrl} size="sm" />
-                                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#00FF91] border-2 border-[#0a1628]" />
+                                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#00FF91] border-2 border-[#0a1628] shadow-[0_0_6px_rgba(0,255,145,0.5)]" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <span className={`text-sm truncate block ${user.isCurrentUser ? 'text-[#00FF91] font-medium' : 'text-gray-200'}`}>
+                                        <span className={`text-sm truncate block font-medium ${user.isCurrentUser ? 'text-[#00FF91]' : 'text-gray-200 group-hover:text-white'}`}>
                                             {user.name}
-                                            {user.isCurrentUser && ' (you)'}
+                                            {user.isCurrentUser && <span className="text-xs opacity-60 ml-1">(you)</span>}
                                         </span>
                                     </div>
                                     {user.isAdmin && (
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#00FF91]/20 text-[#00FF91]">
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#00FF91]/15 text-[#00FF91] font-semibold border border-[#00FF91]/30">
                                             Admin
                                         </span>
                                     )}
@@ -382,21 +477,21 @@ function MemberSidebar({
                 {/* Offline Members */}
                 {offlineUsers.length > 0 && (
                     <div>
-                        <div className="text-xs font-medium uppercase tracking-wider mb-2 text-gray-500">
+                        <div className="text-[11px] font-bold uppercase tracking-[0.08em] mb-3 text-gray-500 px-1">
                             Offline — {offlineUsers.length}
                         </div>
                         <div className="space-y-1">
                             {offlineUsers.slice(0, 10).map(user => (
                                 <div 
                                     key={user.id}
-                                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors opacity-60"
+                                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl transition-all duration-200 cursor-pointer hover:bg-white/5 opacity-50 hover:opacity-70"
                                 >
                                     <UserAvatar name={user.name} photoUrl={user.photoUrl} size="sm" />
-                                    <span className="text-sm text-gray-400 truncate">{user.name}</span>
+                                    <span className="text-sm text-gray-400 truncate font-medium">{user.name}</span>
                                 </div>
                             ))}
                             {offlineUsers.length > 10 && (
-                                <p className="text-xs text-gray-500 px-2 py-1">
+                                <p className="text-xs text-gray-600 px-2.5 py-2 font-medium">
                                     +{offlineUsers.length - 10} more members
                                 </p>
                             )}
@@ -405,9 +500,12 @@ function MemberSidebar({
                 )}
 
                 {totalUsers === 0 && !isLoading && (
-                    <p className="text-sm text-gray-500 text-center py-4">
-                        No members yet
-                    </p>
+                    <div className="text-center py-8">
+                        <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-3">
+                            <Users className="w-6 h-6 text-gray-500" />
+                        </div>
+                        <p className="text-sm text-gray-500">No members yet</p>
+                    </div>
                 )}
             </div>
         </div>
@@ -430,12 +528,14 @@ export default function OnlineCommunity() {
     const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [moderationWarning, setModerationWarning] = useState<string | null>(null);
+    const [replyingTo, setReplyingTo] = useState<Message | null>(null); // Reply state
     
     const [onlineUsers, setOnlineUsers] = useState<CommunityUser[]>([]);
     const [offlineUsers, setOfflineUsers] = useState<CommunityUser[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState(false);
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
     const hasLoadedOnce = useRef(false); // Track if initial load completed
 
@@ -470,18 +570,23 @@ export default function OnlineCommunity() {
         try {
             const response = await fetch(`/api/community-messages/${selectedChannel}?limit=100`);
             if (!response.ok) {
-                throw new Error('Failed to fetch messages');
+                const errorText = await response.text();
+                console.error('[OnlineCommunity] API Error:', response.status, errorText);
+                throw new Error(`Failed to fetch messages: ${response.status}`);
             }
             const json = await response.json();
+            console.log('[OnlineCommunity] Messages response:', json);
             // API returns { success, data: { messages } }
             const data = json.data || json;
-            setMessages(data.messages || []);
+            const fetchedMessages = data.messages || [];
+            console.log(`[OnlineCommunity] Loaded ${fetchedMessages.length} messages for #${selectedChannel}`);
+            setMessages(fetchedMessages);
             hasLoadedOnce.current = true;
         } catch (err) {
             console.error('Error fetching messages:', err);
             // Only show error if this was initial load or manual refresh
             if (!hasLoadedOnce.current || isManualRefresh) {
-                setError('Failed to load messages');
+                setError('Failed to load messages. Please try again.');
             }
         } finally {
             setIsInitialLoading(false);
@@ -574,10 +679,22 @@ export default function OnlineCommunity() {
         setModerationWarning(null);
         
         try {
+            // Build request body with optional reply data
+            const requestBody: { content: string; replyTo?: { userName: string; content: string } } = {
+                content: messageInput.trim()
+            };
+            
+            if (replyingTo) {
+                requestBody.replyTo = {
+                    userName: replyingTo.userName,
+                    content: replyingTo.content.substring(0, 100) // Truncate for preview
+                };
+            }
+            
             const response = await fetch(`/api/community-messages/${selectedChannel}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: messageInput.trim() })
+                body: JSON.stringify(requestBody)
             });
             
             const json = await response.json();
@@ -602,12 +719,22 @@ export default function OnlineCommunity() {
             const data = json.data || json;
             setMessages(prev => [...prev, data.message]);
             setMessageInput('');
+            setReplyingTo(null); // Clear reply after sending
         } catch (err) {
             console.error('Error sending message:', err);
             setError('Failed to send message');
         } finally {
             setIsSending(false);
         }
+    };
+
+    const handleReply = (message: Message) => {
+        setReplyingTo(message);
+        inputRef.current?.focus();
+    };
+
+    const cancelReply = () => {
+        setReplyingTo(null);
     };
 
     const handleDeleteMessage = async (messageId: string) => {
@@ -677,69 +804,104 @@ export default function OnlineCommunity() {
             />
 
             {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col min-w-0" style={{ backgroundColor: '#0d1f2d' }}>
-                {/* Channel Header */}
+            <div 
+                className="flex-1 flex flex-col min-w-0" 
+                style={{ 
+                    backgroundColor: '#0d1f2d',
+                    backgroundImage: 'radial-gradient(ellipse at top, rgba(0, 255, 145, 0.02) 0%, transparent 50%)'
+                }}
+            >
+                {/* Channel Header - Modern glassmorphism */}
                 <div 
-                    className="h-14 px-4 flex items-center justify-between border-b flex-shrink-0"
-                    style={{ borderColor: 'rgba(0, 255, 145, 0.1)' }}
+                    className="h-16 px-5 flex items-center justify-between border-b flex-shrink-0"
+                    style={{ 
+                        borderColor: 'rgba(0, 255, 145, 0.1)',
+                        background: 'linear-gradient(180deg, rgba(0, 255, 145, 0.03) 0%, transparent 100%)'
+                    }}
                 >
-                    <div className="flex items-center gap-3">
-                        <Hash className="w-5 h-5 text-[#00FF91]" />
+                    <div className="flex items-center gap-4">
+                        <div className="p-2 rounded-xl bg-[#00FF91]/10">
+                            <Hash className="w-5 h-5 text-[#00FF91]" />
+                        </div>
                         <div>
-                            <span className="font-semibold text-white">{getCurrentChannelName()}</span>
-                            <span className="text-sm text-gray-500 ml-3">{getCurrentChannelDescription()}</span>
+                            <h2 className="font-bold text-white text-lg">{getCurrentChannelName()}</h2>
+                            <p className="text-sm text-gray-500">{getCurrentChannelDescription()}</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         <button 
                             onClick={handleManualRefresh}
-                            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                            className="p-2.5 rounded-xl hover:bg-white/10 transition-all duration-200 hover:scale-105"
                             title="Refresh messages"
                             disabled={isRefreshing}
                         >
-                            <RefreshCw className={`w-4 h-4 text-gray-400 hover:text-white ${isRefreshing ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`w-4 h-4 text-gray-400 hover:text-[#00FF91] ${isRefreshing ? 'animate-spin text-[#00FF91]' : ''}`} />
                         </button>
                         <div className="relative">
                             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                             <input
                                 type="text"
-                                placeholder="Search"
-                                className="w-40 pl-9 pr-3 py-2 text-sm rounded-lg border focus:border-[#00FF91] focus:outline-none transition-colors"
-                                style={{ backgroundColor: '#051323', borderColor: 'rgba(255,255,255,0.1)', color: 'white' }}
+                                placeholder="Search messages..."
+                                className="w-48 pl-10 pr-4 py-2.5 text-sm rounded-xl border focus:border-[#00FF91] focus:outline-none transition-all duration-200 focus:shadow-[0_0_20px_rgba(0,255,145,0.1)]"
+                                style={{ backgroundColor: 'rgba(5, 19, 35, 0.8)', borderColor: 'rgba(255,255,255,0.1)', color: 'white' }}
                             />
                         </div>
                     </div>
                 </div>
 
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto py-4">
-                    {/* Welcome Message for empty channels */}
+                {/* Messages Area */}
+                <div className="flex-1 overflow-y-auto py-6">
+                    {/* Welcome Message for empty channels - Modern card style */}
                     {messages.length === 0 && !isInitialLoading && (
                         <div className="flex flex-col items-center justify-center h-full text-center px-4">
-                            <div className="w-16 h-16 rounded-full bg-[#00FF91]/20 flex items-center justify-center mb-4">
-                                <MessageSquare className="w-8 h-8 text-[#00FF91]" />
+                            <div className="relative mb-6">
+                                <div className="absolute inset-0 rounded-full bg-[#00FF91]/20 blur-xl" />
+                                <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-[#00FF91]/20 to-[#00FF91]/5 flex items-center justify-center border border-[#00FF91]/20">
+                                    <MessageSquare className="w-10 h-10 text-[#00FF91]" />
+                                </div>
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-2">
-                                Welcome to #{getCurrentChannelName()}!
+                            <h3 className="text-2xl font-bold text-white mb-3">
+                                Welcome to <span className="text-[#00FF91]">#{getCurrentChannelName()}</span>
                             </h3>
-                            <p className="text-gray-400 max-w-md">
-                                This is the beginning of the #{getCurrentChannelName()} channel. 
-                                Start the conversation!
+                            <p className="text-gray-400 max-w-md text-base leading-relaxed">
+                                This is the start of the #{getCurrentChannelName()} channel. 
+                                Be the first to share something with the community!
                             </p>
                         </div>
                     )}
 
-                    {/* Loading State */}
+                    {/* Loading State - Modern spinner */}
                     {isInitialLoading && messages.length === 0 && (
-                        <div className="flex items-center justify-center h-full">
-                            <Loader2 className="w-8 h-8 animate-spin text-[#00FF91]" />
+                        <div className="flex flex-col items-center justify-center h-full gap-4">
+                            <div className="relative">
+                                <div className="absolute inset-0 rounded-full bg-[#00FF91]/20 blur-lg animate-pulse" />
+                                <Loader2 className="w-10 h-10 animate-spin text-[#00FF91] relative" />
+                            </div>
+                            <p className="text-gray-500 text-sm font-medium">Loading messages...</p>
                         </div>
                     )}
 
-                    {/* Error State */}
+                    {/* Error State - Modern alert */}
                     {error && (
-                        <div className="mx-4 mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-sm">
-                            {error}
+                        <div 
+                            className="mx-5 mb-4 p-4 rounded-xl flex items-center gap-3"
+                            style={{ 
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                border: '1px solid rgba(239, 68, 68, 0.2)'
+                            }}
+                        >
+                            <div className="p-2 rounded-lg bg-red-500/20">
+                                <MessageSquare className="w-4 h-4 text-red-400" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-red-400 font-medium text-sm">{error}</p>
+                                <button 
+                                    onClick={() => fetchMessages({ isManualRefresh: true })}
+                                    className="text-red-400/80 text-xs mt-1 hover:text-red-300 transition-colors"
+                                >
+                                    Click to retry
+                                </button>
+                            </div>
                         </div>
                     )}
 
@@ -752,6 +914,7 @@ export default function OnlineCommunity() {
                                 currentUserId={currentUser.id}
                                 onDelete={handleDeleteMessage}
                                 onReact={handleReaction}
+                                onReply={handleReply}
                             />
                         ))}
                     </div>
@@ -760,11 +923,35 @@ export default function OnlineCommunity() {
 
                 {/* Message Input */}
                 <div className="p-4 flex-shrink-0 border-t" style={{ borderColor: 'rgba(0, 255, 145, 0.1)' }}>
+                    {/* Reply Preview Bar */}
+                    {replyingTo && (
+                        <div 
+                            className="mb-3 px-4 py-3 rounded-xl flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-200"
+                            style={{ 
+                                backgroundColor: 'rgba(0, 255, 145, 0.08)',
+                                border: '1px solid rgba(0, 255, 145, 0.2)'
+                            }}
+                        >
+                            <Reply className="w-4 h-4 text-[#00FF91] flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                                <span className="text-xs text-[#00FF91] font-medium">Replying to {replyingTo.userName}</span>
+                                <p className="text-sm text-gray-400 truncate">{replyingTo.content}</p>
+                            </div>
+                            <button 
+                                onClick={cancelReply}
+                                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                            >
+                                <X className="w-4 h-4 text-gray-400 hover:text-white" />
+                            </button>
+                        </div>
+                    )}
+                    
                     <div 
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl border focus-within:border-[#00FF91] transition-colors"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-200 focus-within:border-[#00FF91] focus-within:shadow-[0_0_20px_rgba(0,255,145,0.1)]"
                         style={{ backgroundColor: '#0a1628', borderColor: moderationWarning ? '#FF4444' : 'rgba(255,255,255,0.1)' }}
                     >
                         <input
+                            ref={inputRef}
                             type="text"
                             value={messageInput}
                             onChange={(e) => {
@@ -772,14 +959,14 @@ export default function OnlineCommunity() {
                                 if (moderationWarning) setModerationWarning(null);
                             }}
                             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                            placeholder={`Message #${getCurrentChannelName()}`}
-                            className="flex-1 bg-transparent border-none outline-none text-white placeholder-gray-500"
+                            placeholder={replyingTo ? `Reply to ${replyingTo.userName}...` : `Message #${getCurrentChannelName()}`}
+                            className="flex-1 bg-transparent border-none outline-none text-white placeholder-gray-500 text-[15px]"
                             disabled={isSending}
                         />
                         <button 
                             onClick={handleSendMessage}
                             disabled={!messageInput.trim() || isSending}
-                            className="p-2 rounded-lg bg-[#00FF91] hover:bg-[#00FF91]/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            className="p-2.5 rounded-xl bg-[#00FF91] hover:bg-[#00FF91]/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-[0_0_20px_rgba(0,255,145,0.3)]"
                         >
                             {isSending ? (
                                 <Loader2 className="w-5 h-5 text-[#051323] animate-spin" />

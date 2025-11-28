@@ -115,6 +115,19 @@ async function checkAuthConfiguration(): Promise<HealthCheck> {
       signal: AbortSignal.timeout(10000)
     });
 
+    // When using redirect: 'manual' with cross-origin redirects, the browser returns an
+    // opaque redirect response with type 'opaqueredirect' and status 0. This is expected
+    // behavior and indicates that authentication is properly configured (it's redirecting).
+    if (response.type === 'opaqueredirect' || (response.status === 0 && response.type !== 'error')) {
+      return {
+        name: 'Admin Authentication',
+        status: 'healthy',
+        message: 'AAD authentication is configured (redirect detected)',
+        lastChecked: new Date(),
+        details: { responseType: response.type }
+      };
+    }
+
     // A properly configured auth should return a redirect (302/307) to login.microsoftonline.com
     // If it returns 200 with HTML, the auth is misconfigured
     if (response.status === 200) {
@@ -146,10 +159,7 @@ async function checkAuthConfiguration(): Promise<HealthCheck> {
           details: { redirectUrl: location.substring(0, 50) + '...' }
         };
       }
-    }
-
-    // Check if we get another redirect (could be internal SWA redirect)
-    if (response.status === 302 || response.status === 307) {
+      // Any redirect is a good sign
       return {
         name: 'Admin Authentication',
         status: 'healthy',
@@ -164,7 +174,7 @@ async function checkAuthConfiguration(): Promise<HealthCheck> {
       status: 'degraded',
       message: `Unexpected auth response (status ${response.status})`,
       lastChecked: new Date(),
-      details: { statusCode: response.status }
+      details: { statusCode: response.status, responseType: response.type }
     };
   } catch (error) {
     // Network error or timeout
@@ -189,6 +199,19 @@ async function checkMemberAuthConfiguration(): Promise<HealthCheck> {
       signal: AbortSignal.timeout(10000)
     });
 
+    // When using redirect: 'manual' with cross-origin redirects, the browser returns an
+    // opaque redirect response with type 'opaqueredirect' and status 0. This is expected
+    // behavior and indicates that authentication is properly configured (it's redirecting).
+    if (response.type === 'opaqueredirect' || (response.status === 0 && response.type !== 'error')) {
+      return {
+        name: 'Member Authentication',
+        status: 'healthy',
+        message: 'Auth0 member authentication is configured (redirect detected)',
+        lastChecked: new Date(),
+        details: { responseType: response.type }
+      };
+    }
+
     // Expect a redirect to Auth0
     if (response.status === 302 || response.status === 307) {
       const location = response.headers.get('location') || '';
@@ -200,6 +223,14 @@ async function checkMemberAuthConfiguration(): Promise<HealthCheck> {
           lastChecked: new Date()
         };
       }
+      // Any redirect is a good sign
+      return {
+        name: 'Member Authentication',
+        status: 'healthy',
+        message: 'Member authentication redirect is working',
+        lastChecked: new Date(),
+        details: { statusCode: response.status }
+      };
     }
 
     if (response.status === 200) {
@@ -219,14 +250,16 @@ async function checkMemberAuthConfiguration(): Promise<HealthCheck> {
       name: 'Member Authentication',
       status: 'degraded',
       message: 'Member auth configuration could not be verified',
-      lastChecked: new Date()
+      lastChecked: new Date(),
+      details: { statusCode: response.status, responseType: response.type }
     };
   } catch (error) {
     return {
       name: 'Member Authentication',
       status: 'degraded',
       message: 'Could not verify member auth',
-      lastChecked: new Date()
+      lastChecked: new Date(),
+      details: { error: String(error) }
     };
   }
 }
@@ -372,7 +405,9 @@ export async function quickHealthCheck(): Promise<{ ok: boolean; criticalIssues:
       redirect: 'manual',
       signal: AbortSignal.timeout(5000)
     });
-    if (response.status === 200) {
+    // Status 0 with opaqueredirect type means cross-origin redirect is happening - auth is working
+    // Only flag as misconfigured if we get a 200 with HTML content
+    if (response.status === 200 && response.type !== 'opaqueredirect') {
       const contentType = response.headers.get('content-type') || '';
       if (contentType.includes('text/html')) {
         criticalIssues.push('Admin authentication is misconfigured');
