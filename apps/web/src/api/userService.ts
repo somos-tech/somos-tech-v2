@@ -70,12 +70,31 @@ export async function getUserById(userId: string): Promise<PublicUserProfile> {
 
 /**
  * Sync user profile with authentication provider
- * Called automatically on login
+ * Called automatically on login to sync profile data including picture from social providers
  */
 export async function syncUserProfile(): Promise<{ user: UserProfile; isNewUser: boolean }> {
+  // First, get the full claims from /.auth/me
+  let claims: Array<{ typ: string; val: string }> = [];
+  try {
+    const authResponse = await fetch('/.auth/me');
+    if (authResponse.ok) {
+      const authData = await authResponse.json();
+      if (authData.clientPrincipal?.claims) {
+        claims = authData.clientPrincipal.claims;
+      }
+    }
+  } catch (e) {
+    console.warn('Could not fetch claims from /.auth/me:', e);
+  }
+
+  // Sync with backend, passing claims to extract profile picture
   const response = await fetch(userEndpoint('/sync'), {
     method: 'POST',
     credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ claims }),
   });
 
   if (!response.ok) {
@@ -84,7 +103,7 @@ export async function syncUserProfile(): Promise<{ user: UserProfile; isNewUser:
   }
 
   const data = await response.json();
-  return data.data;
+  return data.data || data;
 }
 
 // Admin endpoints

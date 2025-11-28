@@ -1,4 +1,5 @@
 import { getContainer as getDbContainer } from '../db.js';
+import crypto from 'crypto';
 
 function getContainer() {
   return getDbContainer('users');
@@ -20,7 +21,8 @@ const AuthProvider = {
   EXTERNAL_ID: 'external-id',
   AZURE_AD: 'azure-ad',
   MICROSOFT: 'microsoft',
-  GOOGLE: 'google'
+  GOOGLE: 'google',
+  AUTH0: 'auth0'
 };
 
 /**
@@ -31,11 +33,20 @@ const AuthProvider = {
 async function createUser(userData) {
   const now = new Date().toISOString();
   
+  // Extract picture from claims if available
+  const providerPicture = extractProfilePictureFromClaims(userData);
+  
+  // Use provider picture, or fall back to Gravatar
+  const profilePicture = userData.profilePicture || 
+                         providerPicture || 
+                         generateGravatarUrl(userData.email);
+  
   const user = {
     id: userData.userId || userData.id,
     email: userData.email.toLowerCase(),
     displayName: userData.displayName || userData.name || extractNameFromEmail(userData.email),
-    profilePicture: userData.profilePicture || null,
+    profilePicture: profilePicture,
+    providerPicture: providerPicture, // Store provider picture separately for comparison
     authProvider: determineAuthProvider(userData),
     status: UserStatus.ACTIVE,
     createdAt: now,
@@ -349,8 +360,137 @@ function determineAuthProvider(userData) {
     if (provider.includes('google')) return AuthProvider.GOOGLE;
     if (provider.includes('microsoft')) return AuthProvider.MICROSOFT;
     if (provider.includes('aad') || provider.includes('azuread')) return AuthProvider.AZURE_AD;
+    if (provider.includes('auth0')) return AuthProvider.AUTH0;
   }
   return AuthProvider.EXTERNAL_ID;
+}
+
+/**
+ * Generate a Gravatar URL for an email address
+ * Falls back to a default avatar if user has no Gravatar
+ * @param {string} email - User's email address
+ * @param {number} size - Avatar size in pixels (default 200)
+ * @returns {string} Gravatar URL
+ */
+function generateGravatarUrl(email, size = 200) {
+  if (!email) return null;
+  
+  // MD5 hash of lowercase email
+  const hash = crypto.createHash('md5').update(email.toLowerCase().trim()).digest('hex');
+  
+  // d=mp means "mystery person" default, d=identicon generates unique patterns
+  return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=identicon`;
+}
+
+/**
+ * Extract profile picture URL from authentication claims
+ * Auth0 and social providers include picture in claims
+ * @param {Object} principal - Client principal from auth provider
+ * @returns {string|null} Profile picture URL or null
+ */
+function extractProfilePictureFromClaims(principal) {
+  if (!principal) return null;
+  
+  // Check claims array (from /.auth/me or rolesSource body)
+  if (principal.claims && Array.isArray(principal.claims)) {
+    // Look for picture claim - Auth0 and social providers use this
+    const pictureClaim = principal.claims.find(
+      c => c.typ === 'picture' || c.typ === 'photo' || c.typ === 'avatar'
+    );
+    if (pictureClaim && pictureClaim.val) {
+      return pictureClaim.val;
+    }
+    
+    // Some providers use different claim names
+    const imageClaim = principal.claims.find(
+      c => c.typ?.includes('picture') || c.typ?.includes('photo') || c.typ?.includes('image')
+    );
+    if (imageClaim && imageClaim.val) {
+      return imageClaim.val;
+    }
+  }
+  
+  // Direct property (some implementations pass it directly)
+  if (principal.picture) return principal.picture;
+  if (principal.photo) return principal.photo;
+  if (principal.avatar) return principal.avatar;
+  
+  return null;
+}
+
+/**
+ * Get the best available profile picture for a user
+ * Priority: Provider picture > Uploaded picture > Gravatar
+ * @param {Object} user - User object from database
+ * @param {Object} principal - Client principal with claims (optional)
+ * @returns {string} Profile picture URL
+ */
+function getProfilePicture(user, principal = null) {
+  // 1. Check if user uploaded a custom picture
+  if (user?.profilePicture && !user.profilePicture.includes('gravatar.com')) {
+    return user.profilePicture;
+  }
+  
+  // 2. Check for picture from auth provider claims
+  const providerPicture = extractProfilePictureFromClaims(principal);
+  if (providerPicture) {
+    return providerPicture;
+  }
+  
+  // 3. Check stored provider picture
+  if (user?.providerPicture) {
+    return user.providerPicture;
+  }
+  
+  // 4. Check existing profile picture (could be gravatar)
+  if (user?.profilePicture) {
+    return user.profilePicture;
+  }
+  
+  // 5. Fall back to Gravatar
+  return generateGravatarUrl(user?.email);
+}
+
+/**
+ * Update user's profile picture from auth provider
+ * Called on login to sync latest picture from social providers
+ * @param {string} userId - User ID
+ * @param {Object} principal - Client principal with claims
+ * @returns {Promise<Object|null>} Updated user or null if no update needed
+ */
+async function syncProfilePictureFromProvider(userId, principal) {
+  const providerPicture = extractProfilePictureFromClaims(principal);
+  
+  if (!providerPicture) {
+    return null;
+  }
+  
+  const user = await getUserById(userId);
+  if (!user) {
+    return null;
+  }
+  
+  // Only update if:
+  // 1. User doesn't have a custom uploaded picture, OR
+  // 2. Provider picture has changed
+  const hasCustomPicture = user.profilePicture && 
+    !user.profilePicture.includes('gravatar.com') && 
+    user.profilePicture !== user.providerPicture;
+  
+  if (!hasCustomPicture || user.providerPicture !== providerPicture) {
+    const updates = {
+      providerPicture: providerPicture
+    };
+    
+    // If no custom picture, also set as main profile picture
+    if (!hasCustomPicture) {
+      updates.profilePicture = providerPicture;
+    }
+    
+    return await updateUser(userId, updates);
+  }
+  
+  return null;
 }
 
 export {
@@ -365,5 +505,9 @@ export {
   listUsers,
   getOrCreateUser,
   isUserBlocked,
-  getUserStats
+  getUserStats,
+  generateGravatarUrl,
+  extractProfilePictureFromClaims,
+  getProfilePicture,
+  syncProfilePictureFromProvider
 };

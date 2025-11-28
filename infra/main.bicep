@@ -50,12 +50,15 @@ param externalAdminClientId string = ''
 @secure()
 param externalAdminClientSecret string = ''
 
-@description('External ID Member Client ID for CIAM authentication')
-param externalMemberClientId string = ''
+@description('Auth0 Domain for member CIAM authentication (e.g., your-tenant.us.auth0.com)')
+param auth0Domain string = ''
 
-@description('External ID Member Client Secret for CIAM authentication')
+@description('Auth0 Client ID for member CIAM authentication')
+param auth0ClientId string = ''
+
+@description('Auth0 Client Secret for member CIAM authentication')
 @secure()
-param externalMemberClientSecret string = ''
+param auth0ClientSecret string = ''
 
 @description('GitHub OAuth Client ID (optional)')
 param githubClientId string = ''
@@ -511,7 +514,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           value: !empty(venueAgentId) ? venueAgentId : azureOpenAiAgentId
         }
       ],
-      !empty(externalTenantId) && !empty(externalAdminClientId) && !empty(externalMemberClientId)
+      !empty(externalTenantId) && !empty(externalAdminClientId)
         ? [
             {
               name: 'EXTERNAL_TENANT_ID'
@@ -521,9 +524,17 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
               name: 'EXTERNAL_ADMIN_CLIENT_ID'
               value: externalAdminClientId
             }
+          ]
+        : [],
+      !empty(auth0Domain) && !empty(auth0ClientId)
+        ? [
             {
-              name: 'EXTERNAL_MEMBER_CLIENT_ID'
-              value: externalMemberClientId
+              name: 'AUTH0_DOMAIN'
+              value: auth0Domain
+            }
+            {
+              name: 'AUTH0_CLIENT_ID'
+              value: auth0ClientId
             }
           ]
         : []
@@ -625,13 +636,18 @@ resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2023-01-01' = {
       AZURE_CLIENT_SECRET: azureAdClientSecret
       AZURE_TENANT_ID: azureAdTenantId
     },
-    !empty(externalTenantId) && !empty(externalAdminClientId) && !empty(externalMemberClientId)
+    !empty(externalTenantId) && !empty(externalAdminClientId)
       ? {
           EXTERNAL_TENANT_ID: externalTenantId
           EXTERNAL_ADMIN_CLIENT_ID: externalAdminClientId
           EXTERNAL_ADMIN_CLIENT_SECRET: externalAdminClientSecret
-          EXTERNAL_MEMBER_CLIENT_ID: externalMemberClientId
-          EXTERNAL_MEMBER_CLIENT_SECRET: externalMemberClientSecret
+        }
+      : {},
+    !empty(auth0Domain) && !empty(auth0ClientId)
+      ? {
+          AUTH0_DOMAIN: auth0Domain
+          AUTH0_CLIENT_ID: auth0ClientId
+          AUTH0_CLIENT_SECRET: auth0ClientSecret
         }
       : {},
     !empty(githubClientId)
