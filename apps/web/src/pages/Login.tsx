@@ -37,9 +37,9 @@ export default function Login() {
     };
 
     const handleLogin = () => {
-        // Use member provider for regular user login - redirect to member dashboard
+        // Use Auth0 provider for regular user login - redirect to member dashboard
         const redirect = buildAbsoluteRedirect('/member');
-        window.location.href = `/.auth/login/member?post_login_redirect_uri=${redirect}`;
+        window.location.href = `/.auth/login/auth0?post_login_redirect_uri=${redirect}`;
     };
 
     const handleGoogleLogin = () => {

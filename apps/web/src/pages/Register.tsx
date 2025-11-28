@@ -25,9 +25,9 @@ export default function Register() {
     };
 
     const handleRegister = () => {
-        // Use member provider for user signup/login - redirect to member dashboard
+        // Use Auth0 provider for user signup/login - redirect to member dashboard
         const redirect = buildAbsoluteRedirect('/member');
-        window.location.href = `/.auth/login/member?post_login_redirect_uri=${redirect}`;
+        window.location.href = `/.auth/login/auth0?post_login_redirect_uri=${redirect}`;
     };
 
     if (isLoading) {
