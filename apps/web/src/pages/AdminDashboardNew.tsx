@@ -16,6 +16,7 @@ import {
     Loader2
 } from 'lucide-react';
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
+import SystemHealthAlert from '@/components/SystemHealthAlert';
 import { getUserStats } from '@/api/userService';
 import eventService from '@/api/eventService';
 import { listGroups } from '@/api/groupsService';
@@ -293,6 +294,9 @@ export default function AdminDashboard() {
             <div className="max-w-7xl mx-auto px-4 py-6">
                 {/* Breadcrumbs */}
                 <AdminBreadcrumbs />
+
+                {/* System Health Alerts */}
+                <SystemHealthAlert />
 
                 {/* Header */}
                 <div className="mb-8">
