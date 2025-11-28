@@ -425,7 +425,8 @@ export default function OnlineCommunity() {
     const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
     const [messageInput, setMessageInput] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
-    const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+    const [isInitialLoading, setIsInitialLoading] = useState(true); // Only for first load
+    const [isRefreshing, setIsRefreshing] = useState(false); // For manual refresh button
     const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [moderationWarning, setModerationWarning] = useState<string | null>(null);
@@ -436,6 +437,7 @@ export default function OnlineCommunity() {
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+    const hasLoadedOnce = useRef(false); // Track if initial load completed
 
     // Current user info from context
     const currentUser = {
@@ -445,10 +447,24 @@ export default function OnlineCommunity() {
     };
 
     // Fetch messages for selected channel
-    const fetchMessages = useCallback(async () => {
+    // isManualRefresh: true when user clicks refresh button (show spinner)
+    // isBackground: true for polling (silent refresh)
+    const fetchMessages = useCallback(async (options?: { isManualRefresh?: boolean }) => {
         if (!selectedChannel) return;
         
-        setIsLoadingMessages(true);
+        const isManualRefresh = options?.isManualRefresh ?? false;
+        
+        // Only show loading indicators appropriately:
+        // - Initial load: show full spinner
+        // - Manual refresh: show refresh button spinner
+        // - Background poll: silent (no indicators)
+        if (!hasLoadedOnce.current) {
+            setIsInitialLoading(true);
+        } else if (isManualRefresh) {
+            setIsRefreshing(true);
+        }
+        // Background polls don't set any loading state
+        
         setError(null);
         
         try {
@@ -460,17 +476,28 @@ export default function OnlineCommunity() {
             // API returns { success, data: { messages } }
             const data = json.data || json;
             setMessages(data.messages || []);
+            hasLoadedOnce.current = true;
         } catch (err) {
             console.error('Error fetching messages:', err);
-            setError('Failed to load messages');
+            // Only show error if this was initial load or manual refresh
+            if (!hasLoadedOnce.current || isManualRefresh) {
+                setError('Failed to load messages');
+            }
         } finally {
-            setIsLoadingMessages(false);
+            setIsInitialLoading(false);
+            setIsRefreshing(false);
         }
     }, [selectedChannel]);
 
-    // Fetch active users
+    // Track if users have been loaded once
+    const hasLoadedUsersOnce = useRef(false);
+
+    // Fetch active users (graceful - no loading indicator on background refresh)
     const fetchActiveUsers = useCallback(async () => {
-        setIsLoadingUsers(true);
+        // Only show loading on initial load
+        if (!hasLoadedUsersOnce.current) {
+            setIsLoadingUsers(true);
+        }
         try {
             const response = await fetch('/api/community/active-users');
             if (!response.ok) {
@@ -481,6 +508,7 @@ export default function OnlineCommunity() {
             const data = json.data || json;
             setOnlineUsers(data.online || []);
             setOfflineUsers(data.offline || []);
+            hasLoadedUsersOnce.current = true;
         } catch (err) {
             console.error('Error fetching users:', err);
         } finally {
@@ -514,10 +542,17 @@ export default function OnlineCommunity() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Channel change handler
+    // Channel change handler - reset loaded state when changing channels
     useEffect(() => {
+        hasLoadedOnce.current = false;
+        setMessages([]); // Clear messages immediately for smooth channel switch
         fetchMessages();
     }, [selectedChannel, fetchMessages]);
+
+    // Manual refresh handler (shows spinner in button)
+    const handleManualRefresh = () => {
+        fetchMessages({ isManualRefresh: true });
+    };
 
     const toggleCategory = (name: string) => {
         setCollapsedCategories(prev => {
@@ -657,11 +692,12 @@ export default function OnlineCommunity() {
                     </div>
                     <div className="flex items-center gap-2">
                         <button 
-                            onClick={fetchMessages}
+                            onClick={handleManualRefresh}
                             className="p-2 rounded-lg hover:bg-white/10 transition-colors"
                             title="Refresh messages"
+                            disabled={isRefreshing}
                         >
-                            <RefreshCw className={`w-4 h-4 text-gray-400 hover:text-white ${isLoadingMessages ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`w-4 h-4 text-gray-400 hover:text-white ${isRefreshing ? 'animate-spin' : ''}`} />
                         </button>
                         <div className="relative">
                             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -678,7 +714,7 @@ export default function OnlineCommunity() {
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto py-4">
                     {/* Welcome Message for empty channels */}
-                    {messages.length === 0 && !isLoadingMessages && (
+                    {messages.length === 0 && !isInitialLoading && (
                         <div className="flex flex-col items-center justify-center h-full text-center px-4">
                             <div className="w-16 h-16 rounded-full bg-[#00FF91]/20 flex items-center justify-center mb-4">
                                 <MessageSquare className="w-8 h-8 text-[#00FF91]" />
@@ -694,7 +730,7 @@ export default function OnlineCommunity() {
                     )}
 
                     {/* Loading State */}
-                    {isLoadingMessages && messages.length === 0 && (
+                    {isInitialLoading && messages.length === 0 && (
                         <div className="flex items-center justify-center h-full">
                             <Loader2 className="w-8 h-8 animate-spin text-[#00FF91]" />
                         </div>
