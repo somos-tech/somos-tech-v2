@@ -183,15 +183,33 @@ app.http('communityMessages', {
                         text: content.trim(),
                         userId: principal.userId,
                         userEmail: principal.userDetails,
-                        channelId: channelId
+                        channelId: channelId,
+                        workflow: 'community' // Specify community workflow for tier configuration
                     });
 
                     if (!moderationResult.allowed) {
-                        context.log(`[CommunityMessages] Content blocked for user ${principal.userDetails}:`, moderationResult);
-                        return errorResponse(400, 'Your message contains content that violates our community guidelines.', {
-                            reason: 'content_moderation',
-                            categories: moderationResult.textResult?.categories?.map(c => c.category) || []
+                        context.log(`[CommunityMessages] Content blocked for user ${principal.userDetails}:`, moderationResult.reason);
+                        
+                        // Provide specific error message based on tier
+                        let errorMessage = 'Your message contains content that violates our community guidelines.';
+                        if (moderationResult.reason === 'tier1_keyword_match') {
+                            errorMessage = 'Your message contains prohibited words or phrases.';
+                        } else if (moderationResult.reason === 'tier2_malicious_link') {
+                            errorMessage = 'Your message contains a potentially harmful link.';
+                        } else if (moderationResult.reason === 'tier3_ai_violation') {
+                            errorMessage = 'Your message was flagged for potentially harmful content.';
+                        }
+                        
+                        return errorResponse(400, errorMessage, {
+                            reason: moderationResult.reason,
+                            action: moderationResult.action,
+                            tierFlow: moderationResult.tierFlow
                         });
+                    }
+                    
+                    // Log if content is pending review
+                    if (moderationResult.action === 'pending') {
+                        context.log(`[CommunityMessages] Content pending review for ${principal.userDetails}`);
                     }
                 } catch (moderationError) {
                     // Log but don't block on moderation errors

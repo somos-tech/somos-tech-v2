@@ -119,6 +119,45 @@ export async function getModerationConfig() {
 }
 
 /**
+ * Default blocklist of known harmful terms for Tier 1
+ * Categories: hate speech, slurs, violent threats, self-harm, explicit content
+ * This is a starting point - admins should customize based on community needs
+ */
+const DEFAULT_BLOCKLIST = [
+    // Hate speech and slurs (racial, ethnic, religious)
+    'n*gger', 'n1gger', 'nigga', 'nig', 'sp*c', 'spic', 'w*tback', 'wetback',
+    'ch*nk', 'chink', 'g**k', 'gook', 'k*ke', 'kike', 'f*ggot', 'faggot', 'fag',
+    'tr*nny', 'tranny', 'ret*rd', 'retard', 'tard', 'cripple', 'spaz',
+    'white power', 'heil hitler', 'nazi', 'sieg heil', '1488', '14/88',
+    'gas the', 'kill all', 'death to', 'race war',
+    
+    // Violent threats
+    'i will kill you', 'gonna kill you', 'kill yourself', 'kys', 'go die',
+    'hope you die', 'shoot you', 'stab you', 'murder you', 'bomb threat',
+    'mass shooting', 'school shooting', 'terrorist attack',
+    
+    // Self-harm encouragement
+    'cut yourself', 'hang yourself', 'drink bleach', 'jump off',
+    'end your life', 'slit your wrists', 'overdose', 'suicide method',
+    
+    // Sexual exploitation
+    'child porn', 'cp links', 'jailbait', 'lolita', 'underage',
+    'rape you', 'rapist', 'molest', 'pedo', 'pedophile',
+    
+    // Harassment
+    'doxx', 'dox', 'swat', 'swatting', 'your address', 'found your house',
+    'i know where you live', 'post your nudes',
+    
+    // Common spam patterns
+    'free bitcoin', 'crypto giveaway', 'double your', 'send btc',
+    'nigerian prince', 'lottery winner', 'click here to claim',
+    
+    // Extreme profanity (context-dependent, admins can adjust)
+    'f*ck you', 'go f*ck yourself', 'c*nt', 'cunt', 'wh*re', 'whore',
+    'b*tch', 'stfu', 'gtfo'
+];
+
+/**
  * Get default moderation configuration
  * @returns {Object} Default configuration
  */
@@ -132,7 +171,7 @@ function getDefaultConfig() {
             enabled: true,
             name: 'Keyword Filter',
             description: 'Custom blocklist of words and phrases',
-            blocklist: [],
+            blocklist: [...DEFAULT_BLOCKLIST],
             caseSensitive: false,
             matchWholeWord: false,
             action: 'block' // 'block' | 'review' | 'flag'

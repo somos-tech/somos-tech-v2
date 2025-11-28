@@ -16,6 +16,7 @@ import { app } from '@azure/functions';
 import { requireAuth, getClientPrincipal } from '../shared/authMiddleware.js';
 import { getContainer } from '../shared/db.js';
 import { successResponse, errorResponse } from '../shared/httpResponse.js';
+import { moderateContent } from '../shared/services/moderationService.js';
 
 const CONTAINERS = {
     MESSAGES: 'group-messages',
@@ -171,6 +172,46 @@ app.http('groupMessages', {
                     return errorResponse(400, 'Message content is required');
                 }
 
+                // Content moderation check (Tier 1, 2, 3 based on config)
+                try {
+                    const moderationResult = await moderateContent({
+                        type: 'message',
+                        text: body.content.trim(),
+                        userId: principal.userId,
+                        userEmail: principal.userDetails,
+                        groupId: groupId,
+                        workflow: 'groups' // Use 'groups' workflow for moderation tiers
+                    });
+
+                    if (!moderationResult.allowed) {
+                        context.log(`[GroupMessages] Content blocked for user ${principal.userDetails}:`, moderationResult.reason);
+                        
+                        // Provide more specific error message based on tier
+                        let errorMessage = 'Your message contains content that violates our community guidelines.';
+                        if (moderationResult.reason === 'tier1_keyword_match') {
+                            errorMessage = 'Your message contains prohibited words or phrases.';
+                        } else if (moderationResult.reason === 'tier2_malicious_link') {
+                            errorMessage = 'Your message contains a potentially harmful link.';
+                        } else if (moderationResult.reason === 'tier3_ai_violation') {
+                            errorMessage = 'Your message was flagged for potentially harmful content.';
+                        }
+                        
+                        return errorResponse(400, errorMessage, {
+                            reason: moderationResult.reason,
+                            action: moderationResult.action
+                        });
+                    }
+                    
+                    // If pending review, notify user
+                    if (moderationResult.action === 'pending' && moderationResult.showPendingMessage) {
+                        context.log(`[GroupMessages] Content pending review for user ${principal.userDetails}`);
+                        // We'll still allow the message but could add a flag
+                    }
+                } catch (moderationError) {
+                    // Log but don't block on moderation errors
+                    context.warn('[GroupMessages] Moderation check failed, allowing message:', moderationError.message);
+                }
+
                 // Sanitize content (basic XSS prevention)
                 const sanitizedContent = body.content
                     .replace(/</g, '&lt;')
@@ -262,6 +303,27 @@ app.http('groupMessages', {
                     const messageAge = Date.now() - new Date(message.createdAt).getTime();
                     if (messageAge > 15 * 60 * 1000) {
                         return errorResponse(400, 'Messages can only be edited within 15 minutes');
+                    }
+
+                    // Moderate the edited content too
+                    try {
+                        const moderationResult = await moderateContent({
+                            type: 'message',
+                            text: body.content.trim(),
+                            userId: principal.userId,
+                            userEmail: principal.userDetails,
+                            groupId: groupId,
+                            workflow: 'groups'
+                        });
+
+                        if (!moderationResult.allowed) {
+                            context.log(`[GroupMessages] Edit blocked for user ${principal.userDetails}:`, moderationResult.reason);
+                            return errorResponse(400, 'Your edited message contains content that violates our community guidelines.', {
+                                reason: moderationResult.reason
+                            });
+                        }
+                    } catch (moderationError) {
+                        context.warn('[GroupMessages] Edit moderation check failed:', moderationError.message);
                     }
 
                     const sanitizedContent = body.content
