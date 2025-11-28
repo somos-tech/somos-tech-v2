@@ -103,9 +103,24 @@ app.http('mediaUpload', {
 
             // Site asset upload - requires admin
             if (action === 'site-asset') {
+                // Debug: Log auth info
+                const debugPrincipal = getClientPrincipal(request);
+                context.log(`[Media] site-asset auth debug - Principal:`, JSON.stringify(debugPrincipal));
+                context.log(`[Media] site-asset auth debug - userRoles:`, debugPrincipal?.userRoles);
+                
                 const authResult = await requireAdmin(request);
+                context.log(`[Media] site-asset auth debug - authResult:`, JSON.stringify(authResult));
+                
                 if (!authResult.authenticated || !authResult.isAdmin) {
-                    return errorResponse(403, 'Admin access required');
+                    context.log(`[Media] site-asset auth FAILED - authenticated: ${authResult.authenticated}, isAdmin: ${authResult.isAdmin}`);
+                    return errorResponse(403, 'Admin access required', { 
+                        debug: {
+                            authenticated: authResult.authenticated,
+                            isAdmin: authResult.isAdmin,
+                            userRoles: debugPrincipal?.userRoles || [],
+                            userDetails: debugPrincipal?.userDetails
+                        }
+                    });
                 }
 
                 const principal = getClientPrincipal(request);

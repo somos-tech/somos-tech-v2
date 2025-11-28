@@ -189,6 +189,11 @@ export async function uploadSiteAsset(
         const result = await response.json();
 
         if (!response.ok) {
+            // Log full error details for debugging
+            console.error('[MediaService] Site asset upload failed:', response.status, result);
+            if (result.details?.debug) {
+                console.error('[MediaService] Auth debug info:', result.details.debug);
+            }
             return {
                 success: false,
                 error: result.error || result.message || 'Upload failed'
