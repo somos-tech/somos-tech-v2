@@ -37,6 +37,7 @@ import {
     analyzeUrl,
     defangTextUrls
 } from './linkSafetyService.js';
+import { createNotification } from './notificationService.js';
 
 // ============== CONFIGURATION ==============
 
@@ -150,12 +151,16 @@ export async function getModerationConfig() {
         if (resources.length > 0) {
             const existingConfig = resources[0];
             
-            // If blocklist is empty or missing, populate with defaults
-            if (!existingConfig.tier1?.blocklist || existingConfig.tier1.blocklist.length === 0) {
-                console.log('[ModerationService] Populating empty blocklist with defaults');
+            // If blocklist has fewer than 10 items, merge with defaults
+            // This ensures the default blocklist is populated even if a few items were manually added
+            const currentBlocklist = existingConfig.tier1?.blocklist || [];
+            if (currentBlocklist.length < 10) {
+                console.log('[ModerationService] Blocklist has fewer than 10 items, merging with defaults');
+                // Merge existing with defaults, avoiding duplicates
+                const mergedBlocklist = [...new Set([...DEFAULT_BLOCKLIST, ...currentBlocklist])];
                 existingConfig.tier1 = {
                     ...existingConfig.tier1,
-                    blocklist: [...DEFAULT_BLOCKLIST]
+                    blocklist: mergedBlocklist
                 };
                 // Save the updated config
                 await saveModerationConfig(existingConfig);
@@ -1305,6 +1310,27 @@ export async function moderateContent(content) {
                 result.action = 'block';
                 result.reason = 'tier1_keyword_match';
                 
+                // Send warning notification to the user
+                if (userEmail) {
+                    try {
+                        await createNotification({
+                            type: 'moderation_warning',
+                            title: '⚠️ Message Blocked',
+                            message: 'Your message was blocked because it contained prohibited words or phrases. Please review our community guidelines.',
+                            severity: 'warning',
+                            recipientEmail: userEmail,
+                            metadata: {
+                                reason: 'tier1_keyword_match',
+                                workflow: workflow,
+                                blockedTerms: tier1.matches?.map(m => m.term).slice(0, 3) // Only include first 3 terms
+                            }
+                        });
+                        console.log(`[ModerationService] Warning notification sent to ${userEmail}`);
+                    } catch (notifError) {
+                        console.error('[ModerationService] Failed to send warning notification:', notifError);
+                    }
+                }
+                
                 await addToModerationQueue({
                     type: type || 'message',
                     contentType: 'text',
@@ -1353,6 +1379,27 @@ export async function moderateContent(content) {
                 result.action = 'block';
                 result.reason = 'tier2_malicious_link';
 
+                // Send warning notification to the user
+                if (userEmail) {
+                    try {
+                        await createNotification({
+                            type: 'moderation_warning',
+                            title: '⚠️ Message Blocked - Unsafe Link',
+                            message: 'Your message was blocked because it contained a potentially harmful link. For your safety and the safety of our community, we do not allow malicious or suspicious URLs.',
+                            severity: 'warning',
+                            recipientEmail: userEmail,
+                            metadata: {
+                                reason: 'tier2_malicious_link',
+                                workflow: workflow,
+                                unsafeUrls: tier2.urls?.filter(u => !u.safe).map(u => u.defangedUrl).slice(0, 3)
+                            }
+                        });
+                        console.log(`[ModerationService] Link warning notification sent to ${userEmail}`);
+                    } catch (notifError) {
+                        console.error('[ModerationService] Failed to send link warning notification:', notifError);
+                    }
+                }
+
                 await addToModerationQueue({
                     type: type || 'message',
                     contentType: 'text',
@@ -1395,6 +1442,28 @@ export async function moderateContent(content) {
                     result.allowed = false;
                     result.action = 'block';
                     result.reason = 'tier3_ai_violation';
+                    
+                    // Send warning notification to the user
+                    if (userEmail) {
+                        try {
+                            const categories = tier3.categories?.map(c => c.category).join(', ') || 'harmful content';
+                            await createNotification({
+                                type: 'moderation_warning',
+                                title: '⚠️ Message Blocked - Content Policy',
+                                message: `Your message was blocked because our AI safety system detected potentially harmful content (${categories}). Please ensure your messages follow our community guidelines.`,
+                                severity: 'warning',
+                                recipientEmail: userEmail,
+                                metadata: {
+                                    reason: 'tier3_ai_violation',
+                                    workflow: workflow,
+                                    categories: tier3.categories?.map(c => ({ category: c.category, severity: c.severity }))
+                                }
+                            });
+                            console.log(`[ModerationService] AI violation notification sent to ${userEmail}`);
+                        } catch (notifError) {
+                            console.error('[ModerationService] Failed to send AI violation notification:', notifError);
+                        }
+                    }
                 } else {
                     result.needsReview = true;
                 }
