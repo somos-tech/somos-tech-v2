@@ -461,6 +461,256 @@ function escapeRegex(str) {
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// ============== SECURITY ATTACK DETECTION ==============
+
+/**
+ * Security attack patterns to detect
+ * Covers: SQL injection, XSS, script injection, command injection, path traversal, etc.
+ */
+const SECURITY_ATTACK_PATTERNS = [
+    // SQL Injection patterns
+    { 
+        name: 'sql_injection',
+        category: 'SQL Injection',
+        severity: 'critical',
+        patterns: [
+            /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|TRUNCATE)\b\s+(FROM|INTO|TABLE|DATABASE|ALL))/gi,
+            /(\bOR\b\s+[\d'"]+=[\d'"]+)/gi,  // OR 1=1, OR '1'='1'
+            /(\bAND\b\s+[\d'"]+=[\d'"]+)/gi, // AND 1=1
+            /(--|#|\/\*|\*\/)/g,  // SQL comments
+            /(\bEXEC\b|\bEXECUTE\b)\s*\(/gi,
+            /(\bxp_\w+)/gi,  // SQL Server extended procedures
+            /(\bsp_\w+)/gi,  // SQL Server stored procedures
+            /(\bWAITFOR\b\s+\bDELAY\b)/gi,  // Time-based injection
+            /(\bBENCHMARK\b\s*\()/gi,
+            /(\bSLEEP\b\s*\()/gi,
+            /('\s*;\s*--)/gi,  // String termination with comment
+            /(\bINFORMATION_SCHEMA\b)/gi,
+            /(\bSYSOBJECTS\b|\bSYSCOLUMNS\b)/gi,
+            /(\bLOAD_FILE\b\s*\()/gi,
+            /(\bINTO\s+(OUT|DUMP)FILE\b)/gi,
+        ]
+    },
+    // XSS (Cross-Site Scripting) patterns
+    {
+        name: 'xss_attack',
+        category: 'XSS Attack',
+        severity: 'critical',
+        patterns: [
+            /<script[\s\S]*?>[\s\S]*?<\/script>/gi,
+            /<script[\s>]/gi,
+            /javascript\s*:/gi,
+            /vbscript\s*:/gi,
+            /on\w+\s*=\s*["']?[^"'>\s]+/gi,  // onclick=, onerror=, onload=, etc.
+            /<iframe[\s>]/gi,
+            /<object[\s>]/gi,
+            /<embed[\s>]/gi,
+            /<svg[\s\S]*?onload/gi,
+            /<img[\s\S]*?onerror/gi,
+            /expression\s*\(/gi,  // CSS expression
+            /<base[\s>]/gi,
+            /<link[\s\S]*?href\s*=\s*["']?javascript/gi,
+            /&#x?[0-9a-f]+;/gi,  // HTML entities (often used to obfuscate)
+            /\\x[0-9a-f]{2}/gi,  // Hex encoding
+            /\\u[0-9a-f]{4}/gi,  // Unicode encoding
+        ]
+    },
+    // Command Injection patterns
+    {
+        name: 'command_injection',
+        category: 'Command Injection',
+        severity: 'critical',
+        patterns: [
+            /[;&|`$]\s*(cat|ls|dir|pwd|whoami|id|uname|wget|curl|nc|netcat|bash|sh|cmd|powershell)/gi,
+            /\$\(.*\)/g,  // Command substitution
+            /`.*`/g,  // Backtick command substitution
+            /\|\s*(cat|ls|dir|pwd|whoami|id|bash|sh)/gi,  // Pipe to command
+            />\s*\/?(etc|tmp|var|home|usr)/gi,  // Output redirection to system paths
+            /(;|\||&&)\s*(rm|del|format|mkfs|dd)\s/gi,  // Destructive commands
+            /\beval\s*\(/gi,
+            /\bexec\s*\(/gi,
+            /\bsystem\s*\(/gi,
+            /\bpassthru\s*\(/gi,
+            /\bshell_exec\s*\(/gi,
+            /\bpopen\s*\(/gi,
+            /\bproc_open\s*\(/gi,
+        ]
+    },
+    // Path Traversal patterns
+    {
+        name: 'path_traversal',
+        category: 'Path Traversal',
+        severity: 'high',
+        patterns: [
+            /\.\.[\/\\]/g,  // ../  or ..\
+            /\.\.[\/\\]\.\.[\/\\]/g,  // ../../
+            /%2e%2e[%2f%5c]/gi,  // URL encoded ../
+            /\.\.%c0%af/gi,  // UTF-8 encoded ../
+            /\.\.%c1%9c/gi,
+            /(\/etc\/passwd|\/etc\/shadow|\/etc\/hosts)/gi,
+            /(c:\\windows|c:\\system32|c:\\boot\.ini)/gi,
+            /\/proc\/self\//gi,
+        ]
+    },
+    // LDAP Injection patterns
+    {
+        name: 'ldap_injection',
+        category: 'LDAP Injection',
+        severity: 'high',
+        patterns: [
+            /[()&|!*]/g,  // Only flag if combined with LDAP-like context
+            /\(\|/g,  // LDAP OR
+            /\(&/g,  // LDAP AND
+        ]
+    },
+    // XML/XXE Injection patterns
+    {
+        name: 'xxe_injection',
+        category: 'XXE Attack',
+        severity: 'critical',
+        patterns: [
+            /<!DOCTYPE[^>]*\[/gi,
+            /<!ENTITY/gi,
+            /SYSTEM\s+["']/gi,
+            /<!\[CDATA\[/gi,
+            /file:\/\//gi,
+            /expect:\/\//gi,
+            /php:\/\//gi,
+        ]
+    },
+    // NoSQL Injection patterns
+    {
+        name: 'nosql_injection',
+        category: 'NoSQL Injection',
+        severity: 'high',
+        patterns: [
+            /\$where\s*:/gi,
+            /\$gt\s*:/gi,
+            /\$lt\s*:/gi,
+            /\$ne\s*:/gi,
+            /\$regex\s*:/gi,
+            /\$or\s*:\s*\[/gi,
+            /\$and\s*:\s*\[/gi,
+            /\{\s*"\$\w+"/gi,  // {"$cmd": ...}
+        ]
+    },
+    // Template Injection patterns
+    {
+        name: 'template_injection',
+        category: 'Template Injection',
+        severity: 'high',
+        patterns: [
+            /\{\{.*\}\}/g,  // Mustache/Handlebars
+            /\$\{.*\}/g,  // Template literals (if suspicious)
+            /<%= .* %>/g,  // ERB
+            /\{%.*%\}/g,  // Jinja/Django
+            /#\{.*\}/g,  // Ruby interpolation
+        ]
+    },
+    // Protocol/Scheme attacks
+    {
+        name: 'protocol_attack',
+        category: 'Protocol Attack',
+        severity: 'high',
+        patterns: [
+            /data\s*:/gi,
+            /blob\s*:/gi,
+            /file\s*:/gi,
+            /ftp\s*:/gi,
+            /gopher\s*:/gi,
+            /ldap\s*:/gi,
+            /dict\s*:/gi,
+        ]
+    },
+    // Header Injection patterns
+    {
+        name: 'header_injection',
+        category: 'Header Injection',
+        severity: 'high',
+        patterns: [
+            /[\r\n]+(Set-Cookie|Location|Content-Type|X-)/gi,
+            /%0d%0a/gi,  // CRLF encoded
+            /%0a%0d/gi,
+        ]
+    },
+];
+
+/**
+ * Run security attack detection on text
+ * @param {string} text - Text to analyze
+ * @returns {Object} Security check result
+ */
+function runSecurityCheck(text) {
+    const result = {
+        safe: true,
+        attacks: [],
+        severity: 'none',
+        checks: []
+    };
+
+    if (!text || typeof text !== 'string') {
+        result.checks.push({
+            name: 'security_input',
+            passed: true,
+            message: 'No text to analyze'
+        });
+        return result;
+    }
+
+    // Decode common encodings for better detection
+    let decodedText = text;
+    try {
+        decodedText = decodeURIComponent(text);
+    } catch (e) {
+        // Keep original if decode fails
+    }
+
+    const textVariants = [text, decodedText, text.toLowerCase()];
+
+    for (const attackType of SECURITY_ATTACK_PATTERNS) {
+        for (const pattern of attackType.patterns) {
+            for (const variant of textVariants) {
+                if (pattern.test(variant)) {
+                    // Avoid duplicate detections
+                    if (!result.attacks.find(a => a.name === attackType.name)) {
+                        result.attacks.push({
+                            name: attackType.name,
+                            category: attackType.category,
+                            severity: attackType.severity,
+                            pattern: pattern.toString()
+                        });
+                        result.safe = false;
+                        
+                        // Track highest severity
+                        if (attackType.severity === 'critical') {
+                            result.severity = 'critical';
+                        } else if (attackType.severity === 'high' && result.severity !== 'critical') {
+                            result.severity = 'high';
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    if (result.attacks.length > 0) {
+        result.checks.push({
+            name: 'security_scan',
+            passed: false,
+            message: `Detected ${result.attacks.length} potential attack(s): ${result.attacks.map(a => a.category).join(', ')}`
+        });
+    } else {
+        result.checks.push({
+            name: 'security_scan',
+            passed: true,
+            message: 'No security threats detected'
+        });
+    }
+
+    return result;
+}
+
 // ============== TIER 2: LINK SAFETY (VIRUSTOTAL) ==============
 
 /**
@@ -1351,6 +1601,72 @@ export async function moderateContent(content) {
 
             if (tier1.action === 'review') {
                 result.needsReview = true;
+            }
+        }
+
+        // ========== SECURITY ATTACK DETECTION ==========
+        // Always run security checks on text content to detect hacking attempts
+        if (text) {
+            const securityResult = runSecurityCheck(text);
+            result.securityResult = securityResult;
+            result.tierFlow.push({
+                tier: 1.5,
+                name: 'Security Scan',
+                action: securityResult.safe ? 'allow' : 'block',
+                passed: securityResult.safe,
+                checks: securityResult.checks,
+                attacks: securityResult.attacks
+            });
+
+            if (!securityResult.safe) {
+                result.allowed = false;
+                result.action = 'block';
+                result.reason = 'security_attack_detected';
+                
+                // Send security warning notification to the user
+                if (userEmail) {
+                    try {
+                        const attackTypes = securityResult.attacks.map(a => a.category).join(', ');
+                        await createNotification({
+                            type: 'security_warning',
+                            title: '🛡️ Security Alert - Message Blocked',
+                            message: `Your message was blocked because it contained patterns that appear to be security attacks (${attackTypes}). This activity has been logged.`,
+                            severity: 'critical',
+                            recipientEmail: userEmail,
+                            metadata: {
+                                reason: 'security_attack_detected',
+                                workflow: workflow,
+                                attackTypes: securityResult.attacks.map(a => a.category),
+                                severity: securityResult.severity
+                            }
+                        });
+                        console.log(`[ModerationService] Security warning notification sent to ${userEmail}`);
+                    } catch (notifError) {
+                        console.error('[ModerationService] Failed to send security warning:', notifError);
+                    }
+                }
+
+                // Log security incident with high priority
+                await addToModerationQueue({
+                    type: 'security_incident',
+                    contentType: 'text',
+                    content: text.substring(0, 1000),
+                    contentId,
+                    userId,
+                    userEmail,
+                    channelId,
+                    groupId,
+                    workflow,
+                    securityResult: securityResult,
+                    tierFlow: result.tierFlow,
+                    overallAction: 'blocked',
+                    priority: 'critical'
+                });
+
+                console.warn(`[ModerationService] SECURITY ALERT: Attack detected from ${userEmail || userId}:`, 
+                    securityResult.attacks.map(a => a.category).join(', '));
+
+                return result;
             }
         }
 
