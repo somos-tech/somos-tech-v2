@@ -1,6 +1,6 @@
 # SOMOS.tech V2 🐦‍🔥
 
-Modern event management platform built with React, Azure Functions, and Azure Static Web Apps.
+Modern event management and community platform built with React, Azure Functions, and Azure Static Web Apps.
 
 ## 📋 Table of Contents
 
@@ -22,12 +22,15 @@ Modern event management platform built with React, Azure Functions, and Azure St
 
 ## Overview
 
-SOMOS.tech is a full-stack event management application featuring:
+SOMOS.tech is a full-stack event management and community platform featuring:
 - Modern React frontend with TypeScript and Vite
-- Serverless API backend with Azure Functions
+- Serverless API backend with Azure Functions (30+ endpoints)
 - NoSQL data storage with Azure Cosmos DB
-- **Dual Authentication**: Separate flows for admins and members
-- **Donation Integration**: Direct Givebutter integration
+- **Dual Authentication**: Azure AD for admins, Auth0 for members
+- **AI-Powered Moderation**: 3-tier content moderation with Azure AI
+- **Community Features**: Groups, events, messaging, notifications
+- **Admin Dashboard**: User management, content moderation, system health monitoring
+- **Donation Integration**: Givebutter integration
 - Global CDN distribution via Azure Front Door + Static Web Apps
 - Edge security enforced by Azure Front Door Web Application Firewall (WAF)
 - Automated CI/CD with GitHub Actions
@@ -53,18 +56,19 @@ SOMOS.tech is a full-stack event management application featuring:
 
 ### Backend
 - **Node.js 20** - Runtime
-- **Azure Functions v4** - Serverless framework
+- **Azure Functions v4** - Serverless framework (30+ HTTP triggers)
 - **Azure Cosmos DB** - NoSQL database (serverless)
-- **Azure OpenAI** - AI-powered agents for content generation
-- **Application Insights** - Monitoring
+- **Azure OpenAI** - AI-powered content moderation and agents
+- **Application Insights** - Monitoring and telemetry
 
 ### Infrastructure
 - **Azure Static Web Apps** (Standard) - Frontend hosting with custom domains
-- **Azure Functions** (Flex Consumption) - API hosting
-- **Azure Cosmos DB** (Serverless) - NoSQL database
+- **Azure Functions** (Flex Consumption) - API hosting with managed scaling
+- **Azure Front Door** (Standard) - Global CDN with WAF protection
+- **Azure Cosmos DB** (Serverless) - NoSQL database with multiple containers
 - **Azure Storage Account** - Function storage, site images, and media uploads
 - **Azure Blob Storage** - Profile photos and admin media (container: `media`)
-- **Application Insights** - Monitoring & analytics
+- **Application Insights** - Monitoring, analytics & system health
 - **Bicep** - Infrastructure as Code
 
 ---
@@ -72,60 +76,101 @@ SOMOS.tech is a full-stack event management application featuring:
 ## Architecture
 
 ```
-         ┌─────────────────────┐
-         │      GitHub         │
-         │   (Source Code)     │
-         └──────────┬──────────┘
-            │
-         ┌──────────▼──────────┐
-         │  GitHub Actions     │
-         │  (CI/CD Pipeline)   │
-         └──────────┬──────────┘
-            │
-         ┌──────┴──────┐
-         │ Cloudflare  │
-         │    DNS      │
-         └──────┬──────┘
-            │ CNAME dev/prod
-     ┌──────────────────▼──────────────────┐
-     │   Azure Front Door (Standard/Premium)
-     │   - Global Anycast edge
-     │   - WAF policy + security rules
-     │   - Custom domains + certificates
-     └───────────┬─────────────────────────┘
-         │ Front Door backend route
-    ┌────────────▼────────────┐          ┌──────────▼──────────┐
-    │ Azure Static Web App    │◄─────────┤  Azure Function App │
-    │  - React SPA            │  Backend │  - Node.js API      │
-    │  - Default domain only  │   Link   │  - Managed Identity │
-    │  - Locked behind AFD    │          │  - CORS via backend │
-    └────────────┬────────────┘          └──────────┬──────────┘
-         │                                   │
-    ┌────────▼────────┐                ┌─────────▼─────────┐
-    │ Azure Cosmos DB │                │ Azure Storage     │
-    │  (Serverless)   │                │  (Blob/Files)     │
-    └────────┬────────┘                └─────────┬─────────┘
-         │                                   │
-    ┌────────▼────────┐                ┌─────────▼─────────┐
-    │ Application     │                │ Azure Monitor &   │
-    │ Insights        │                │ Alerts            │
-    └─────────────────┘                └───────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                                    USERS                                             │
+│                     (Admins via Azure AD | Members via Auth0)                        │
+└─────────────────────────────────────┬───────────────────────────────────────────────┘
+                                      │ HTTPS
+                              ┌───────▼───────┐
+                              │  Cloudflare   │
+                              │     DNS       │
+                              │ (dev/prod)    │
+                              └───────┬───────┘
+                                      │ CNAME
+              ┌───────────────────────▼────────────────────────┐
+              │        Azure Front Door (Standard)              │
+              │  ┌────────────────────────────────────────────┐ │
+              │  │              WAF Policy                     │ │
+              │  │  • Geo-blocking (US, CA, MX, GB only)      │ │
+              │  │  • Bot/scanner detection                    │ │
+              │  │  • SQL injection protection                 │ │
+              │  │  • Rate limiting (100 req/min)              │ │
+              │  └────────────────────────────────────────────┘ │
+              │  • Global Anycast Edge                          │
+              │  • Custom domains + SSL certificates            │
+              └───────────────────────┬────────────────────────┘
+                                      │ Backend Origin
+              ┌───────────────────────▼────────────────────────┐
+              │         Azure Static Web App (Standard)         │
+              │  ┌─────────────────┐  ┌──────────────────────┐ │
+              │  │   React SPA     │  │   Auth Providers     │ │
+              │  │  • TypeScript   │  │  ┌────────────────┐  │ │
+              │  │  • Tailwind CSS │  │  │ Azure AD (aad) │  │ │
+              │  │  • Vite build   │  │  │ (Admin Portal) │  │ │
+              │  └─────────────────┘  │  ├────────────────┤  │ │
+              │                       │  │  Auth0 (auth0) │  │ │
+              │                       │  │ (Member Portal)│  │ │
+              │                       │  └────────────────┘  │ │
+              │                       └──────────────────────┘ │
+              └───────────────────────┬────────────────────────┘
+                                      │ Linked Backend
+              ┌───────────────────────▼────────────────────────┐
+              │       Azure Function App (Flex Consumption)     │
+              │  ┌────────────────────────────────────────────┐ │
+              │  │              30+ HTTP Triggers              │ │
+              │  │  • /api/events      • /api/users           │ │
+              │  │  • /api/groups      • /api/moderation      │ │
+              │  │  • /api/media       • /api/notifications   │ │
+              │  │  • /api/agent       • /api/health          │ │
+              │  │  • /api/GetUserRoles (role provider)       │ │
+              │  └────────────────────────────────────────────┘ │
+              │  • Node.js 20 Runtime                           │
+              │  • Managed Identity                             │
+              └──────┬───────────────────────────────┬─────────┘
+                     │                               │
+         ┌───────────▼───────────┐       ┌───────────▼───────────┐
+         │   Azure Cosmos DB     │       │   Azure Storage       │
+         │      (Serverless)     │       │      Account          │
+         │  ┌─────────────────┐  │       │  ┌─────────────────┐  │
+         │  │ Containers:     │  │       │  │ Containers:     │  │
+         │  │ • events        │  │       │  │ • media         │  │
+         │  │ • users         │  │       │  │ • images        │  │
+         │  │ • groups        │  │       │  │ • $web          │  │
+         │  │ • broadcasts    │  │       │  └─────────────────┘  │
+         │  │ • notifications │  │       │  • Blob storage       │
+         │  │ • messages      │  │       │  • Profile photos     │
+         │  │ • moderation    │  │       └───────────────────────┘
+         │  └─────────────────┘  │
+         └───────────┬───────────┘
+                     │
+         ┌───────────▼───────────┐       ┌───────────────────────┐
+         │   Application         │       │   Azure OpenAI        │
+         │   Insights            │       │   (Content Moderation)│
+         │  • Telemetry          │       │  • 3-tier moderation  │
+         │  • Health monitoring  │       │  • Security detection │
+         │  • Error tracking     │       │  • OWASP LLM attacks  │
+         └───────────────────────┘       └───────────────────────┘
 ```
 
 ### Data Flow
 
 ```
 User Browser
-   ↓ (HTTPS over Cloudflare)
-Azure Front Door (custom domain + WAF)
-   ↓ (Forwarding to backend link)
-Azure Static Web App (React SPA)
-   ↓ (API calls via AFD backend link)
-Azure Function App (REST API)
-   ↓ (Cosmos DB SDK / Storage SDK)
-Azure Cosmos DB & Storage
-   ↓ (Telemetry)
-Application Insights / Monitor
+   ↓ (HTTPS via Cloudflare DNS)
+Azure Front Door (WAF inspection + custom domain)
+   ↓ (Origin forwarding)
+Azure Static Web App (React SPA + Auth)
+   ↓ (/.auth/* for login, /api/* proxied to backend)
+   ├── /.auth/login/aad → Azure AD (admin authentication)
+   └── /.auth/login/auth0 → Auth0 (member authentication)
+   ↓
+Azure Function App (REST API with 30+ endpoints)
+   ↓ (Cosmos DB SDK / Storage SDK / Azure AI)
+   ├── Azure Cosmos DB (user data, events, groups, messages)
+   ├── Azure Storage (media uploads, profile photos)
+   └── Azure OpenAI (content moderation, AI agents)
+   ↓
+Application Insights (telemetry, monitoring, alerts)
 ```
 
 ### Security Architecture
@@ -136,6 +181,63 @@ Application Insights / Monitor
 4. **Application Security**: Security headers (CSP, X-Frame-Options), input validation
 5. **Edge Protection**: Azure Front Door WAF blocking Tor/anonymous networks, malicious user agents, script extensions, injection payloads, suspicious uploads, and abusive request rates
 6. **Secrets Management**: GitHub Secrets, Azure Key Vault ready
+7. **Content Moderation**: 3-tier AI moderation with Azure OpenAI, OWASP LLM attack detection
+
+### System Health Monitoring
+
+The admin dashboard includes built-in health monitoring that proactively alerts administrators to issues:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    System Health Monitoring                      │
+├─────────────────────────────────────────────────────────────────┤
+│  Component          │  Check                                     │
+├─────────────────────┼───────────────────────────────────────────┤
+│  Auth Config        │  Azure AD & Auth0 provider configuration  │
+│  API Health         │  /api/health endpoint availability        │
+│  Database           │  Cosmos DB connectivity                   │
+│  Storage            │  Blob storage access                      │
+└─────────────────────┴───────────────────────────────────────────┘
+
+Alert Levels:
+  🔴 Critical - Auth/API down, immediate attention required
+  🟡 Warning  - Slow responses, non-critical issues  
+  🟢 Healthy  - All systems operational
+```
+
+- **Proactive Alerts**: Displayed at top of admin dashboard
+- **Auto-Refresh**: Checks run every 5 minutes
+- **Cached Results**: Stored in localStorage to reduce API calls
+- **Dismissible**: Alerts can be dismissed but will return if issues persist
+
+### Content Moderation System
+
+AI-powered 3-tier moderation system for user-generated content:
+
+```
+Tier 1: Local Filters (instant)
+   ├── Blocklist matching (profanity, slurs)
+   ├── URL pattern detection
+   └── Known attack patterns
+   ↓
+Tier 2: Azure AI Safety (fast)
+   ├── Hate speech detection
+   ├── Violence/self-harm
+   ├── Sexual content
+   └── Jailbreak attempts
+   ↓
+Tier 3: Azure OpenAI Analysis (detailed)
+   ├── Context-aware review
+   ├── OWASP Top 10 LLM attacks
+   ├── Prompt injection detection
+   └── Semantic analysis
+```
+
+Features:
+- **Security Attack Detection**: OWASP Top 10 LLM attack patterns
+- **Admin Test Panel**: Test moderation on sample content
+- **Audit Logging**: All moderation decisions logged to Cosmos DB
+- **Configurable Tiers**: Enable/disable tiers per workflow
 
 ### Edge Security & WAF Rules
 
@@ -333,43 +435,52 @@ curl https://func-somos-tech-dev-xxxxx.azurewebsites.net/api/events
 ```
 somos-tech-v2/
 ├── apps/
-│   ├── api/                    # Azure Functions backend
-│   │   ├── functions/          # HTTP trigger functions
+│   ├── api/                    # Azure Functions backend (Node.js 20)
+│   │   ├── functions/          # HTTP trigger functions (30+)
 │   │   │   ├── events.js       # Events CRUD operations
+│   │   │   ├── users.js        # User management + profile sync
 │   │   │   ├── adminUsers.js   # Admin user management
 │   │   │   ├── agent.js        # AI agent endpoints
 │   │   │   ├── groups.js       # Community groups
+│   │   │   ├── communityGroups.js # Community group features
+│   │   │   ├── communityMessages.js # Community messaging
 │   │   │   ├── media.js        # Media upload/management
-│   │   │   ├── GetUserRoles.js # User role verification
+│   │   │   ├── moderation.js   # AI-powered content moderation
+│   │   │   ├── GetUserRoles.js # SWA role provider
 │   │   │   ├── notifications.js # Notification system
+│   │   │   ├── broadcastNotifications.js # Broadcast system
+│   │   │   ├── health.js       # Health check endpoint
 │   │   │   └── register.js     # User registration
 │   │   ├── shared/             # Shared modules
 │   │   │   ├── httpResponse.js # Response helpers
 │   │   │   ├── authMiddleware.js # Authentication middleware
 │   │   │   ├── rateLimiter.js  # Rate limiting
 │   │   │   ├── validation.js   # Input validation
-│   │   │   ├── prompts/        # AI agent prompts
+│   │   │   ├── prompts/        # AI moderation prompts
 │   │   │   └── services/       # Business logic
 │   │   │       ├── agentService.js # AI agent orchestration
 │   │   │       ├── eventService.js # Event management
 │   │   │       ├── mediaService.js # Media/blob storage
+│   │   │       ├── moderationService.js # 3-tier AI moderation
 │   │   │       ├── notificationService.js # Notifications
-│   │   │       ├── socialMediaService.js  # Social media
 │   │   │       └── venueAgentService.js   # Venue agents
 │   │   ├── host.json           # Function App configuration
 │   │   ├── local.settings.json # Local development settings
 │   │   └── package.json
 │   │
-│   └── web/                    # React frontend
+│   └── web/                    # React frontend (TypeScript)
 │       ├── src/
 │       │   ├── api/            # API service layer
 │       │   │   ├── adminUsersService.ts
 │       │   │   ├── eventService.ts
+│       │   │   ├── groupsService.ts
 │       │   │   ├── mediaService.ts     # Media upload API
+│       │   │   ├── moderationService.ts # Moderation API
+│       │   │   ├── systemHealthService.ts # System health monitoring
 │       │   │   └── notificationsService.ts
 │       │   ├── components/     # React components
 │       │   │   ├── admin-events/ # Event management
-│       │   │   ├── EventbriteWidget.tsx
+│       │   │   ├── SystemHealthAlert.tsx # Dashboard health alerts
 │       │   │   ├── Navigation.tsx
 │       │   │   ├── NotificationPanel.tsx
 │       │   │   ├── ProfilePhotoUpload.tsx # Photo upload component
@@ -380,9 +491,10 @@ somos-tech-v2/
 │       │   │   └── useAuth.ts  # Authentication hook
 │       │   ├── lib/            # Utility functions
 │       │   ├── pages/          # Page components
-│       │   │   ├── AdminDashboard.tsx
+│       │   │   ├── AdminDashboardNew.tsx # Admin dashboard with health alerts
 │       │   │   ├── AdminMedia.tsx  # Admin media portal
-│       │   │   ├── MemberDashboard.tsx # Member portal with photo upload
+│       │   │   ├── AdminModeration.tsx # Content moderation UI
+│       │   │   ├── MemberDashboard.tsx # Member portal
 │       │   │   ├── Donate.tsx  # Givebutter redirect
 │       │   │   └── ...
 │       │   ├── shared/         # Types & interfaces
@@ -393,7 +505,7 @@ somos-tech-v2/
 │       └── package.json
 │
 ├── infra/                      # Infrastructure as Code
-│   ├── main.bicep              # Main Bicep template
+│   ├── main.bicep              # Main Bicep template (800+ lines)
 │   ├── main.bicepparam         # Base parameters
 │   ├── main.dev.bicepparam     # Dev environment parameters
 │   └── main.prod.bicepparam    # Prod environment parameters
@@ -403,12 +515,17 @@ somos-tech-v2/
 │   ├── configure-dual-auth.ps1 # Dual auth setup
 │   ├── deploy-api.ps1          # API deployment
 │   ├── populate-groups.ps1     # Populate community groups
+│   ├── test-waf-rules.ps1      # WAF rules testing
+│   └── ...
+│
+│   ├── test-waf-rules.ps1      # WAF rules testing
 │   └── ...
 │
 ├── .github/
 │   └── workflows/
-│       ├── deploy-static-web-app.yml  # Frontend CI/CD (with EXTERNAL_* vars)
-│       └── deploy-function-app.yml    # API CI/CD
+│       ├── deploy-static-web-app.yml  # Frontend CI/CD + auth secrets
+│       ├── deploy-function-app.yml    # API CI/CD
+│       └── deploy-infrastructure.yml  # Bicep infrastructure deployment
 │
 └── docs/                       # Documentation directory
     ├── README.md               # Documentation index
@@ -436,35 +553,56 @@ The application uses **dual authentication** with separate flows for administrat
 
 ### Authentication Architecture
 
-1. **Admin Portal** - Azure AD (somos.tech tenant)
-   - Purpose: Administrative access for @somos.tech staff
-   - Route: `/admin/login`
-   - Provider: Azure Active Directory
-   - Domain: @somos.tech only
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Static Web App Authentication                     │
+├─────────────────────────────────┬───────────────────────────────────┤
+│         Admin Portal            │         Member Portal              │
+│         (Azure AD)              │         (Auth0)                    │
+├─────────────────────────────────┼───────────────────────────────────┤
+│ Route: /.auth/login/aad         │ Route: /.auth/login/auth0          │
+│ Provider: Azure Active Directory│ Provider: Auth0                    │
+│ Tenant: cff2ae9c-...            │ Domain: dev-0tp5bbdn7af0lfpv.us    │
+│ Access: @somos.tech domain only │ Access: Public (Google, email)     │
+│ Purpose: Admin dashboard        │ Purpose: Member registration       │
+└─────────────────────────────────┴───────────────────────────────────┘
+```
 
-2. **Member Portal** - External ID CIAM
+1. **Admin Portal** - Azure AD (Microsoft Entra ID)
+   - Purpose: Administrative access for @somos.tech staff
+   - Login Route: `/.auth/login/aad`
+   - Provider: Azure Active Directory
+   - Tenant ID: `cff2ae9c-4810-4a92-a3e8-46e649cbdbe4`
+   - App ID: `dcf7379e-4576-4544-893f-77d6649390d3`
+   - Allowed Domain: @somos.tech only
+   - Features: Role-based access, admin dashboard
+
+2. **Member Portal** - Auth0
    - Purpose: Public member registration and access
-   - Routes: `/login`, `/register`
-   - Provider: Microsoft External ID (CIAM)
-   - Tenant: somostechus.onmicrosoft.com
-   - Supports: Microsoft accounts, Google accounts
-   - Self-service signup enabled
+   - Login Route: `/.auth/login/auth0`
+   - Provider: Auth0 (Custom OpenID Connect)
+   - Domain: `dev-0tp5bbdn7af0lfpv.us.auth0.com`
+   - Client ID: `08aK1L6WykfRrlhl0gsd4K24Ywy4xcpX`
+   - Supports: Google OAuth, email/password
+   - Features: Profile photo sync, self-service signup
 
 ### Required GitHub Secrets
 
-**Critical**: These secrets must be added to prevent authentication from breaking during deployments.
+**Critical**: These secrets must be set to prevent authentication from breaking during deployments.
 
 Go to: `https://github.com/somos-tech/somos-tech-v2/settings/secrets/actions`
 
-Add the following secrets (see `GITHUB_SECRETS_SETUP.md` for values):
+| Secret | Purpose |
+|--------|---------|
+| `ADMIN_AAD_CLIENT_ID` | Azure AD Application ID for admin auth |
+| `ADMIN_AAD_CLIENT_SECRET` | Azure AD client secret for admin auth |
+| `AUTH0_CLIENT_ID` | Auth0 Application ID for member auth |
+| `AUTH0_CLIENT_SECRET` | Auth0 client secret for member auth |
+| `AUTH0_DOMAIN` | Auth0 tenant domain |
+| `AZURE_CREDENTIALS` | Service principal for Azure deployments |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` | SWA deployment token |
 
-1. `EXTERNAL_TENANT_ID` - Azure AD tenant ID
-2. `EXTERNAL_ADMIN_CLIENT_ID` - Admin portal app registration ID
-3. `EXTERNAL_ADMIN_CLIENT_SECRET` - Admin portal client secret
-4. `EXTERNAL_MEMBER_CLIENT_ID` - Member portal app registration ID
-5. `EXTERNAL_MEMBER_CLIENT_SECRET` - Member portal client secret
-
-**Why this is critical**: The GitHub Actions workflow passes these as environment variables during deployment. Without them, deployments will clear the authentication configuration and break login functionality.
+**Why this is critical**: The GitHub Actions workflow sets these as SWA app settings during deployment. Without them, deployments will clear the authentication configuration and break login functionality.
 
 ### Quick Setup (Development)
 
