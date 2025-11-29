@@ -176,7 +176,7 @@ function ChannelSidebar({
         >
             {/* Community Header with Background */}
             <div 
-                className="h-20 px-5 flex items-center justify-between relative overflow-hidden"
+                className="h-20 px-5 flex items-start pt-3 relative overflow-hidden"
                 style={{ 
                     borderBottom: '1px solid rgba(0, 255, 145, 0.08)',
                 }}
@@ -186,33 +186,21 @@ function ChannelSidebar({
                     className="absolute inset-0 z-0"
                     style={{
                         backgroundImage: `url(${HEADER_BG_URL})`,
-                        backgroundSize: '100% 100%',
-                        backgroundPosition: 'center',
-                        opacity: 0.8
+                        backgroundSize: 'auto 100%',
+                        backgroundPosition: 'left center',
+                        backgroundRepeat: 'no-repeat',
+                        opacity: 0.9
                     }}
                 />
-                {/* Gradient Overlay - more transparent */}
+                {/* Gradient Overlay - fade from right */}
                 <div 
                     className="absolute inset-0 z-[1]"
                     style={{
-                        background: 'linear-gradient(90deg, rgba(10, 21, 32, 0.6) 0%, rgba(10, 21, 32, 0.3) 50%, rgba(10, 21, 32, 0.6) 100%)'
+                        background: 'linear-gradient(90deg, transparent 0%, rgba(10, 21, 32, 0.3) 40%, rgba(10, 21, 32, 0.8) 100%)'
                     }}
                 />
-                <div className="flex items-center gap-3 relative z-10">
-                    <div className="relative">
-                        <div className="absolute inset-0 rounded-full bg-[#00FF91]/20 blur-md animate-pulse" style={{ animationDuration: '3s' }} />
-                        <img 
-                            src={SOMOS_LOGO_URL}
-                            alt="SOMOS.tech"
-                            className="w-10 h-10 rounded-full relative z-10 ring-2 ring-[#00FF91]/20"
-                        />
-                    </div>
-                    <div>
-                        <span className="font-bold text-white text-xl tracking-tight">Community</span>
-                    </div>
-                </div>
-                <div className="flex items-center gap-1 relative z-10">
-                    <Sparkles className="w-4 h-4 text-[#00FF91]/50" />
+                <div className="relative z-10">
+                    <span className="font-bold text-white text-xl tracking-tight">Community</span>
                 </div>
             </div>
 
