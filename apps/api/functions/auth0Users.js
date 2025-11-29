@@ -21,8 +21,34 @@ import {
     extractAuth0UserId,
     getAuth0UserByEmail
 } from '../shared/services/auth0Service.js';
+import { deleteFile } from '../shared/services/mediaService.js';
 import { getContainer as getDbContainer } from '../shared/db.js';
 import { logSecurityEvent } from './adminSecurityAudit.js';
+
+/**
+ * Helper function to extract blob name from profile picture URL
+ * @param {string} url - Full URL to the profile picture
+ * @returns {string|null} - Blob name or null if not a valid blob URL
+ */
+function extractBlobNameFromUrl(url) {
+    if (!url) return null;
+    
+    try {
+        // URL format: https://storageaccount.blob.core.windows.net/container/blobname
+        const urlObj = new URL(url);
+        const pathParts = urlObj.pathname.split('/');
+        
+        // Path is /container/blobname, so we need everything after the container
+        if (pathParts.length >= 3) {
+            // Return just the blob name (everything after container)
+            return pathParts.slice(2).join('/');
+        }
+    } catch (e) {
+        console.log('[Auth0Users] Could not parse profile picture URL:', url);
+    }
+    
+    return null;
+}
 
 /**
  * Admin endpoint to block/unblock Auth0 users
@@ -224,6 +250,19 @@ app.http('auth0UserDelete', {
                 }
             }
 
+            // Delete profile photo from blob storage if exists
+            if (user.profilePicture) {
+                const blobName = extractBlobNameFromUrl(user.profilePicture);
+                if (blobName) {
+                    try {
+                        await deleteFile('profile-photos', blobName);
+                        context.log(`[Auth0Users] Deleted profile photo: ${blobName}`);
+                    } catch (photoError) {
+                        context.warn(`[Auth0Users] Could not delete profile photo: ${photoError.message}`);
+                    }
+                }
+            }
+
             // Delete from Auth0 if we have the ID
             if (auth0UserId) {
                 await deleteAuth0User(auth0UserId);
@@ -236,7 +275,11 @@ app.http('auth0UserDelete', {
                 status: 'deleted',
                 deletedAt: new Date().toISOString(),
                 deletedBy: currentUser.userDetails,
-                auth0Deleted: true
+                auth0Deleted: true,
+                profilePicture: null,
+                bio: null,
+                location: null,
+                website: null
             });
 
             // Log security event
@@ -245,7 +288,7 @@ app.http('auth0UserDelete', {
                 severity: 'critical',
                 actorEmail: currentUser.userDetails,
                 targetUserId: userId,
-                details: { auth0UserId, userEmail: user.email }
+                details: { auth0UserId, userEmail: user.email, profilePhotoDeleted: !!user.profilePicture }
             });
 
             context.log(`[Auth0Users] User ${userId} deleted by admin ${currentUser.userDetails}`);
@@ -348,6 +391,20 @@ app.http('auth0AccountDelete', {
                 return errorResponse(404, 'Could not find your Auth0 account');
             }
 
+            // Delete profile photo from blob storage if exists
+            if (user?.profilePicture) {
+                const blobName = extractBlobNameFromUrl(user.profilePicture);
+                if (blobName) {
+                    try {
+                        await deleteFile('profile-photos', blobName);
+                        context.log(`[Auth0Users] Deleted profile photo: ${blobName}`);
+                    } catch (photoError) {
+                        // Log but don't fail the deletion - photo cleanup is best effort
+                        context.warn(`[Auth0Users] Could not delete profile photo: ${photoError.message}`);
+                    }
+                }
+            }
+
             // Delete from Auth0
             await deleteAuth0User(finalAuth0UserId);
             context.log(`[Auth0Users] Auth0 user ${finalAuth0UserId} self-deleted`);
@@ -362,8 +419,12 @@ app.http('auth0AccountDelete', {
                     auth0Deleted: true,
                     // Clear sensitive data
                     email: `deleted_${user.id}@deleted.local`,
+                    displayName: 'Deleted User',
                     name: 'Deleted User',
-                    profilePicture: null
+                    profilePicture: null,
+                    bio: null,
+                    location: null,
+                    website: null
                 });
             }
 
@@ -373,7 +434,7 @@ app.http('auth0AccountDelete', {
                 severity: 'high',
                 actorEmail: currentUser.userDetails,
                 targetUserId: currentUser.userId,
-                details: { auth0UserId: finalAuth0UserId }
+                details: { auth0UserId: finalAuth0UserId, profilePhotoDeleted: !!user?.profilePicture }
             });
 
             context.log(`[Auth0Users] User ${currentUser.userId} (${currentUser.userDetails}) self-deleted`);
