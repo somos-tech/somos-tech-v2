@@ -157,9 +157,10 @@ npx @auth0/auth0-mcp-server init --client cursor
 After making changes:
 
 1. Navigate to your login URL: `https://dev.somos.tech/.auth/login/auth0`
-2. Verify the branding appears correctly
-3. Test on mobile devices for responsiveness
-4. Check that error states use correct colors
+2. Verify users see `auth.somos.tech` in the URL (not `dev-0tp5bbdn7af0lfpv.us.auth0.com`)
+3. Verify the branding appears correctly
+4. Test on mobile devices for responsiveness
+5. Check that error states use correct colors
 
 ---
 

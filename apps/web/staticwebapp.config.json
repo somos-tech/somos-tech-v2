@@ -90,7 +90,7 @@
                             "clientSecretSettingName": "AUTH0_CLIENT_SECRET"
                         },
                         "openIdConnectConfiguration": {
-                            "wellKnownOpenIdConfiguration": "https://dev-0tp5bbdn7af0lfpv.us.auth0.com/.well-known/openid-configuration"
+                            "wellKnownOpenIdConfiguration": "https://auth.somos.tech/.well-known/openid-configuration"
                         }
                     },
                     "login": {
