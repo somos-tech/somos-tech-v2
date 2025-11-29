@@ -666,7 +666,7 @@ function ChatMessageItem({
                             {/* Emoji Picker Dropdown */}
                             {showEmojiPicker && (
                                 <div 
-                                    className="absolute left-0 top-full mt-2 p-3 rounded-xl shadow-2xl z-[100]"
+                                    className="absolute left-0 top-full mt-2 p-2 rounded-xl shadow-2xl z-[100]"
                                     style={{ 
                                         backgroundColor: 'rgba(8, 20, 35, 0.98)',
                                         border: '1px solid rgba(0, 255, 145, 0.15)',
@@ -674,12 +674,12 @@ function ChatMessageItem({
                                     }}
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <div className="grid grid-cols-6 gap-1">
+                                    <div className="flex gap-1">
                                         {EMOJI_REACTIONS.map(emoji => (
                                             <button
                                                 key={emoji}
                                                 onClick={() => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
-                                                className="p-2 rounded-lg hover:bg-white/10 transition-all hover:scale-110 text-xl"
+                                                className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10 transition-all hover:scale-110 text-xl"
                                             >
                                                 {emoji}
                                             </button>
