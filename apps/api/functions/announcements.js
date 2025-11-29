@@ -461,12 +461,13 @@ app.http('announcements', {
     authLevel: 'anonymous',
     route: 'announcements/{id?}/{action?}',
     handler: async (request, context) => {
+        context.log(`[Announcements] Handler invoked - ${request.method} ${request.url}`);
         try {
             const method = request.method;
             const id = request.params.id;
             const action = request.params.action;
 
-            context.log(`[Announcements] ${method} /${id || ''}/${action || ''}`);
+            context.log(`[Announcements] ${method} /${id || ''}/${action || ''} - Starting`);
 
             // Public endpoint - get published announcements
             if (method === 'GET' && id === 'public') {
@@ -674,7 +675,9 @@ app.http('announcements', {
 
         } catch (error) {
             context.error('[Announcements] Error:', error);
-            return errorResponse(500, 'Internal server error', error.message);
+            context.error('[Announcements] Error stack:', error.stack);
+            context.error('[Announcements] Error name:', error.name);
+            return errorResponse(500, 'Internal server error', `${error.name}: ${error.message}`);
         }
     }
 });
