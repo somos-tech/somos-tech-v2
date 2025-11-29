@@ -6,10 +6,19 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { 
     User, Mail, Shield, LogOut, MapPin, Globe, FileText,
-    Edit2, Save, X, Loader2, Check
+    Edit2, Save, X, Loader2, Check, Trash2, AlertTriangle
 } from 'lucide-react';
 import { performLogout } from '@/utils/logout';
 import ProfilePhotoUpload from '@/components/ProfilePhotoUpload';
+import { deleteOwnAuth0Account } from '@/api/auth0Service';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 export default function Profile() {
     const { 
@@ -40,6 +49,11 @@ export default function Profile() {
         location: '',
         website: ''
     });
+
+    // Account deletion state
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Initialize edit form when profile loads
     useEffect(() => {
@@ -102,6 +116,39 @@ export default function Profile() {
         // Smart logout: detects identity provider (Auth0 vs Entra ID) and routes appropriately
         performLogout(authUser?.identityProvider);
     };
+
+    const handleDeleteAccount = async () => {
+        if (deleteConfirmText !== 'DELETE') {
+            return;
+        }
+
+        try {
+            setIsDeleting(true);
+            setError(null);
+            
+            const result = await deleteOwnAuth0Account();
+            
+            // Close dialog and show success
+            setShowDeleteDialog(false);
+            setSuccessMessage('Your account has been deleted. You will be logged out shortly.');
+            
+            // Redirect to logout after a short delay
+            setTimeout(() => {
+                if (result.redirect) {
+                    window.location.href = result.redirect;
+                } else {
+                    performLogout(authUser?.identityProvider);
+                }
+            }, 2000);
+        } catch (err) {
+            console.error('Error deleting account:', err);
+            setError(err instanceof Error ? err.message : 'Failed to delete account');
+            setIsDeleting(false);
+        }
+    };
+
+    // Check if user is Auth0 user (can delete their account)
+    const isAuth0User = authUser?.identityProvider === 'auth0';
 
     if (authLoading || profileLoading) {
         return (
@@ -407,16 +454,103 @@ export default function Profile() {
                         </Button>
                     </div>
 
+                    {/* Danger Zone - Account Deletion (Auth0 users only) */}
+                    {isAuth0User && (
+                        <Card className="p-6 rounded-xl" style={{ backgroundColor: 'rgba(255, 68, 68, 0.1)', border: '1px solid rgba(255, 68, 68, 0.3)' }}>
+                            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2" style={{ color: '#FF4444' }}>
+                                <AlertTriangle className="w-5 h-5" />
+                                Danger Zone
+                            </h2>
+                            <p className="mb-4" style={{ color: '#8394A7' }}>
+                                Once you delete your account, there is no going back. All your data will be permanently removed.
+                            </p>
+                            <Button
+                                onClick={() => setShowDeleteDialog(true)}
+                                className="rounded-full"
+                                style={{ backgroundColor: 'transparent', border: '1px solid #FF4444', color: '#FF4444' }}
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete My Account
+                            </Button>
+                        </Card>
+                    )}
+
                     {/* Security Notice */}
                     <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(131, 148, 167, 0.1)', border: '1px solid rgba(131, 148, 167, 0.2)' }}>
                         <p className="text-xs" style={{ color: '#8394A7' }}>
                             <strong style={{ color: '#FFFFFF' }}>Security Notice:</strong> Your account is secured through{' '}
-                            {provider === 'aad' ? 'Microsoft Azure Active Directory' : 'Microsoft External Identities'}.
+                            {provider === 'aad' ? 'Microsoft Azure Active Directory' : 'Auth0'}.
                             We never store your password - authentication is handled by your identity provider.
                         </p>
                     </div>
                 </div>
             </div>
+
+            {/* Delete Account Confirmation Dialog */}
+            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <DialogContent style={{ backgroundColor: '#0A1929', borderColor: '#1E3A5F' }} className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2" style={{ color: '#FF4444' }}>
+                            <AlertTriangle className="h-5 w-5" />
+                            Delete Your Account
+                        </DialogTitle>
+                        <DialogDescription style={{ color: '#8394A7' }}>
+                            This action is <strong style={{ color: '#FF4444' }}>permanent and cannot be undone</strong>. 
+                            All your data, including your profile, community posts, and event registrations will be permanently deleted.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-4 space-y-4">
+                        <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(255, 68, 68, 0.1)', border: '1px solid rgba(255, 68, 68, 0.3)' }}>
+                            <p className="text-sm" style={{ color: '#FFFFFF' }}>
+                                Please type <strong style={{ color: '#FF4444' }}>DELETE</strong> to confirm:
+                            </p>
+                        </div>
+                        <Input
+                            type="text"
+                            placeholder="Type DELETE to confirm"
+                            value={deleteConfirmText}
+                            onChange={(e) => setDeleteConfirmText(e.target.value)}
+                            style={{ backgroundColor: '#051323', borderColor: '#1E3A5F', color: '#FFFFFF' }}
+                            disabled={isDeleting}
+                        />
+                    </div>
+
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setShowDeleteDialog(false);
+                                setDeleteConfirmText('');
+                            }}
+                            disabled={isDeleting}
+                            style={{ borderColor: '#1E3A5F', color: '#8394A7' }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleDeleteAccount}
+                            disabled={deleteConfirmText !== 'DELETE' || isDeleting}
+                            style={{ 
+                                backgroundColor: deleteConfirmText === 'DELETE' ? '#FF4444' : '#3A3A3A',
+                                color: '#FFFFFF'
+                            }}
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Account
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
