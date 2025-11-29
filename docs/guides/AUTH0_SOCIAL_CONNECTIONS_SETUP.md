@@ -153,13 +153,20 @@ https://dev.somos.tech/.auth/login/auth0/callback,
 https://somos.tech/.auth/login/auth0/callback
 ```
 
-### Allowed Logout URLs
+### Allowed Logout URLs (CRITICAL - Must Match Exactly)
+
+These URLs must be configured **exactly** with no trailing spaces or slashes:
+
 ```
-https://dev.somos.tech/.auth/logout/complete,
-https://dev.somos.tech,
-https://somos.tech/.auth/logout/complete,
+https://dev.somos.tech
+https://dev.somos.tech/.auth/logout/complete
+https://swa-somos-tech-dev-64qb73pzvgekw.westus2.azurestaticapps.net
+https://swa-somos-tech-dev-64qb73pzvgekw.westus2.azurestaticapps.net/.auth/logout/complete
 https://somos.tech
+https://somos.tech/.auth/logout/complete
 ```
+
+> **⚠️ IMPORTANT**: If logout shows "Oops! something went wrong", the `post_logout_redirect_uri` isn't in this list. Auth0 requires an EXACT match.
 
 ### Allowed Web Origins
 ```
