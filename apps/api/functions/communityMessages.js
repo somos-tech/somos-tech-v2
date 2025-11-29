@@ -351,22 +351,37 @@ app.http('communityActiveUsers', {
             // Get users who have been active in the last 15 minutes
             const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
             const now = new Date().toISOString();
+            const currentUserEmail = principal.userDetails?.toLowerCase();
             
             // Update current user's lastActiveAt FIRST (before fetching users)
+            // Try by userId first, then by email (handles Auth0 ID mismatch)
+            let currentUserDbId = null;
             try {
-                const { resources: [currentUser] } = await usersContainer.items
+                let { resources: [currentUser] } = await usersContainer.items
                     .query({
                         query: 'SELECT * FROM c WHERE c.id = @userId',
                         parameters: [{ name: '@userId', value: principal.userId }]
                     })
                     .fetchAll();
 
+                // Fallback: try by email if not found by userId
+                if (!currentUser && currentUserEmail) {
+                    const emailResult = await usersContainer.items
+                        .query({
+                            query: 'SELECT * FROM c WHERE c.email = @email',
+                            parameters: [{ name: '@email', value: currentUserEmail }]
+                        })
+                        .fetchAll();
+                    currentUser = emailResult.resources[0];
+                }
+
                 if (currentUser) {
+                    currentUserDbId = currentUser.id;
                     currentUser.lastActiveAt = now;
                     await usersContainer.item(currentUser.id, currentUser.id).replace(currentUser);
-                    context.log(`[CommunityActiveUsers] Updated lastActiveAt for ${principal.userDetails}`);
+                    context.log(`[CommunityActiveUsers] Updated lastActiveAt for ${principal.userDetails} (db id: ${currentUser.id})`);
                 } else {
-                    context.log(`[CommunityActiveUsers] User not found: ${principal.userId}`);
+                    context.log(`[CommunityActiveUsers] User not found by id ${principal.userId} or email ${currentUserEmail}`);
                 }
             } catch (err) {
                 context.warn(`[CommunityActiveUsers] Could not update lastActiveAt: ${err.message}`);
@@ -387,17 +402,22 @@ app.http('communityActiveUsers', {
             const offline = [];
 
             users.forEach(user => {
+                // Check if this is the current user (by db id or email)
+                const isCurrentUser = user.id === currentUserDbId || 
+                                     user.id === principal.userId || 
+                                     user.email?.toLowerCase() === currentUserEmail;
+                
                 const userInfo = {
                     id: user.id,
                     name: user.displayName || user.email?.split('@')[0] || 'Member',
                     email: user.email,
                     photoUrl: user.profilePicture,
                     isAdmin: user.isAdmin || false,
-                    isCurrentUser: user.id === principal.userId
+                    isCurrentUser
                 };
 
                 // Current user is always online (they just called this endpoint)
-                if (user.id === principal.userId || (user.lastActiveAt && user.lastActiveAt > fifteenMinutesAgo)) {
+                if (isCurrentUser || (user.lastActiveAt && user.lastActiveAt > fifteenMinutesAgo)) {
                     online.push({ ...userInfo, status: 'online' });
                 } else {
                     offline.push({ ...userInfo, status: 'offline' });
