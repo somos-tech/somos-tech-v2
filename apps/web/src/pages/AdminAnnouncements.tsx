@@ -174,7 +174,8 @@ export default function AdminAnnouncements() {
             const response = await fetch(`${API_BASE}/announcements`, { credentials: 'include' });
             if (!response.ok) throw new Error('Failed to load');
             const data = await response.json();
-            setAnnouncements(data.announcements || []);
+            // API wraps response in { success, data: { announcements: [...] } }
+            setAnnouncements(data.data?.announcements || data.announcements || []);
         } catch (error) {
             console.error('Failed to load announcements:', error);
         }
@@ -190,8 +191,10 @@ export default function AdminAnnouncements() {
             const response = await fetch(`${API_BASE}/email/contacts?${params}`, { credentials: 'include' });
             if (!response.ok) throw new Error('Failed to load');
             const data = await response.json();
-            setContacts(data.contacts || []);
-            setContactsTotal(data.total || 0);
+            // API wraps response in { success, data: { contacts: [...], total } }
+            const responseData = data.data || data;
+            setContacts(responseData.contacts || []);
+            setContactsTotal(responseData.total || 0);
         } catch (error) {
             console.error('Failed to load contacts:', error);
         }
@@ -199,10 +202,18 @@ export default function AdminAnnouncements() {
 
     const loadStats = async () => {
         try {
-            const statsResponse = await fetch(`${API_BASE}/email/contacts/stats`, { credentials: 'include' });
+            const statsResponse = await fetch(`${API_BASE}/email/stats`, { credentials: 'include' });
             if (statsResponse.ok) {
                 const data = await statsResponse.json();
-                setStats(data);
+                // API wraps response in { success, data: { ... } }
+                const responseData = data.data || data;
+                setStats({
+                    total: responseData.total || 0,
+                    active: responseData.byStatus?.active || 0,
+                    newsletters: responseData.subscriptions?.newsletter || 0,
+                    events: responseData.subscriptions?.events || 0,
+                    announcements: responseData.subscriptions?.announcements || 0
+                });
             }
         } catch (error) {
             // Stats endpoint might not exist yet, compute from contacts
@@ -260,7 +271,8 @@ export default function AdminAnnouncements() {
                 });
                 if (!response.ok) throw new Error('Failed to update');
                 const data = await response.json();
-                announcement = data.announcement;
+                // API wraps response in { success, data: { announcement } }
+                announcement = data.data?.announcement || data.announcement;
             } else {
                 // Create new
                 const response = await fetch(`${API_BASE}/announcements`, {
@@ -271,7 +283,8 @@ export default function AdminAnnouncements() {
                 });
                 if (!response.ok) throw new Error('Failed to create');
                 const data = await response.json();
-                announcement = data.announcement;
+                // API wraps response in { success, data: { announcement } }
+                announcement = data.data?.announcement || data.announcement;
             }
 
             if (send) {
@@ -284,7 +297,8 @@ export default function AdminAnnouncements() {
                 });
                 if (!previewResponse.ok) throw new Error('Failed to preview');
                 const previewData = await previewResponse.json();
-                const recipientCount = previewData.recipientCount;
+                // API wraps response in { success, data: { recipientCount } }
+                const recipientCount = previewData.data?.recipientCount || previewData.recipientCount;
 
                 if (recipientCount === 0) {
                     setSaveStatus({ type: 'error', message: 'No eligible recipients found' });
@@ -302,9 +316,10 @@ export default function AdminAnnouncements() {
                     });
                     if (!sendResponse.ok) throw new Error('Failed to send');
                     const sendData = await sendResponse.json();
+                    const sendResult = sendData.data || sendData;
                     setSaveStatus({ 
                         type: 'success', 
-                        message: sendData.message || `Sent to ${sendData.results?.sent} recipients`
+                        message: sendResult.message || `Sent to ${sendResult.results?.sent} recipients`
                     });
                 }
             } else {
@@ -372,25 +387,25 @@ export default function AdminAnnouncements() {
                 return;
             }
 
-            const contacts = emailList.map(email => ({
-                email,
-                subscriptions: { newsletters: true, events: true, announcements: true }
-            }));
-
-            const response = await fetch(`${API_BASE}/email/contacts/import`, {
+            const response = await fetch(`${API_BASE}/email/import`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ contacts })
+                body: JSON.stringify({ 
+                    emails: emailList,
+                    defaultSubscriptions: { newsletters: true, events: true, announcements: true }
+                })
             });
             
             if (!response.ok) {
                 const data = await response.json();
-                throw new Error(data.message || 'Failed to import');
+                throw new Error(data.error || data.message || 'Failed to import');
             }
             
             const data = await response.json();
-            alert(`Imported ${data.created} new contacts. ${data.skipped} already existed.`);
+            // API wraps response in { success, data: { results: { created, existing } } }
+            const result = data.data?.results || data.results || {};
+            alert(`Imported ${result.created || 0} new contacts. ${result.existing || 0} already existed.`);
             setShowImportModal(false);
             await loadContacts();
         } catch (error: any) {
@@ -409,7 +424,7 @@ export default function AdminAnnouncements() {
             });
             if (!response.ok) {
                 const data = await response.json();
-                throw new Error(data.message || 'Failed to delete');
+                throw new Error(data.error || data.message || 'Failed to delete');
             }
             await loadContacts();
         } catch (error: any) {
