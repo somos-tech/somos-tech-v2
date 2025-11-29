@@ -51,29 +51,82 @@
     }
 
     .bg-glow-1 {
-      top: -200px;
-      right: -200px;
+      top: -100px;
+      right: -150px;
+      animation: pulse-glow 8s ease-in-out infinite;
     }
 
     .bg-glow-2 {
-      bottom: -300px;
-      left: -200px;
+      bottom: -200px;
+      right: -100px;
+      animation: pulse-glow 10s ease-in-out infinite reverse;
     }
 
-    /* Stars background */
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.1); }
+    }
+
+    /* Stars background - Galaxy animation */
     .stars {
       position: fixed;
       inset: 0;
       pointer-events: none;
       z-index: 0;
+      overflow: hidden;
     }
 
     .star {
       position: absolute;
       width: 2px;
       height: 2px;
-      background: rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.8);
       border-radius: 50%;
+      animation: twinkle var(--twinkle-duration, 3s) ease-in-out infinite,
+                 drift var(--drift-duration, 60s) linear infinite;
+    }
+
+    .star.large {
+      width: 3px;
+      height: 3px;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+    }
+
+    .star.bright {
+      background: rgba(0, 255, 145, 0.9);
+      box-shadow: 0 0 8px rgba(0, 255, 145, 0.5);
+    }
+
+    .star.blue {
+      background: rgba(2, 219, 255, 0.9);
+      box-shadow: 0 0 8px rgba(2, 219, 255, 0.5);
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: var(--star-opacity, 0.5); transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    @keyframes drift {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(var(--drift-x, -50px), var(--drift-y, -30px)); }
+    }
+
+    /* Shooting stars */
+    .shooting-star {
+      position: absolute;
+      width: 100px;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.8), transparent);
+      border-radius: 50%;
+      animation: shoot 3s ease-out infinite;
+      opacity: 0;
+    }
+
+    @keyframes shoot {
+      0% { transform: translateX(0) translateY(0); opacity: 1; }
+      70% { opacity: 1; }
+      100% { transform: translateX(-500px) translateY(300px); opacity: 0; }
     }
 
     /* Main container */
@@ -508,19 +561,53 @@
 
   <script src="https://cdn.auth0.com/js/lock/14.2.0/lock.min.js"></script>
   <script>
-    // Generate stars
+    // Generate animated galaxy stars
     (function() {
       const starsContainer = document.getElementById('stars');
-      const numStars = 50;
+      const numStars = 120;
       
       for (let i = 0; i < numStars; i++) {
         const star = document.createElement('div');
-        star.className = 'star';
+        
+        // Random star types
+        const rand = Math.random();
+        if (rand > 0.95) {
+          star.className = 'star large bright';
+        } else if (rand > 0.9) {
+          star.className = 'star large blue';
+        } else if (rand > 0.8) {
+          star.className = 'star large';
+        } else {
+          star.className = 'star';
+        }
+        
         star.style.left = Math.random() * 100 + '%';
         star.style.top = Math.random() * 100 + '%';
-        star.style.opacity = (0.3 + Math.random() * 0.5);
+        star.style.setProperty('--star-opacity', (0.2 + Math.random() * 0.6));
+        star.style.setProperty('--twinkle-duration', (2 + Math.random() * 4) + 's');
+        star.style.setProperty('--drift-duration', (40 + Math.random() * 40) + 's');
+        star.style.setProperty('--drift-x', (-30 + Math.random() * 60) + 'px');
+        star.style.setProperty('--drift-y', (-20 + Math.random() * 40) + 'px');
+        star.style.animationDelay = (Math.random() * 5) + 's';
+        
         starsContainer.appendChild(star);
       }
+      
+      // Add shooting stars periodically
+      function createShootingStar() {
+        const shootingStar = document.createElement('div');
+        shootingStar.className = 'shooting-star';
+        shootingStar.style.top = (Math.random() * 50) + '%';
+        shootingStar.style.right = '-100px';
+        shootingStar.style.animationDuration = (2 + Math.random() * 2) + 's';
+        starsContainer.appendChild(shootingStar);
+        
+        setTimeout(() => shootingStar.remove(), 4000);
+      }
+      
+      // Create shooting stars every 4-8 seconds
+      setInterval(createShootingStar, 4000 + Math.random() * 4000);
+      setTimeout(createShootingStar, 2000);
     })();
 
     // Decode utf8 characters properly

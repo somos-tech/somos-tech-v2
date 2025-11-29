@@ -136,8 +136,11 @@ const DEFAULT_NOTIFICATIONS = {
     events: true
 };
 
-// Quick emoji reactions - includes flags
-const QUICK_EMOJIS = ['❤️', '👍', '🔥', '😂', '🎉', '👀', '🚀', '💯', '🇺🇸', '🇲🇽', '🇵🇷', '🇧🇷', '🇨🇴', '🇦🇷'];
+// Quick emoji reactions - organized by category
+const EMOJI_CATEGORIES = {
+    reactions: ['❤️', '👍', '🔥', '😂', '🎉', '👀', '🚀', '💯', '🙌', '💪', '🤝', '✨'],
+    flags: ['🏳️‍🌈', '🏳️‍⚧️', '🇺🇸', '🇲🇽', '🇵🇷', '🇧🇷', '🇨🇴', '🇵🇪', '🇦🇷', '🇪🇸', '🇨🇺', '🇩🇴', '🇻🇪', '🇬🇹', '🇭🇳', '🇸🇻', '🇳🇮', '🇨🇷', '🇵🇦', '🇪🇨']
+};
 
 /**
  * Modern Channel Sidebar Component with Favorites
@@ -663,10 +666,10 @@ function ChatMessageItem({
                                 <Smile className="w-3.5 h-3.5" />
                             </button>
                             
-                            {/* Emoji Picker Dropdown - positioned to the right to avoid overflow clipping */}
+                            {/* Emoji Picker Dropdown - organized sections */}
                             {showEmojiPicker && (
                                 <div 
-                                    className="absolute left-0 top-full mt-2 p-2 rounded-xl shadow-2xl grid grid-cols-7 gap-1 z-[100]"
+                                    className="absolute left-0 top-full mt-2 p-3 rounded-xl shadow-2xl z-[100] w-72"
                                     style={{ 
                                         backgroundColor: 'rgba(8, 20, 35, 0.98)',
                                         border: '1px solid rgba(0, 255, 145, 0.15)',
@@ -674,15 +677,40 @@ function ChatMessageItem({
                                     }}
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    {QUICK_EMOJIS.map(emoji => (
-                                        <button
-                                            key={emoji}
-                                            onClick={() => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
-                                            className="p-2 rounded-lg hover:bg-white/10 transition-all hover:scale-110 text-lg"
-                                        >
-                                            {emoji}
-                                        </button>
-                                    ))}
+                                    {/* Reactions Section */}
+                                    <div className="mb-2">
+                                        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1.5 px-1">Reactions</div>
+                                        <div className="grid grid-cols-6 gap-0.5">
+                                            {EMOJI_CATEGORIES.reactions.map(emoji => (
+                                                <button
+                                                    key={emoji}
+                                                    onClick={() => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
+                                                    className="p-1.5 rounded-lg hover:bg-white/10 transition-all hover:scale-110 text-lg"
+                                                >
+                                                    {emoji}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Divider */}
+                                    <div className="border-t border-white/10 my-2"></div>
+                                    
+                                    {/* Flags Section */}
+                                    <div>
+                                        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1.5 px-1">Flags</div>
+                                        <div className="grid grid-cols-8 gap-0.5">
+                                            {EMOJI_CATEGORIES.flags.map(emoji => (
+                                                <button
+                                                    key={emoji}
+                                                    onClick={() => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
+                                                    className="p-1 rounded-lg hover:bg-white/10 transition-all hover:scale-110 text-base"
+                                                >
+                                                    {emoji}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
