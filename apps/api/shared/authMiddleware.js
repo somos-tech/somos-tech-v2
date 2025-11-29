@@ -69,7 +69,13 @@ function getClientPrincipal(request) {
         // Decode the base64 encoded client principal
         const decoded = Buffer.from(clientPrincipalHeader, 'base64').toString('utf-8');
         const clientPrincipal = JSON.parse(decoded);
-        console.log('[Auth] Client principal found:', clientPrincipal.userDetails);
+        
+        // Log details for debugging Auth0 vs Entra ID differences
+        console.log('[Auth] Client principal found:', {
+            userDetails: clientPrincipal.userDetails,
+            identityProvider: clientPrincipal.identityProvider,
+            claimTypes: clientPrincipal.claims?.map(c => c.typ) || []
+        });
 
         return clientPrincipal;
     } catch (error) {
@@ -220,10 +226,39 @@ function getCurrentUser(request) {
     const principal = getClientPrincipal(request);
     if (!principal) return null;
 
+    // Try to extract email from various sources
+    // For Auth0: email is often in claims, userDetails might be nickname/username
+    // For Entra ID: userDetails is typically the email
+    const claims = principal.claims || [];
+    
+    // Look for email in claims (Auth0 puts it here)
+    const emailClaim = claims.find(c => 
+        c.typ === 'email' || 
+        c.typ === 'emails' || 
+        c.typ === 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress' ||
+        c.typ === 'preferred_username'
+    );
+    
+    // Determine the email - prioritize claims, then check if userDetails looks like an email
+    let email = principal.userDetails;
+    
+    if (emailClaim?.val) {
+        // Use the email from claims if available
+        email = Array.isArray(emailClaim.val) ? emailClaim.val[0] : emailClaim.val;
+    } else if (principal.userDetails && !principal.userDetails.includes('@')) {
+        // userDetails doesn't look like an email, try to find one in claims
+        const anyEmailClaim = claims.find(c => 
+            c.val && typeof c.val === 'string' && c.val.includes('@')
+        );
+        if (anyEmailClaim) {
+            email = anyEmailClaim.val;
+        }
+    }
+
     return {
         userId: principal.userId,
-        email: principal.userDetails,
-        userDetails: principal.userDetails,
+        email: email,
+        userDetails: email, // Keep consistent with email
         identityProvider: principal.identityProvider,
         userRoles: principal.userRoles || [],
         claims: principal.claims || []
