@@ -337,7 +337,7 @@ app.http('communityActiveUsers', {
             // Get all users (we'll track activity separately, for now just get registered users)
             const { resources: users } = await usersContainer.items
                 .query({
-                    query: `SELECT c.id, c.email, c.displayName, c.profilePhotoUrl, c.lastActiveAt, c.isAdmin, c.createdAt 
+                    query: `SELECT c.id, c.email, c.displayName, c.profilePicture, c.lastActiveAt, c.isAdmin, c.createdAt 
                             FROM c 
                             WHERE c.email != null 
                             ORDER BY c.lastActiveAt DESC`
@@ -353,7 +353,7 @@ app.http('communityActiveUsers', {
                     id: user.id,
                     name: user.displayName || user.email?.split('@')[0] || 'Member',
                     email: user.email,
-                    photoUrl: user.profilePhotoUrl,
+                    photoUrl: user.profilePicture,
                     isAdmin: user.isAdmin || false,
                     isCurrentUser: user.id === principal.userId
                 };

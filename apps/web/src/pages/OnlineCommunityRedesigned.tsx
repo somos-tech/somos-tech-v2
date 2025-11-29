@@ -1,5 +1,5 @@
 /**
- * Online Community Page - Redesigned
+ * Community Page - Redesigned
  * 
  * Modern, sleek real-time community chat with:
  * - Glassmorphism design elements
@@ -7,14 +7,14 @@
  * - Clickable user profiles with location display
  * - Smooth animations and transitions
  * 
- * @module pages/OnlineCommunity
+ * @module pages/Community
  * @author SOMOS.tech
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    Hash,
+    MessageCircle,
     ChevronDown,
     ChevronRight,
     Settings,
@@ -30,7 +30,13 @@ import {
     Reply,
     X,
     Sparkles,
-    MapPin
+    MapPin,
+    Megaphone,
+    Briefcase,
+    Calendar,
+    Star,
+    Bell,
+    BellOff
 } from 'lucide-react';
 import { UserAvatar } from '@/components/DefaultAvatar';
 import UserProfilePopup from '@/components/UserProfilePopup';
@@ -38,6 +44,9 @@ import { useUserContext } from '@/contexts/UserContext';
 
 // Official SOMOS.tech logo URL
 const SOMOS_LOGO_URL = 'https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/shortcircle.png';
+
+// Background image for header
+const HEADER_BG_URL = 'https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/beyondtheclouds';
 
 // Message type
 interface Message {
@@ -66,49 +75,72 @@ interface CommunityUser {
     isCurrentUser?: boolean;
 }
 
-// Channel categories and channels
+// Channel categories and channels with modern icons
 const CHANNEL_CATEGORIES = [
     {
         name: 'Information',
         icon: '📢',
         channels: [
-            { id: 'welcome', name: 'welcome', icon: Hash, description: 'Welcome to SOMOS.tech!' },
-            { id: 'announcements', name: 'announcements', icon: Hash, description: 'Important announcements' },
+            { id: 'announcements', name: 'announcements', icon: Megaphone, description: 'Important announcements' },
         ]
     },
     {
         name: 'General',
         icon: '💬',
         channels: [
-            { id: 'introductions', name: 'introductions', icon: Hash, description: 'Introduce yourself!' },
-            { id: 'general', name: 'general', icon: Hash, description: 'General discussion' },
-            { id: 'opportunities', name: 'opportunities', icon: Hash, description: 'Job & opportunities' },
-        ]
-    },
-    {
-        name: 'Tech Talk',
-        icon: '💻',
-        channels: [
-            { id: 'coding', name: 'coding', icon: Hash, description: 'Programming discussion' },
-            { id: 'career-advice', name: 'career-advice', icon: Hash, description: 'Career tips & advice' },
-            { id: 'resources', name: 'resources', icon: Hash, description: 'Helpful resources' },
+            { id: 'introductions', name: 'introductions', icon: Users, description: 'Introduce yourself!' },
+            { id: 'general', name: 'general', icon: MessageCircle, description: 'General discussion' },
+            { id: 'opportunities', name: 'opportunities', icon: Briefcase, description: 'Job & opportunities' },
         ]
     },
     {
         name: 'Community',
         icon: '🌟',
         channels: [
-            { id: 'events', name: 'events', icon: Hash, description: 'Community events' },
-            { id: 'off-topic', name: 'off-topic', icon: Hash, description: 'Random chat' },
+            { id: 'events', name: 'events', icon: Calendar, description: 'Community events' },
+            // City Chapters
+            { id: 'group-seattle', name: 'Seattle, WA', icon: MapPin, description: 'Seattle tech community' },
+            { id: 'group-newyork', name: 'New York, NY', icon: MapPin, description: 'New York tech community' },
+            { id: 'group-boston', name: 'Boston, MA', icon: MapPin, description: 'Boston tech community' },
+            { id: 'group-denver', name: 'Denver, CO', icon: MapPin, description: 'Denver tech community' },
+            { id: 'group-washingtondc', name: 'Washington DC', icon: MapPin, description: 'Washington DC tech community' },
+            { id: 'group-atlanta', name: 'Atlanta, GA', icon: MapPin, description: 'Atlanta tech community' },
+            { id: 'group-sanfrancisco', name: 'San Francisco, CA', icon: MapPin, description: 'San Francisco tech community' },
+            { id: 'group-chicago', name: 'Chicago, IL', icon: MapPin, description: 'Chicago tech community' },
+            { id: 'group-austin', name: 'Austin, TX', icon: MapPin, description: 'Austin tech community' },
+            { id: 'group-houston', name: 'Houston, TX', icon: MapPin, description: 'Houston tech community' },
+            { id: 'group-losangeles', name: 'Los Angeles, CA', icon: MapPin, description: 'Los Angeles tech community' },
+            { id: 'group-miami', name: 'Miami, FL', icon: MapPin, description: 'Miami tech community' },
+            { id: 'group-dallas', name: 'Dallas, TX', icon: MapPin, description: 'Dallas tech community' },
+            { id: 'group-phoenix', name: 'Phoenix, AZ', icon: MapPin, description: 'Phoenix tech community' },
+            { id: 'group-sandiego', name: 'San Diego, CA', icon: MapPin, description: 'San Diego tech community' },
+            { id: 'group-philadelphia', name: 'Philadelphia, PA', icon: MapPin, description: 'Philadelphia tech community' },
+            { id: 'group-sacramento', name: 'Sacramento, CA', icon: MapPin, description: 'Sacramento tech community' },
+            { id: 'group-dallasftworth', name: 'Dallas/Ft. Worth, TX', icon: MapPin, description: 'DFW tech community' },
         ]
     },
 ];
+
+// Helper to get all channel IDs for lookup
+const ALL_CHANNELS = CHANNEL_CATEGORIES.flatMap(cat => cat.channels);
+
+// Local storage key for favorites
+const FAVORITES_STORAGE_KEY = 'somos-community-favorites';
+
+// Local storage key for notification settings
+const NOTIFICATIONS_STORAGE_KEY = 'somos-community-notifications';
+
+// Default notification settings
+const DEFAULT_NOTIFICATIONS = {
+    announcements: true,
+    events: true
+};
 
 // Quick emoji reactions
 const QUICK_EMOJIS = ['❤️', '👍', '🔥', '😂', '🎉', '👀', '🚀', '💯'];
 
 /**
- * Modern Channel Sidebar Component
+ * Modern Channel Sidebar Component with Favorites
  */
 function ChannelSidebar({ 
     selectedChannel, 
@@ -116,7 +148,9 @@ function ChannelSidebar({
     collapsedCategories,
     toggleCategory,
     currentUser,
-    onNavigateToProfile
+    onNavigateToProfile,
+    favorites,
+    onToggleFavorite
 }: {
     selectedChannel: string;
     onSelectChannel: (id: string) => void;
@@ -124,8 +158,13 @@ function ChannelSidebar({
     toggleCategory: (name: string) => void;
     currentUser: { name: string; photoUrl?: string } | null;
     onNavigateToProfile: () => void;
+    favorites: Set<string>;
+    onToggleFavorite: (channelId: string) => void;
 }) {
     const navigate = useNavigate();
+    
+    // Get favorite channels
+    const favoriteChannels = ALL_CHANNELS.filter(ch => favorites.has(ch.id));
     
     return (
         <div 
@@ -135,15 +174,31 @@ function ChannelSidebar({
                 borderRight: '1px solid rgba(0, 255, 145, 0.06)'
             }}
         >
-            {/* Server Header */}
+            {/* Community Header with Background */}
             <div 
-                className="h-16 px-5 flex items-center justify-between"
+                className="h-20 px-5 flex items-center justify-between relative overflow-hidden"
                 style={{ 
                     borderBottom: '1px solid rgba(0, 255, 145, 0.08)',
-                    background: 'linear-gradient(180deg, rgba(0, 255, 145, 0.03) 0%, transparent 100%)'
                 }}
             >
-                <div className="flex items-center gap-3">
+                {/* Background Image */}
+                <div 
+                    className="absolute inset-0 z-0"
+                    style={{
+                        backgroundImage: `url(${HEADER_BG_URL})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        opacity: 0.3
+                    }}
+                />
+                {/* Gradient Overlay */}
+                <div 
+                    className="absolute inset-0 z-[1]"
+                    style={{
+                        background: 'linear-gradient(90deg, rgba(10, 21, 32, 0.95) 0%, rgba(10, 21, 32, 0.7) 50%, rgba(10, 21, 32, 0.95) 100%)'
+                    }}
+                />
+                <div className="flex items-center gap-3 relative z-10">
                     <div className="relative">
                         <div className="absolute inset-0 rounded-full bg-[#00FF91]/20 blur-md animate-pulse" style={{ animationDuration: '3s' }} />
                         <img 
@@ -153,11 +208,10 @@ function ChannelSidebar({
                         />
                     </div>
                     <div>
-                        <span className="font-bold text-white text-lg tracking-tight">SOMOS</span>
-                        <span className="text-[#00FF91] text-sm ml-1 font-medium">.tech</span>
+                        <span className="font-bold text-white text-xl tracking-tight">Community</span>
                     </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 relative z-10">
                     <Sparkles className="w-4 h-4 text-[#00FF91]/50" />
                 </div>
             </div>
@@ -179,6 +233,61 @@ function ChannelSidebar({
 
             {/* Channel Categories */}
             <div className="flex-1 overflow-y-auto px-3 py-4 space-y-4 scrollbar-thin scrollbar-thumb-[#00FF91]/10 scrollbar-track-transparent">
+                {/* Favorites Section - Only show if there are favorites */}
+                {favoriteChannels.length > 0 && (
+                    <div>
+                        <button
+                            onClick={() => toggleCategory('Favorites')}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em] hover:text-white transition-colors rounded-lg hover:bg-white/5"
+                            style={{ color: '#FFD700' }}
+                        >
+                            {collapsedCategories.has('Favorites') ? (
+                                <ChevronRight className="w-3.5 h-3.5" />
+                            ) : (
+                                <ChevronDown className="w-3.5 h-3.5" />
+                            )}
+                            <Star className="w-3.5 h-3.5 fill-current" />
+                            <span>Favorites</span>
+                        </button>
+                        
+                        {!collapsedCategories.has('Favorites') && (
+                            <div className="mt-1.5 space-y-0.5 pl-2">
+                                {favoriteChannels.map(channel => (
+                                    <div key={channel.id} className="group/item relative">
+                                        <button
+                                            onClick={() => onSelectChannel(channel.id)}
+                                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group ${
+                                                selectedChannel === channel.id 
+                                                    ? 'text-white' 
+                                                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                                            }`}
+                                            style={{
+                                                background: selectedChannel === channel.id 
+                                                    ? 'linear-gradient(90deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 215, 0, 0.05) 100%)' 
+                                                    : 'transparent',
+                                                border: selectedChannel === channel.id 
+                                                    ? '1px solid rgba(255, 215, 0, 0.15)' 
+                                                    : '1px solid transparent',
+                                            }}
+                                        >
+                                            <channel.icon className={`w-4 h-4 transition-colors ${selectedChannel === channel.id ? 'text-[#FFD700]' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                                            <span className="text-sm font-medium truncate flex-1">{channel.name}</span>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onToggleFavorite(channel.id); }}
+                                                className="opacity-0 group-hover/item:opacity-100 transition-opacity p-1 hover:bg-white/10 rounded"
+                                                title="Remove from favorites"
+                                            >
+                                                <Star className="w-3 h-3 text-[#FFD700] fill-current" />
+                                            </button>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Regular Categories */}
                 {CHANNEL_CATEGORIES.map(category => (
                     <div key={category.name}>
                         <button
@@ -198,29 +307,37 @@ function ChannelSidebar({
                         {!collapsedCategories.has(category.name) && (
                             <div className="mt-1.5 space-y-0.5 pl-2">
                                 {category.channels.map(channel => (
-                                    <button
-                                        key={channel.id}
-                                        onClick={() => onSelectChannel(channel.id)}
-                                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group ${
-                                            selectedChannel === channel.id 
-                                                ? 'text-white' 
-                                                : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
-                                        }`}
-                                        style={{
-                                            background: selectedChannel === channel.id 
-                                                ? 'linear-gradient(90deg, rgba(0, 255, 145, 0.15) 0%, rgba(0, 255, 145, 0.05) 100%)' 
-                                                : 'transparent',
-                                            border: selectedChannel === channel.id 
-                                                ? '1px solid rgba(0, 255, 145, 0.15)' 
-                                                : '1px solid transparent',
-                                            boxShadow: selectedChannel === channel.id 
-                                                ? '0 0 20px rgba(0, 255, 145, 0.08)' 
-                                                : 'none'
-                                        }}
-                                    >
-                                        <channel.icon className={`w-4 h-4 transition-colors ${selectedChannel === channel.id ? 'text-[#00FF91]' : 'text-gray-500 group-hover:text-gray-400'}`} />
-                                        <span className="text-sm font-medium">{channel.name}</span>
-                                    </button>
+                                    <div key={channel.id} className="group/item relative">
+                                        <button
+                                            onClick={() => onSelectChannel(channel.id)}
+                                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group ${
+                                                selectedChannel === channel.id 
+                                                    ? 'text-white' 
+                                                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                                            }`}
+                                            style={{
+                                                background: selectedChannel === channel.id 
+                                                    ? 'linear-gradient(90deg, rgba(0, 255, 145, 0.15) 0%, rgba(0, 255, 145, 0.05) 100%)' 
+                                                    : 'transparent',
+                                                border: selectedChannel === channel.id 
+                                                    ? '1px solid rgba(0, 255, 145, 0.15)' 
+                                                    : '1px solid transparent',
+                                                boxShadow: selectedChannel === channel.id 
+                                                    ? '0 0 20px rgba(0, 255, 145, 0.08)' 
+                                                    : 'none'
+                                            }}
+                                        >
+                                            <channel.icon className={`w-4 h-4 transition-colors flex-shrink-0 ${selectedChannel === channel.id ? 'text-[#00FF91]' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                                            <span className="text-sm font-medium truncate flex-1">{channel.name}</span>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onToggleFavorite(channel.id); }}
+                                                className="opacity-0 group-hover/item:opacity-100 transition-opacity p-1 hover:bg-white/10 rounded"
+                                                title={favorites.has(channel.id) ? "Remove from favorites" : "Add to favorites"}
+                                            >
+                                                <Star className={`w-3 h-3 ${favorites.has(channel.id) ? 'text-[#FFD700] fill-current' : 'text-gray-500'}`} />
+                                            </button>
+                                        </button>
+                                    </div>
                                 ))}
                             </div>
                         )}
@@ -538,122 +655,111 @@ function ChatMessageItem({
                         </div>
                     )}
 
-                    {/* Reactions - Below message, left-aligned */}
-                    {message.reactions && message.reactions.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                            {message.reactions.map((reaction, idx) => {
-                                const isReacted = reaction.users.includes(currentUserId);
-                                return (
-                                    <button
-                                        key={idx}
-                                        onClick={() => onReact(message.id, reaction.emoji)}
-                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 hover:scale-105 ${
-                                            isReacted 
-                                                ? 'bg-[#00FF91]/15 text-[#00FF91]' 
-                                                : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                                        }`}
-                                        style={{
-                                            border: isReacted ? '1px solid rgba(0, 255, 145, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)'
-                                        }}
-                                    >
-                                        <span className="text-sm">{reaction.emoji}</span>
-                                        <span>{reaction.count}</span>
-                                    </button>
-                                );
-                            })}
-                            {/* Add reaction button */}
+                    {/* Reactions & Actions Row - Below message, left-aligned */}
+                    <div className={`flex flex-wrap items-center gap-1.5 mt-2 ${showActions || (message.reactions && message.reactions.length > 0) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity duration-200`}>
+                        {/* Existing Reactions */}
+                        {message.reactions && message.reactions.map((reaction, idx) => {
+                            const isReacted = reaction.users.includes(currentUserId);
+                            return (
+                                <button
+                                    key={idx}
+                                    onClick={() => onReact(message.id, reaction.emoji)}
+                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 hover:scale-105 ${
+                                        isReacted 
+                                            ? 'bg-[#00FF91]/15 text-[#00FF91]' 
+                                            : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                                    }`}
+                                    style={{
+                                        border: isReacted ? '1px solid rgba(0, 255, 145, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)'
+                                    }}
+                                >
+                                    <span className="text-sm">{reaction.emoji}</span>
+                                    <span>{reaction.count}</span>
+                                </button>
+                            );
+                        })}
+                        
+                        {/* Action Buttons - Always visible on hover */}
+                        <div className="relative">
                             <button
-                                onClick={() => setShowEmojiPicker(true)}
-                                className="inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-500 hover:text-gray-300 hover:bg-white/10 transition-all"
+                                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                className="inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-500 hover:text-[#00FF91] hover:bg-white/10 transition-all"
                                 style={{ border: '1px dashed rgba(255, 255, 255, 0.1)' }}
+                                title="Add reaction"
                             >
                                 <Smile className="w-3.5 h-3.5" />
                             </button>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Floating Action Bar */}
-            <div 
-                className={`absolute -top-5 right-6 flex items-center gap-0.5 p-1 rounded-xl shadow-xl transition-all duration-200 ${
-                    showActions ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none'
-                }`}
-                style={{ 
-                    backgroundColor: 'rgba(8, 20, 35, 0.95)',
-                    border: '1px solid rgba(0, 255, 145, 0.15)',
-                    backdropFilter: 'blur(12px)'
-                }}
-            >
-                {/* Emoji Picker */}
-                <div className="relative">
-                    <button 
-                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                        className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-                        title="Add reaction"
-                    >
-                        <Smile className="w-4 h-4 text-gray-400 hover:text-[#00FF91]" />
-                    </button>
-                    
-                    {showEmojiPicker && (
-                        <div 
-                            className="absolute top-full left-0 mt-2 p-2 rounded-xl shadow-2xl flex flex-wrap gap-1 z-50 w-44"
-                            style={{ 
-                                backgroundColor: 'rgba(8, 20, 35, 0.98)',
-                                border: '1px solid rgba(0, 255, 145, 0.15)'
-                            }}
-                        >
-                            {QUICK_EMOJIS.map(emoji => (
-                                <button
-                                    key={emoji}
-                                    onClick={() => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
-                                    className="p-2 rounded-lg hover:bg-white/10 transition-all hover:scale-110 text-lg"
+                            
+                            {/* Emoji Picker Dropdown */}
+                            {showEmojiPicker && (
+                                <div 
+                                    className="absolute bottom-full left-0 mb-2 p-2 rounded-xl shadow-2xl flex flex-wrap gap-1 z-50 w-44"
+                                    style={{ 
+                                        backgroundColor: 'rgba(8, 20, 35, 0.98)',
+                                        border: '1px solid rgba(0, 255, 145, 0.15)'
+                                    }}
                                 >
-                                    {emoji}
-                                </button>
-                            ))}
+                                    {QUICK_EMOJIS.map(emoji => (
+                                        <button
+                                            key={emoji}
+                                            onClick={() => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
+                                            className="p-2 rounded-lg hover:bg-white/10 transition-all hover:scale-110 text-lg"
+                                        >
+                                            {emoji}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    )}
+                        
+                        <button 
+                            onClick={() => onReply(message)}
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-500 hover:text-[#00FF91] hover:bg-white/10 transition-all"
+                            style={{ border: '1px dashed rgba(255, 255, 255, 0.1)' }}
+                            title="Reply"
+                        >
+                            <Reply className="w-3.5 h-3.5" />
+                        </button>
+                        
+                        {canDelete && (
+                            <button 
+                                onClick={() => onDelete(message.id)}
+                                className="inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                                style={{ border: '1px dashed rgba(255, 255, 255, 0.1)' }}
+                                title={isOwn ? "Delete" : "Delete (Admin)"}
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+                    </div>
                 </div>
-                
-                <button 
-                    onClick={() => onReply(message)}
-                    className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-                    title="Reply"
-                >
-                    <Reply className="w-4 h-4 text-gray-400 hover:text-[#00FF91]" />
-                </button>
-                
-                {canDelete && (
-                    <button 
-                        onClick={() => onDelete(message.id)}
-                        className="p-2 rounded-lg hover:bg-red-500/20 transition-colors"
-                        title={isOwn ? "Delete" : "Delete (Admin)"}
-                    >
-                        <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-400" />
-                    </button>
-                )}
             </div>
         </div>
     );
 }
 
 /**
- * Modern Member Sidebar Component
+ * Modern Member Sidebar Component with Notification Settings
  */
 function MemberSidebar({ 
     onlineUsers, 
     offlineUsers,
     totalUsers,
     isLoading,
-    onUserClick
+    onUserClick,
+    notifications,
+    onToggleNotification
 }: { 
     onlineUsers: CommunityUser[];
     offlineUsers: CommunityUser[];
     totalUsers: number;
     isLoading: boolean;
     onUserClick: (userId: string, userName: string, userPhoto: string | undefined, event: React.MouseEvent) => void;
+    notifications: { announcements: boolean; events: boolean };
+    onToggleNotification: (type: 'announcements' | 'events') => void;
 }) {
+    const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+    
     return (
         <div 
             className="w-64 flex-shrink-0 h-full overflow-y-auto"
@@ -663,6 +769,61 @@ function MemberSidebar({
             }}
         >
             <div className="p-4">
+                {/* Notification Settings Section */}
+                <div className="mb-6">
+                    <button
+                        onClick={() => setShowNotificationSettings(!showNotificationSettings)}
+                        className="w-full flex items-center justify-between px-2 py-2 rounded-lg hover:bg-white/5 transition-colors"
+                    >
+                        <h3 className="text-xs font-bold text-gray-400 flex items-center gap-2 uppercase tracking-widest">
+                            <Bell className="w-4 h-4 text-[#00FF91]" />
+                            Notifications
+                        </h3>
+                        {showNotificationSettings ? (
+                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                        ) : (
+                            <ChevronRight className="w-4 h-4 text-gray-500" />
+                        )}
+                    </button>
+                    
+                    {showNotificationSettings && (
+                        <div className="mt-2 space-y-2 px-2">
+                            {/* Announcements Toggle */}
+                            <div 
+                                className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/5 cursor-pointer hover:bg-white/10 transition-colors"
+                                onClick={() => onToggleNotification('announcements')}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Megaphone className="w-4 h-4 text-gray-400" />
+                                    <span className="text-sm text-gray-300">Announcements</span>
+                                </div>
+                                <div className={`w-10 h-5 rounded-full p-0.5 transition-colors ${notifications.announcements ? 'bg-[#00FF91]' : 'bg-gray-600'}`}>
+                                    <div className={`w-4 h-4 rounded-full bg-white shadow-md transition-transform ${notifications.announcements ? 'translate-x-5' : 'translate-x-0'}`} />
+                                </div>
+                            </div>
+                            
+                            {/* Events Toggle */}
+                            <div 
+                                className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/5 cursor-pointer hover:bg-white/10 transition-colors"
+                                onClick={() => onToggleNotification('events')}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-gray-400" />
+                                    <span className="text-sm text-gray-300">Events</span>
+                                </div>
+                                <div className={`w-10 h-5 rounded-full p-0.5 transition-colors ${notifications.events ? 'bg-[#00FF91]' : 'bg-gray-600'}`}>
+                                    <div className={`w-4 h-4 rounded-full bg-white shadow-md transition-transform ${notifications.events ? 'translate-x-5' : 'translate-x-0'}`} />
+                                </div>
+                            </div>
+                            
+                            <p className="text-[10px] text-gray-500 px-1 pt-1">
+                                Get notified about new posts in these channels
+                            </p>
+                        </div>
+                    )}
+                </div>
+                
+                {/* Members Section */}
                 <h3 className="text-xs font-bold text-gray-400 mb-4 flex items-center gap-2 uppercase tracking-widest px-2">
                     <Users className="w-4 h-4 text-[#00FF91]" />
                     Members
@@ -770,9 +931,53 @@ export default function OnlineCommunity() {
     const [moderationWarning, setModerationWarning] = useState<string | null>(null);
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     
+    // Favorites state - loaded from localStorage
+    const [favorites, setFavorites] = useState<Set<string>>(() => {
+        try {
+            const stored = localStorage.getItem(FAVORITES_STORAGE_KEY);
+            return stored ? new Set(JSON.parse(stored)) : new Set();
+        } catch {
+            return new Set();
+        }
+    });
+    
+    // Notification settings state - loaded from localStorage
+    const [notifications, setNotifications] = useState<{ announcements: boolean; events: boolean }>(() => {
+        try {
+            const stored = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
+            return stored ? JSON.parse(stored) : DEFAULT_NOTIFICATIONS;
+        } catch {
+            return DEFAULT_NOTIFICATIONS;
+        }
+    });
+    
     const [onlineUsers, setOnlineUsers] = useState<CommunityUser[]>([]);
     const [offlineUsers, setOfflineUsers] = useState<CommunityUser[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+    
+    // Toggle notification setting
+    const toggleNotification = useCallback((type: 'announcements' | 'events') => {
+        setNotifications(prev => {
+            const updated = { ...prev, [type]: !prev[type] };
+            localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
+            return updated;
+        });
+    }, []);
+    
+    // Toggle favorite channel
+    const toggleFavorite = useCallback((channelId: string) => {
+        setFavorites(prev => {
+            const newFavorites = new Set(prev);
+            if (newFavorites.has(channelId)) {
+                newFavorites.delete(channelId);
+            } else {
+                newFavorites.add(channelId);
+            }
+            // Persist to localStorage
+            localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify([...newFavorites]));
+            return newFavorites;
+        });
+    }, []);
     
     // User profile popup state
     const [profilePopup, setProfilePopup] = useState<{
@@ -1019,21 +1224,17 @@ export default function OnlineCommunity() {
         }
     };
 
-    const getCurrentChannelName = () => {
+    const getCurrentChannel = () => {
         for (const category of CHANNEL_CATEGORIES) {
             const channel = category.channels.find(c => c.id === selectedChannel);
-            if (channel) return channel.name;
+            if (channel) return channel;
         }
-        return 'general';
+        return CHANNEL_CATEGORIES[1].channels[1]; // Default to general
     };
 
-    const getCurrentChannelDescription = () => {
-        for (const category of CHANNEL_CATEGORIES) {
-            const channel = category.channels.find(c => c.id === selectedChannel);
-            if (channel) return channel.description;
-        }
-        return '';
-    };
+    const getCurrentChannelName = () => getCurrentChannel().name;
+    const getCurrentChannelDescription = () => getCurrentChannel().description;
+    const CurrentChannelIcon = getCurrentChannel().icon;
 
     return (
         <div className="h-[calc(100vh-80px)] flex" style={{ backgroundColor: '#050d15' }}>
@@ -1055,6 +1256,8 @@ export default function OnlineCommunity() {
                 toggleCategory={toggleCategory}
                 currentUser={currentUser}
                 onNavigateToProfile={() => navigate('/profile')}
+                favorites={favorites}
+                onToggleFavorite={toggleFavorite}
             />
 
             {/* Main Chat Area */}
@@ -1075,7 +1278,7 @@ export default function OnlineCommunity() {
                 >
                     <div className="flex items-center gap-4">
                         <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#00FF91]/15 to-[#00FF91]/5">
-                            <Hash className="w-5 h-5 text-[#00FF91]" />
+                            <CurrentChannelIcon className="w-5 h-5 text-[#00FF91]" />
                         </div>
                         <div>
                             <h2 className="font-bold text-white text-lg">{getCurrentChannelName()}</h2>
@@ -1255,6 +1458,8 @@ export default function OnlineCommunity() {
                 totalUsers={onlineUsers.length + offlineUsers.length}
                 isLoading={isLoadingUsers}
                 onUserClick={(id, name, photo, e) => handleUserClick(id, name, photo || null, e)}
+                notifications={notifications}
+                onToggleNotification={toggleNotification}
             />
         </div>
     );
