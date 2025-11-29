@@ -298,10 +298,11 @@ export default function AdminAnnouncements() {
                 if (!previewResponse.ok) throw new Error('Failed to preview');
                 const previewData = await previewResponse.json();
                 // API wraps response in { success, data: { recipientCount } }
-                const recipientCount = previewData.data?.recipientCount || previewData.recipientCount;
+                // Use nullish coalescing to properly handle 0 values
+                const recipientCount = previewData.data?.recipientCount ?? previewData.recipientCount ?? 0;
 
                 if (recipientCount === 0) {
-                    setSaveStatus({ type: 'error', message: 'No eligible recipients found' });
+                    setSaveStatus({ type: 'error', message: 'No eligible recipients found. Please add contacts or check subscription settings.' });
                     setSending(false);
                     return;
                 }
