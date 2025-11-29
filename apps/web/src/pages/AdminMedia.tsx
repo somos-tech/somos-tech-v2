@@ -44,6 +44,7 @@ import {
     FileX
 } from 'lucide-react';
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
+import AdminQuickNav from '@/components/AdminQuickNav';
 import {
     getContainers,
     listFiles,
@@ -457,6 +458,9 @@ export default function AdminMedia() {
             <div className="space-y-6">
                 {/* Breadcrumbs */}
                 <AdminBreadcrumbs />
+                
+                {/* Quick Navigation */}
+                <AdminQuickNav className="mt-2" />
                 
                 {/* Header */}
                 <div className="flex items-center justify-between">

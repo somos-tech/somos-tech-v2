@@ -49,9 +49,9 @@ app.http('adminListUsers', {
       const status = url.searchParams.get('status') || null;
       const search = url.searchParams.get('search') || null;
 
-      // Validate limit
-      if (limit < 1 || limit > 100) {
-        return errorResponse(400, 'Limit must be between 1 and 100');
+      // Validate limit (allow up to 500 for admin user listing)
+      if (limit < 1 || limit > 500) {
+        return errorResponse(400, 'Limit must be between 1 and 500');
       }
 
       // Validate status

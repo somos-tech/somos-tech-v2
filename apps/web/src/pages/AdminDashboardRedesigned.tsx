@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart, Users, Zap, TrendingUp, Plus, Filter, Settings, Download, Calendar, Loader2 } from 'lucide-react';
 import { getUserStats } from '@/api/userService';
 import { listGroups } from '@/api/groupsService';
+import AdminQuickNav from '@/components/AdminQuickNav';
 
 interface DashboardMetrics {
     totalMembers: number;
@@ -106,7 +107,10 @@ export default function AdminDashboardRedesigned() {
             </div>
 
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+                {/* Quick Navigation */}
+                <AdminQuickNav className="mb-8" />
+
                 {/* Key Metrics */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                     {[

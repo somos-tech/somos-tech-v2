@@ -14,6 +14,7 @@ import TopKpis from "@/components/admin-events/TopKpis";
 import eventService from "@/api/eventService";
 import type { Event } from "@shared/types";
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
+import AdminQuickNav from '@/components/AdminQuickNav';
 
 export default function AdminEvents() {
     const [openCreate, setOpenCreate] = useState(false);
@@ -54,6 +55,7 @@ export default function AdminEvents() {
     return (
         <main className="flex-1 space-y-6" style={{ backgroundColor: '#0a1f35' }}>
             <AdminBreadcrumbs />
+            <AdminQuickNav className="px-4" />
             <HeaderBar onNew={() => setOpenCreate(true)} />
 
             {/* KPI row */}

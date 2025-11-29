@@ -23,6 +23,7 @@ import {
     Zap
 } from 'lucide-react';
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
+import AdminQuickNav from '@/components/AdminQuickNav';
 
 interface SettingsCard {
     title: string;
@@ -237,6 +238,9 @@ export default function AdminSettings() {
             <div className="max-w-7xl mx-auto px-4 py-6">
                 {/* Breadcrumbs */}
                 <AdminBreadcrumbs />
+                
+                {/* Quick Navigation */}
+                <AdminQuickNav className="mt-4 mb-6" />
 
                 {/* Header */}
                 <div className="mb-8">

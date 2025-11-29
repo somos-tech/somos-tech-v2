@@ -18,6 +18,7 @@ import {
     Loader2
 } from 'lucide-react';
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
+import AdminQuickNav from '@/components/AdminQuickNav';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { getHealthCheck, type HealthCheckResponse, type HealthCheck } from '@/api/healthService';
@@ -101,6 +102,9 @@ export default function AdminSecurity() {
             <div className="max-w-7xl mx-auto px-4 py-6">
                 {/* Breadcrumbs */}
                 <AdminBreadcrumbs />
+                
+                {/* Quick Navigation */}
+                <AdminQuickNav className="mt-4 mb-6" />
 
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">

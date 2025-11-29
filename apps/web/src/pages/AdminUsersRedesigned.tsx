@@ -42,6 +42,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AdminNav } from '@/components/AdminNav';
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
+import AdminQuickNav from '@/components/AdminQuickNav';
 import { UserAvatar } from '@/components/DefaultAvatar';
 import type { AdminUser } from '@/shared/types';
 import type { UserProfile, LoginHistoryEntry } from '@/types/user';
@@ -807,10 +808,11 @@ export default function AdminUsersRedesigned() {
             <div className="px-8 pt-8">
                 <AdminNav />
                 <AdminBreadcrumbs />
+                <AdminQuickNav className="mt-4" />
             </div>
 
             {/* Header */}
-            <div className="px-8 mb-6">
+            <div className="px-8 mt-6 mb-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold flex items-center gap-3" style={{ color: '#FFFFFF' }}>

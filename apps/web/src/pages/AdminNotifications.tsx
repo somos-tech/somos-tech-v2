@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { getBroadcastTargets, sendBroadcast, getBroadcastHistory } from '@/api/broadcastService';
 import type { BroadcastTarget, BroadcastRecord, SendBroadcastDto } from '@/api/broadcastService';
+import AdminQuickNav from '@/components/AdminQuickNav';
 
 export default function AdminNotifications() {
     const navigate = useNavigate();
@@ -135,6 +136,11 @@ export default function AdminNotifications() {
 
     return (
         <div style={{ backgroundColor: '#051323', minHeight: '100vh' }}>
+            {/* Quick Navigation */}
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4">
+                <AdminQuickNav />
+            </div>
+            
             {/* Header */}
             <div 
                 className="border-b sticky top-16 z-40"
