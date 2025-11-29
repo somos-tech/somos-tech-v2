@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>Sign In | SOMOS.tech</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* SOMOS.tech Brand Colors */
+    :root {
+      --somos-dark-bg: #051323;
+      --somos-dark-blue: #0a1f35;
+      --somos-neon-green: #00FF91;
+      --somos-light-gray: #8394A7;
+      --somos-white: #FFFFFF;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--somos-dark-bg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Animated background elements */
+    .bg-glow {
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 255, 145, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .bg-glow-1 {
+      top: -200px;
+      right: -200px;
+      animation: float 20s ease-in-out infinite;
+    }
+
+    .bg-glow-2 {
+      bottom: -300px;
+      left: -200px;
+      animation: float 25s ease-in-out infinite reverse;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(30px, 20px) scale(1.1); }
+    }
+
+    /* Stars background */
+    .stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 50%;
+      animation: twinkle 3s ease-in-out infinite;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    /* Main container */
+    .login-container {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 420px;
+      padding: 20px;
+    }
+
+    /* Logo section */
+    .logo-section {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo-wrapper {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 16px;
+    }
+
+    .logo-glow {
+      position: absolute;
+      inset: -10px;
+      background: radial-gradient(circle, rgba(0, 255, 145, 0.3) 0%, transparent 70%);
+      border-radius: 50%;
+      filter: blur(15px);
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.1); }
+    }
+
+    .logo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      position: relative;
+      z-index: 1;
+      border: 2px solid rgba(0, 255, 145, 0.3);
+      box-shadow: 0 0 30px rgba(0, 255, 145, 0.2);
+    }
+
+    .brand-name {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--somos-white);
+      letter-spacing: -0.5px;
+    }
+
+    .brand-name span {
+      color: var(--somos-neon-green);
+    }
+
+    .tagline {
+      font-size: 14px;
+      color: var(--somos-light-gray);
+      margin-top: 4px;
+    }
+
+    /* Lock widget container */
+    #lock-container {
+      width: 100%;
+    }
+
+    /* Custom Auth0 Lock Styles */
+    .auth0-lock.auth0-lock .auth0-lock-overlay {
+      background: transparent !important;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-widget {
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 
+                  0 0 40px rgba(0, 255, 145, 0.1) !important;
+      border-radius: 20px !important;
+      overflow: hidden !important;
+      border: 1px solid rgba(0, 255, 145, 0.1) !important;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-header {
+      display: none !important;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-content {
+      background: var(--somos-dark-blue) !important;
+      padding: 32px 28px 24px !important;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-form {
+      padding: 0 !important;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-form .auth0-lock-alternative {
+      display: none !important;
+    }
+
+    /* Social buttons */
+    .auth0-lock.auth0-lock .auth0-lock-social-button {
+      border-radius: 12px !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      background: rgba(255, 255, 255, 0.03) !important;
+      transition: all 0.3s ease !important;
+      padding: 14px 20px !important;
+      margin-bottom: 12px !important;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-social-button:hover {
+      background: rgba(255, 255, 255, 0.08) !important;
+      border-color: rgba(0, 255, 145, 0.3) !important;
+      transform: translateY(-2px) !important;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-social-button-text {
+      color: var(--somos-white) !important;
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 500 !important;
+      font-size: 15px !important;
+    }
+
+    /* Input fields */
+    .auth0-lock.auth0-lock .auth0-lock-input-wrap {
+      background: rgba(5, 19, 35, 0.8) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      border-radius: 12px !important;
+      transition: all 0.3s ease !important;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-input-wrap:focus-within {
+      border-color: var(--somos-neon-green) !important;
+      box-shadow: 0 0 20px rgba(0, 255, 145, 0.15) !important;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-input {
+      color: var(--somos-white) !important;
+      font-family: 'Inter', sans-serif !important;
+      background: transparent !important;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-input::placeholder {
+      color: var(--somos-light-gray) !important;
+    }
+
+    /* Submit button */
+    .auth0-lock.auth0-lock .auth0-lock-submit {
+      background: linear-gradient(135deg, var(--somos-neon-green) 0%, #00CC74 100%) !important;
+      border-radius: 12px !important;
+      height: 52px !important;
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 600 !important;
+      font-size: 16px !important;
+      transition: all 0.3s ease !important;
+      box-shadow: 0 4px 20px rgba(0, 255, 145, 0.3) !important;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-submit:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 8px 30px rgba(0, 255, 145, 0.4) !important;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-submit .auth0-label-submit {
+      color: var(--somos-dark-bg) !important;
+    }
+
+    /* Links */
+    .auth0-lock.auth0-lock .auth0-lock-alternative-link {
+      color: var(--somos-neon-green) !important;
+      font-family: 'Inter', sans-serif !important;
+    }
+
+    /* Error messages */
+    .auth0-lock.auth0-lock .auth0-global-message-error {
+      background: rgba(239, 68, 68, 0.15) !important;
+      border: 1px solid rgba(239, 68, 68, 0.3) !important;
+      border-radius: 12px !important;
+      color: #f87171 !important;
+    }
+
+    /* Terms section */
+    .terms-section {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--somos-light-gray);
+      line-height: 1.6;
+      padding: 0 20px;
+    }
+
+    .terms-section a {
+      color: var(--somos-neon-green);
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .terms-section a:hover {
+      text-decoration: underline;
+      text-shadow: 0 0 10px rgba(0, 255, 145, 0.3);
+    }
+
+    /* Footer */
+    .footer {
+      position: fixed;
+      bottom: 20px;
+      text-align: center;
+      font-size: 12px;
+      color: rgba(131, 148, 167, 0.5);
+    }
+
+    .footer a {
+      color: rgba(0, 255, 145, 0.5);
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      color: var(--somos-neon-green);
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .login-container {
+        padding: 16px;
+      }
+
+      .logo {
+        width: 64px;
+        height: 64px;
+      }
+
+      .brand-name {
+        font-size: 24px;
+      }
+
+      .auth0-lock.auth0-lock .auth0-lock-content {
+        padding: 24px 20px 20px !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!--[if IE 8]>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/ie8/0.2.5/ie8.js"></script>
+  <![endif]-->
+
+  <!--[if lte IE 9]>
+  <script src="https://cdn.auth0.com/js/base64.js"></script>
+  <script src="https://cdn.auth0.com/js/es5-shim.min.js"></script>
+  <![endif]-->
+
+  <!-- Background effects -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+  <div class="stars" id="stars"></div>
+
+  <!-- Main content -->
+  <div class="login-container">
+    <!-- Logo section -->
+    <div class="logo-section">
+      <div class="logo-wrapper">
+        <div class="logo-glow"></div>
+        <img 
+          src="https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/shortcircle.png" 
+          alt="SOMOS.tech" 
+          class="logo"
+        />
+      </div>
+      <div class="brand-name">SOMOS<span>.tech</span></div>
+      <p class="tagline">Empowering Latino Technologists</p>
+    </div>
+
+    <!-- Auth0 Lock widget -->
+    <div id="lock-container"></div>
+
+    <!-- Terms and Privacy -->
+    <div class="terms-section">
+      By signing in, you agree to our 
+      <a href="https://somos.tech/termsofuse" target="_blank">Terms of Use</a> 
+      and 
+      <a href="https://somos.tech/privacy" target="_blank">Privacy Policy</a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    © 2025 <a href="https://somos.tech">SOMOS.tech</a> • Building Community
+  </div>
+
+  <script src="https://cdn.auth0.com/js/lock/14.2.0/lock.min.js"></script>
+  <script>
+    // Generate stars
+    (function() {
+      const starsContainer = document.getElementById('stars');
+      const numStars = 50;
+      
+      for (let i = 0; i < numStars; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.animationDelay = Math.random() * 3 + 's';
+        star.style.animationDuration = (2 + Math.random() * 2) + 's';
+        starsContainer.appendChild(star);
+      }
+    })();
+
+    // Decode utf8 characters properly
+    var config = JSON.parse(decodeURIComponent(escape(window.atob('@@config@@'))));
+    config.extraParams = config.extraParams || {};
+    var connection = config.connection;
+    var prompt = config.prompt;
+    var languageDictionary;
+    var language;
+
+    if (config.dict && config.dict.signin && config.dict.signin.title) {
+      languageDictionary = { title: config.dict.signin.title };
+    } else if (typeof config.dict === 'string') {
+      language = config.dict;
+    }
+    var loginHint = config.extraParams.login_hint;
+
+    // SOMOS.tech brand colors
+    var somosColors = {
+      primary: '#00FF91',
+      background: '#051323',
+      cardBackground: '#0a1f35'
+    };
+
+    // Available Lock configuration options: https://auth0.com/docs/libraries/lock/lock-configuration
+    var lock = new Auth0Lock(config.clientID, config.auth0Domain, {
+      auth: {
+        redirectUrl: config.callbackURL,
+        responseType: (config.internalOptions || {}).response_type ||
+          (config.callbackOnLocationHash ? 'token' : 'code'),
+        params: config.internalOptions
+      },
+      configurationBaseUrl: config.clientConfigurationBaseUrl,
+      overrides: {
+        __tenant: config.auth0Tenant,
+        __token_issuer: config.authorizationServer.issuer
+      },
+      assetsUrl: config.assetsUrl,
+      allowedConnections: connection ? [connection] : null,
+      rememberLastLogin: !prompt,
+      language: language,
+      languageBaseUrl: config.languageBaseUrl,
+      languageDictionary: {
+        title: '',
+        signUpTitle: 'Join SOMOS.tech',
+        signUpSubmitLabel: 'Create Account',
+        loginSubmitLabel: 'Sign In',
+        ...languageDictionary
+      },
+      theme: {
+        logo: 'https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/shortcircle.png',
+        primaryColor: somosColors.primary,
+        authButtons: {
+          'google-oauth2': {
+            displayName: 'Google',
+            primaryColor: '#4285F4',
+            foregroundColor: '#FFFFFF'
+          },
+          'linkedin': {
+            displayName: 'LinkedIn',
+            primaryColor: '#0A66C2',
+            foregroundColor: '#FFFFFF'
+          }
+        }
+      },
+      avatar: null,
+      container: 'lock-container',
+      prefill: loginHint ? { email: loginHint, username: loginHint } : null,
+      closable: false,
+      defaultADUsernameFromEmailPrefix: false,
+      socialButtonStyle: 'big',
+      allowSignUp: true,
+      allowForgotPassword: true,
+      mustAcceptTerms: false
+    });
+
+    lock.show();
+  </script>
+</body>
+</html>
