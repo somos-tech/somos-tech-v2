@@ -280,9 +280,20 @@ app.http('auth0AccountDelete', {
                 return errorResponse(401, 'Authentication required');
             }
 
+            // Debug: Log environment variables availability
+            context.log('[Auth0Users] Checking Auth0 config...');
+            context.log('[Auth0Users] AUTH0_DOMAIN:', process.env.AUTH0_DOMAIN ? 'set' : 'NOT SET');
+            context.log('[Auth0Users] AUTH0_MANAGEMENT_CLIENT_ID:', process.env.AUTH0_MANAGEMENT_CLIENT_ID ? 'set' : 'NOT SET');
+            context.log('[Auth0Users] AUTH0_MANAGEMENT_CLIENT_SECRET:', process.env.AUTH0_MANAGEMENT_CLIENT_SECRET ? 'set (length: ' + process.env.AUTH0_MANAGEMENT_CLIENT_SECRET.length + ')' : 'NOT SET');
+
             // Verify Auth0 Management API is configured
             if (!isAuth0ManagementConfigured()) {
-                return errorResponse(503, 'Auth0 Management API not configured');
+                context.error('[Auth0Users] Auth0 Management API not configured!');
+                return errorResponse(503, 'Auth0 Management API not configured. Please contact support.', {
+                    domain: process.env.AUTH0_DOMAIN ? 'set' : 'missing',
+                    clientId: process.env.AUTH0_MANAGEMENT_CLIENT_ID ? 'set' : 'missing',
+                    clientSecret: process.env.AUTH0_MANAGEMENT_CLIENT_SECRET ? 'set' : 'missing'
+                });
             }
 
             const currentUser = getCurrentUser(request);
