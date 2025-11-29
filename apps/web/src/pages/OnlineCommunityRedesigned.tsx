@@ -176,7 +176,7 @@ function ChannelSidebar({
         >
             {/* Community Header with Background */}
             <div 
-                className="h-20 px-5 flex items-center justify-between relative overflow-hidden"
+                className="h-32 px-5 flex items-center justify-between relative overflow-hidden"
                 style={{ 
                     borderBottom: '1px solid rgba(0, 255, 145, 0.08)',
                 }}
@@ -188,14 +188,14 @@ function ChannelSidebar({
                         backgroundImage: `url(${HEADER_BG_URL})`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
-                        opacity: 0.3
+                        opacity: 0.6
                     }}
                 />
-                {/* Gradient Overlay */}
+                {/* Gradient Overlay - more transparent */}
                 <div 
                     className="absolute inset-0 z-[1]"
                     style={{
-                        background: 'linear-gradient(90deg, rgba(10, 21, 32, 0.95) 0%, rgba(10, 21, 32, 0.7) 50%, rgba(10, 21, 32, 0.95) 100%)'
+                        background: 'linear-gradient(90deg, rgba(10, 21, 32, 0.6) 0%, rgba(10, 21, 32, 0.3) 50%, rgba(10, 21, 32, 0.6) 100%)'
                     }}
                 />
                 <div className="flex items-center gap-3 relative z-10">

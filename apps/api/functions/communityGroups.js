@@ -10,6 +10,8 @@
  * - POST /api/community-groups/:id/join - Join a group
  * - POST /api/community-groups/:id/leave - Leave a group
  * - GET /api/community-groups/:id/members - Get group members
+ * - POST /api/community-groups/auto-assign - Auto-assign user to nearest city group
+ * - GET /api/community-groups/my-groups - Get user's group memberships
  * 
  * @module communityGroups
  * @author SOMOS.tech
@@ -19,6 +21,7 @@ import { app } from '@azure/functions';
 import { requireAuth, requireAdmin, getClientPrincipal } from '../shared/authMiddleware.js';
 import { getContainer } from '../shared/db.js';
 import { successResponse, errorResponse } from '../shared/httpResponse.js';
+import { assignUserToNearestGroup, getUserGroups, findNearestCity } from '../shared/services/locationService.js';
 
 const CONTAINERS = {
     GROUPS: 'community-groups',
@@ -71,6 +74,36 @@ app.http('communityGroups', {
                     }
                 }
 
+                // Get user's group memberships with full details
+                if (groupId === 'my-groups') {
+                    const authResult = await requireAuth(request);
+                    if (!authResult.authenticated) {
+                        return errorResponse(401, 'Authentication required');
+                    }
+
+                    const myMemberships = await getUserGroups(principal.userId);
+                    
+                    // Get full group details for each membership
+                    const groupDetails = await Promise.all(
+                        myMemberships.map(async (membership) => {
+                            try {
+                                const { resource: group } = await groupsContainer.item(membership.groupId, membership.groupId).read();
+                                return {
+                                    ...membership,
+                                    group: group || null
+                                };
+                            } catch (e) {
+                                return { ...membership, group: null };
+                            }
+                        })
+                    );
+
+                    return successResponse({
+                        memberships: groupDetails.filter(m => m.group !== null),
+                        total: groupDetails.filter(m => m.group !== null).length
+                    });
+                }
+
                 // Get single group
                 if (groupId && !action) {
                     try {
@@ -121,6 +154,67 @@ app.http('communityGroups', {
 
             // POST - Create group or perform actions
             if (method === 'POST') {
+                // Auto-assign user to nearest city group
+                if (groupId === 'auto-assign') {
+                    const authResult = await requireAuth(request);
+                    if (!authResult.authenticated) {
+                        return errorResponse(401, 'Authentication required');
+                    }
+
+                    const principal = getClientPrincipal(request);
+                    if (!principal?.userId) {
+                        return errorResponse(400, 'User ID not found');
+                    }
+
+                    // Get location from request body
+                    let location = null;
+                    try {
+                        const body = await request.json();
+                        location = body.location || body;
+                    } catch (e) {
+                        return errorResponse(400, 'Location data required (latitude, longitude, city, region)');
+                    }
+
+                    if (!location.latitude && !location.city) {
+                        return errorResponse(400, 'Location data required (latitude, longitude or city name)');
+                    }
+
+                    // First check if there's a nearby city
+                    const nearbyCheck = location.latitude && location.longitude 
+                        ? findNearestCity(location.latitude, location.longitude)
+                        : null;
+
+                    const result = await assignUserToNearestGroup(
+                        {
+                            id: principal.userId,
+                            email: principal.userDetails || '',
+                            displayName: principal.userDetails?.split('@')[0] || 'Member'
+                        },
+                        location
+                    );
+
+                    if (result?.assigned) {
+                        context.log(`[CommunityGroups] Auto-assigned ${principal.userId} to ${result.groupName}`);
+                        return successResponse({
+                            assigned: true,
+                            group: {
+                                id: result.groupId,
+                                name: result.groupName
+                            },
+                            distance: result.distance,
+                            method: result.method,
+                            alreadyMember: result.alreadyMember,
+                            nearestCity: nearbyCheck
+                        });
+                    } else {
+                        return successResponse({
+                            assigned: false,
+                            message: 'No suitable group found for your location',
+                            nearestCity: nearbyCheck
+                        });
+                    }
+                }
+
                 // Join group
                 if (groupId && action === 'join') {
                     const authResult = await requireAuth(request);

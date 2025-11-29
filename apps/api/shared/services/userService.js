@@ -1,5 +1,6 @@
 import { getContainer as getDbContainer } from '../db.js';
 import crypto from 'crypto';
+import { assignUserToNearestGroup } from './locationService.js';
 
 function getContainer() {
   return getDbContainer('users');
@@ -178,6 +179,32 @@ async function updateLastLogin(userId, loginData = {}) {
 }
 
 /**
+ * Update user metadata (internal)
+ * @param {string} userId - User ID
+ * @param {Object} metadataUpdates - Metadata fields to update/add
+ * @returns {Promise<Object>} Updated user profile
+ */
+async function updateUserMetadata(userId, metadataUpdates) {
+  const user = await getUserById(userId);
+  
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  const updatedUser = {
+    ...user,
+    metadata: {
+      ...user.metadata,
+      ...metadataUpdates
+    },
+    updatedAt: new Date().toISOString()
+  };
+
+  const { resource } = await getContainer().item(userId, userId).replace(updatedUser);
+  return resource;
+}
+
+/**
  * Update user status (admin only)
  * @param {string} userId - User ID
  * @param {string} status - New status (active/blocked)
@@ -263,6 +290,7 @@ async function listUsers(options = {}) {
 
 /**
  * Get or create user (for automatic registration on first login)
+ * Also auto-assigns user to their nearest city group based on location
  * @param {Object} authUser - Authenticated user data from provider
  * @returns {Promise<Object>} User profile
  */
@@ -275,8 +303,29 @@ async function getOrCreateUser(authUser) {
   }
 
   // Create new user if doesn't exist
-  if (!user) {
+  const isNewUser = !user;
+  if (isNewUser) {
     user = await createUser(authUser);
+    
+    // Auto-assign new user to nearest city group if location available
+    if (authUser.location) {
+      try {
+        const groupAssignment = await assignUserToNearestGroup(user, authUser.location);
+        if (groupAssignment?.assigned) {
+          console.log(`[LocationService] Auto-assigned new user ${user.email} to ${groupAssignment.groupName} (${groupAssignment.method}, ${groupAssignment.distance ? groupAssignment.distance + ' miles' : 'city match'})`);
+          
+          // Store the auto-assignment info on the user
+          user = await updateUserMetadata(user.id, {
+            autoAssignedGroup: groupAssignment.groupId,
+            autoAssignedGroupName: groupAssignment.groupName,
+            autoAssignedAt: new Date().toISOString()
+          });
+        }
+      } catch (locationError) {
+        // Non-critical - log but don't fail user creation
+        console.error('[LocationService] Failed to auto-assign group:', locationError.message);
+      }
+    }
   } else {
     // Update last login with location data
     await updateLastLogin(user.id, {
@@ -501,6 +550,7 @@ export {
   getUserByEmail,
   updateUser,
   updateLastLogin,
+  updateUserMetadata,
   updateUserStatus,
   listUsers,
   getOrCreateUser,
