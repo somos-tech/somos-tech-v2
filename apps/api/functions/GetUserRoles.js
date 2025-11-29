@@ -82,12 +82,12 @@ app.http('GetUserRoles', {
                     if (adminUsers.length > 0) {
                         const adminUser = adminUsers[0];
 
-                        // Add roles from database
-                        if (adminUser.roles && Array.isArray(adminUser.roles)) {
+                        // Only grant roles if user is active and has roles defined
+                        if (adminUser.status === 'active' && adminUser.roles && Array.isArray(adminUser.roles)) {
                             roles.push(...adminUser.roles);
+                            context.log(`[GetUserRoles] Granted roles to ${userEmail}:`, adminUser.roles);
                         } else {
-                            // Default admin role for somos.tech users
-                            roles.push('admin');
+                            context.log(`[GetUserRoles] User ${userEmail} exists but is not active or has no roles`);
                         }
 
                         // Update last login time (fire and forget, don't await)
@@ -96,29 +96,15 @@ app.http('GetUserRoles', {
                             getContainer(containerId).item(adminUser.id, userEmail).replace(adminUser).catch(e => context.log.error('Failed to update lastLogin:', e));
                         } catch (e) { /* ignore */ }
                     } else {
-                        // Auto-register somos.tech users as admins
-                        const newAdminUser = {
-                            id: `admin-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                            email: userEmail,
-                            name: principal.userDetails || userEmail,
-                            roles: ['admin', 'authenticated'],
-                            identityProvider,
-                            createdAt: new Date().toISOString(),
-                            lastLogin: new Date().toISOString(),
-                            status: 'active'
-                        };
-
-                        // Fire and forget creation
-                        getContainer(containerId).items.create(newAdminUser).catch(e => context.log.error('Failed to auto-register admin:', e));
-                        
-                        roles.push('admin');
-                        context.log(`Auto-registered admin user: ${userEmail}`);
+                        // SECURITY: Do NOT auto-register users as admins
+                        // Users must be explicitly added to admin-users container
+                        context.log(`[GetUserRoles] User ${userEmail} not found in admin-users - no admin access granted`);
                     }
                 } catch (dbError) {
                     context.log.error('Database error or timeout:', dbError);
-                    // On database error/timeout, still grant admin role to somos.tech users
-                    // This ensures they can access the dashboard even if DB is slow
-                    roles.push('admin');
+                    // SECURITY: On database error, do NOT grant admin access
+                    // Fail secure - deny access rather than grant it
+                    context.log(`[GetUserRoles] Database error - denying admin access for ${userEmail}`);
                 }
             } else {
                 // User is not from somos.tech domain

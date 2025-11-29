@@ -56,8 +56,10 @@ export function useAuth(): AuthState {
                 console.error('Failed to resolve admin status via API:', error);
             }
 
-            // Fallback: legacy domain-based rule to avoid locking out admins if API is unavailable
-            return email.endsWith('@somos.tech');
+            // SECURITY: Always deny admin access if API check fails
+            // Users must be explicitly added to admin-users container
+            console.warn('[Security] Admin API check failed - denying admin access by default');
+            return false;
         };
 
         async function fetchUserInfo() {
