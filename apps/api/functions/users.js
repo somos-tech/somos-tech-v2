@@ -62,8 +62,8 @@ app.http('updateUserProfile', {
 
       const currentUser = getCurrentUser(request);
       
-      // Check if user is blocked
-      const isBlocked = await userService.isUserBlocked(currentUser.userId);
+      // Check if user is blocked (pass email for fallback lookup)
+      const isBlocked = await userService.isUserBlocked(currentUser.userId, currentUser.userDetails);
       if (isBlocked) {
         return errorResponse('Your account has been blocked', 403);
       }
@@ -130,8 +130,9 @@ app.http('updateUserProfile', {
         }
       }
 
-      // Update user
-      const updatedUser = await userService.updateUser(currentUser.userId, updates);
+      // Update user - pass email for fallback lookup (Entra ID users may have different ID than Auth0)
+      const userEmail = currentUser.userDetails; // email is in userDetails
+      const updatedUser = await userService.updateUser(currentUser.userId, updates, userEmail);
 
       return successResponse(updatedUser);
     } catch (error) {

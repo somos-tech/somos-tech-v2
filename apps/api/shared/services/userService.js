@@ -102,17 +102,29 @@ async function getUserByEmail(email) {
  * Update user profile
  * @param {string} userId - User ID
  * @param {Object} updates - Fields to update
+ * @param {string} email - Optional email for fallback lookup (Entra ID vs Auth0)
  * @returns {Promise<Object>} Updated user profile
  */
-async function updateUser(userId, updates) {
-  const user = await getUserById(userId);
+async function updateUser(userId, updates, email = null) {
+  // First try to find by userId
+  let user = await getUserById(userId);
+  
+  // If not found by ID and we have email, try by email (handles Entra ID vs Auth0 ID mismatch)
+  if (!user && email) {
+    user = await getUserByEmail(email);
+    if (user) {
+      console.log(`[UserService] User not found by ID ${userId}, but found by email ${email} with ID ${user.id}`);
+      // Update the userId to use the actual user's ID for the replace operation
+      userId = user.id;
+    }
+  }
   
   if (!user) {
     throw new Error('User not found');
   }
 
   // Only allow updating specific fields
-  const allowedFields = ['displayName', 'profilePicture', 'bio', 'location', 'website'];
+  const allowedFields = ['displayName', 'profilePicture', 'bio', 'location', 'website', 'showLocation'];
   const sanitizedUpdates = {};
   
   for (const field of allowedFields) {
@@ -343,10 +355,17 @@ async function getOrCreateUser(authUser) {
 /**
  * Check if user is blocked
  * @param {string} userId - User ID
+ * @param {string} email - Optional email for fallback lookup
  * @returns {Promise<boolean>} True if blocked
  */
-async function isUserBlocked(userId) {
-  const user = await getUserById(userId);
+async function isUserBlocked(userId, email = null) {
+  let user = await getUserById(userId);
+  
+  // Try email fallback if not found by ID
+  if (!user && email) {
+    user = await getUserByEmail(email);
+  }
+  
   return user ? user.status === UserStatus.BLOCKED : false;
 }
 
