@@ -25,6 +25,7 @@ import { app } from '@azure/functions';
 import { requireAdmin } from '../shared/authMiddleware.js';
 import { getContainer } from '../shared/db.js';
 import { successResponse, errorResponse } from '../shared/httpResponse.js';
+import { getAllApiStats } from '../shared/services/apiTrackingService.js';
 
 /**
  * API Limit Information
@@ -335,6 +336,111 @@ function getRecommendations(statuses) {
     }
 
     return recommendations;
+}
+
+/**
+ * API Usage Statistics Handler
+ * Returns call counts for 3rd party APIs (VirusTotal, Auth0)
+ */
+app.http('apiUsageStats', {
+    methods: ['GET'],
+    authLevel: 'anonymous',
+    route: 'api-usage-stats',
+    handler: async (request, context) => {
+        context.log('[APIUsageStats] Getting API usage statistics');
+
+        try {
+            // Require admin access
+            const authResult = await requireAdmin(request);
+            if (!authResult.authenticated || !authResult.isAdmin) {
+                return errorResponse(403, 'Admin access required');
+            }
+
+            const usageStats = await getAllApiStats();
+
+            // Add rate limit context
+            const limits = {
+                virustotal: {
+                    dailyLimit: 500,
+                    minuteLimit: 4,
+                    tier: 'free',
+                    resetTime: 'Daily at midnight UTC'
+                },
+                auth0: {
+                    monthlyLimit: 1000,
+                    tier: 'free',
+                    limitType: 'Machine-to-Machine tokens',
+                    resetTime: 'Monthly billing cycle'
+                }
+            };
+
+            return successResponse({
+                timestamp: new Date().toISOString(),
+                usage: usageStats,
+                limits,
+                warnings: generateUsageWarnings(usageStats, limits)
+            });
+
+        } catch (error) {
+            context.error('[APIUsageStats] Error:', error);
+            return errorResponse(500, 'Failed to get API usage statistics', error.message);
+        }
+    }
+});
+
+/**
+ * Generate warnings if usage is approaching limits
+ */
+function generateUsageWarnings(usage, limits) {
+    const warnings = [];
+
+    // Check VirusTotal daily limit
+    if (usage.virustotal?.today?.totalCalls > 0) {
+        const vtUsage = usage.virustotal.today.totalCalls;
+        const vtLimit = limits.virustotal.dailyLimit;
+        const vtPercent = (vtUsage / vtLimit) * 100;
+
+        if (vtPercent >= 90) {
+            warnings.push({
+                api: 'VirusTotal',
+                severity: 'critical',
+                message: `Daily limit almost reached: ${vtUsage}/${vtLimit} (${vtPercent.toFixed(1)}%)`,
+                recommendation: 'Consider upgrading to premium tier or reducing link scanning'
+            });
+        } else if (vtPercent >= 70) {
+            warnings.push({
+                api: 'VirusTotal',
+                severity: 'warning',
+                message: `High daily usage: ${vtUsage}/${vtLimit} (${vtPercent.toFixed(1)}%)`,
+                recommendation: 'Monitor usage to avoid hitting rate limits'
+            });
+        }
+    }
+
+    // Check Auth0 monthly usage (approximate based on 30-day data)
+    if (usage.auth0?.last30Days?.totalCalls > 0) {
+        const auth0Usage = usage.auth0.last30Days.totalCalls;
+        const auth0Limit = limits.auth0.monthlyLimit;
+        const auth0Percent = (auth0Usage / auth0Limit) * 100;
+
+        if (auth0Percent >= 90) {
+            warnings.push({
+                api: 'Auth0',
+                severity: 'critical',
+                message: `Monthly M2M token limit almost reached: ${auth0Usage}/${auth0Limit} (${auth0Percent.toFixed(1)}%)`,
+                recommendation: 'Consider caching tokens longer or upgrading Auth0 plan'
+            });
+        } else if (auth0Percent >= 70) {
+            warnings.push({
+                api: 'Auth0',
+                severity: 'warning',
+                message: `High monthly M2M token usage: ${auth0Usage}/${auth0Limit} (${auth0Percent.toFixed(1)}%)`,
+                recommendation: 'Review token usage patterns'
+            });
+        }
+    }
+
+    return warnings;
 }
 
 export default { getAPIStatuses, getSummary };

@@ -92,7 +92,8 @@ export async function getSecuritySummary(): Promise<AdminSecuritySummary> {
     throw new Error(`Failed to fetch security summary: ${response.status}`);
   }
   
-  return response.json();
+  const result = await response.json();
+  return result.data || result;
 }
 
 /**
@@ -108,7 +109,8 @@ export async function checkAnomalies(): Promise<SecurityAnomalyReport> {
     throw new Error(`Failed to check anomalies: ${response.status}`);
   }
   
-  return response.json();
+  const result = await response.json();
+  return result.data || result;
 }
 
 /**
@@ -124,7 +126,8 @@ export async function getSecurityReport(): Promise<SecurityReport> {
     throw new Error(`Failed to get security report: ${response.status}`);
   }
   
-  return response.json();
+  const result = await response.json();
+  return result.data || result;
 }
 
 /**
@@ -140,7 +143,8 @@ export async function getSecurityEvents(hours: number = 24): Promise<SecurityEve
     throw new Error(`Failed to get security events: ${response.status}`);
   }
   
-  return response.json();
+  const result = await response.json();
+  return result.data || result;
 }
 
 /**

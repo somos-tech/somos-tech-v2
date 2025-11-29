@@ -5,6 +5,7 @@
  * - Configuration status
  * - Rate limits
  * - Health indicators
+ * - Usage statistics for 3rd party APIs (VirusTotal, Auth0)
  * - Recommendations for missing APIs
  */
 
@@ -27,7 +28,9 @@ import {
     ChevronDown,
     ChevronUp,
     Info,
-    Loader2
+    Loader2,
+    Activity,
+    TrendingUp
 } from 'lucide-react';
 
 interface APIStatus {
@@ -61,6 +64,45 @@ interface Recommendation {
     action: string;
 }
 
+interface APIUsageStats {
+    apiName: string;
+    today: {
+        totalCalls: number;
+        successCalls: number;
+        failedCalls: number;
+        operations?: Record<string, number>;
+    };
+    last30Days: {
+        totalCalls: number;
+        successCalls: number;
+        failedCalls: number;
+        operations?: Record<string, number>;
+    };
+    lastCall?: string;
+    error?: string;
+}
+
+interface APIUsageWarning {
+    api: string;
+    severity: 'critical' | 'warning';
+    message: string;
+    recommendation: string;
+}
+
+interface APIUsageResponse {
+    timestamp: string;
+    usage: Record<string, APIUsageStats>;
+    limits: Record<string, {
+        dailyLimit?: number;
+        monthlyLimit?: number;
+        minuteLimit?: number;
+        tier: string;
+        limitType?: string;
+        resetTime: string;
+    }>;
+    warnings: APIUsageWarning[];
+}
+
 interface APIStatusResponse {
     timestamp: string;
     environment: string;
@@ -90,19 +132,33 @@ export default function APITracker() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [data, setData] = useState<APIStatusResponse | null>(null);
+    const [usageData, setUsageData] = useState<APIUsageResponse | null>(null);
     const [expandedAPIs, setExpandedAPIs] = useState<Set<string>>(new Set());
     const [showRecommendations, setShowRecommendations] = useState(true);
+    const [showUsageStats, setShowUsageStats] = useState(true);
 
     const fetchStatus = async () => {
         try {
             setLoading(true);
             setError(null);
-            const response = await fetch('/api/api-status', { credentials: 'include' });
-            if (!response.ok) {
+            
+            // Fetch both status and usage in parallel
+            const [statusResponse, usageResponse] = await Promise.all([
+                fetch('/api/api-status', { credentials: 'include' }),
+                fetch('/api/api-usage-stats', { credentials: 'include' })
+            ]);
+            
+            if (!statusResponse.ok) {
                 throw new Error('Failed to fetch API status');
             }
-            const result = await response.json();
-            setData(result.data || result);
+            const statusResult = await statusResponse.json();
+            setData(statusResult.data || statusResult);
+            
+            // Usage stats are optional - don't fail if not available
+            if (usageResponse.ok) {
+                const usageResult = await usageResponse.json();
+                setUsageData(usageResult.data || usageResult);
+            }
         } catch (err: any) {
             setError(err.message || 'Failed to load API status');
         } finally {
@@ -292,6 +348,187 @@ export default function APITracker() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* 3rd Party API Usage Stats (VirusTotal & Auth0) */}
+            {usageData && (
+                <div 
+                    className="p-6 rounded-2xl border"
+                    style={{ backgroundColor: '#0A1628', borderColor: 'rgba(0, 212, 255, 0.2)' }}
+                >
+                    <button 
+                        onClick={() => setShowUsageStats(!showUsageStats)}
+                        className="w-full flex items-center justify-between mb-4"
+                    >
+                        <div className="flex items-center gap-2">
+                            <Activity className="w-5 h-5" style={{ color: '#00D4FF' }} />
+                            <span className="font-semibold text-white">
+                                3rd Party API Usage (Non-Microsoft)
+                            </span>
+                        </div>
+                        {showUsageStats ? (
+                            <ChevronUp className="w-5 h-5 text-gray-400" />
+                        ) : (
+                            <ChevronDown className="w-5 h-5 text-gray-400" />
+                        )}
+                    </button>
+
+                    {showUsageStats && (
+                        <div className="space-y-4">
+                            {/* Usage Warnings */}
+                            {usageData.warnings && usageData.warnings.length > 0 && (
+                                <div className="space-y-2">
+                                    {usageData.warnings.map((warning, idx) => (
+                                        <div 
+                                            key={idx}
+                                            className="p-3 rounded-lg flex items-start gap-2"
+                                            style={{ 
+                                                backgroundColor: warning.severity === 'critical' 
+                                                    ? 'rgba(239, 68, 68, 0.15)' 
+                                                    : 'rgba(255, 184, 0, 0.15)' 
+                                            }}
+                                        >
+                                            <AlertTriangle 
+                                                className="w-5 h-5 flex-shrink-0 mt-0.5" 
+                                                style={{ 
+                                                    color: warning.severity === 'critical' ? '#EF4444' : '#FFB800' 
+                                                }}
+                                            />
+                                            <div>
+                                                <div className="text-sm font-medium" style={{ 
+                                                    color: warning.severity === 'critical' ? '#EF4444' : '#FFB800' 
+                                                }}>
+                                                    {warning.api}: {warning.message}
+                                                </div>
+                                                <div className="text-xs text-gray-400 mt-1">
+                                                    {warning.recommendation}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* VirusTotal Usage */}
+                            {usageData.usage?.virustotal && (
+                                <div 
+                                    className="p-4 rounded-xl"
+                                    style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+                                >
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div 
+                                            className="p-2 rounded-lg"
+                                            style={{ backgroundColor: 'rgba(0, 255, 145, 0.15)' }}
+                                        >
+                                            <Link2 className="w-5 h-5" style={{ color: '#00FF91' }} />
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-white">VirusTotal</div>
+                                            <div className="text-xs text-gray-400">Link Safety Scanning</div>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(0, 255, 145, 0.1)' }}>
+                                            <div className="text-xl font-bold text-white">
+                                                {usageData.usage.virustotal.today?.totalCalls || 0}
+                                            </div>
+                                            <div className="text-xs text-gray-400">Today</div>
+                                            <div className="text-xs" style={{ color: '#00FF91' }}>
+                                                / {usageData.limits?.virustotal?.dailyLimit || 500} limit
+                                            </div>
+                                        </div>
+                                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(0, 212, 255, 0.1)' }}>
+                                            <div className="text-xl font-bold text-white">
+                                                {usageData.usage.virustotal.last30Days?.totalCalls || 0}
+                                            </div>
+                                            <div className="text-xs text-gray-400">Last 30 Days</div>
+                                        </div>
+                                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(0, 255, 145, 0.1)' }}>
+                                            <div className="text-xl font-bold" style={{ color: '#00FF91' }}>
+                                                {usageData.usage.virustotal.today?.successCalls || 0}
+                                            </div>
+                                            <div className="text-xs text-gray-400">Successful</div>
+                                        </div>
+                                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
+                                            <div className="text-xl font-bold text-red-400">
+                                                {usageData.usage.virustotal.today?.failedCalls || 0}
+                                            </div>
+                                            <div className="text-xs text-gray-400">Failed</div>
+                                        </div>
+                                    </div>
+                                    {usageData.usage.virustotal.lastCall && (
+                                        <div className="mt-2 text-xs text-gray-500">
+                                            Last call: {new Date(usageData.usage.virustotal.lastCall).toLocaleString()}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Auth0 Usage */}
+                            {usageData.usage?.auth0 && (
+                                <div 
+                                    className="p-4 rounded-xl"
+                                    style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+                                >
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div 
+                                            className="p-2 rounded-lg"
+                                            style={{ backgroundColor: 'rgba(255, 184, 0, 0.15)' }}
+                                        >
+                                            <Lock className="w-5 h-5" style={{ color: '#FFB800' }} />
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-white">Auth0</div>
+                                            <div className="text-xs text-gray-400">User Management API</div>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(255, 184, 0, 0.1)' }}>
+                                            <div className="text-xl font-bold text-white">
+                                                {usageData.usage.auth0.today?.totalCalls || 0}
+                                            </div>
+                                            <div className="text-xs text-gray-400">Today</div>
+                                        </div>
+                                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(0, 212, 255, 0.1)' }}>
+                                            <div className="text-xl font-bold text-white">
+                                                {usageData.usage.auth0.last30Days?.totalCalls || 0}
+                                            </div>
+                                            <div className="text-xs text-gray-400">Last 30 Days</div>
+                                            <div className="text-xs" style={{ color: '#FFB800' }}>
+                                                / {usageData.limits?.auth0?.monthlyLimit || 1000} M2M limit
+                                            </div>
+                                        </div>
+                                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(0, 255, 145, 0.1)' }}>
+                                            <div className="text-xl font-bold" style={{ color: '#00FF91' }}>
+                                                {usageData.usage.auth0.today?.successCalls || 0}
+                                            </div>
+                                            <div className="text-xs text-gray-400">Successful</div>
+                                        </div>
+                                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
+                                            <div className="text-xl font-bold text-red-400">
+                                                {usageData.usage.auth0.today?.failedCalls || 0}
+                                            </div>
+                                            <div className="text-xs text-gray-400">Failed</div>
+                                        </div>
+                                    </div>
+                                    {usageData.usage.auth0.lastCall && (
+                                        <div className="mt-2 text-xs text-gray-500">
+                                            Last call: {new Date(usageData.usage.auth0.lastCall).toLocaleString()}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* No usage data yet */}
+                            {(!usageData.usage?.virustotal?.today?.totalCalls && !usageData.usage?.auth0?.today?.totalCalls) && (
+                                <div className="text-center py-4 text-gray-400 text-sm">
+                                    <TrendingUp className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                    No API calls tracked yet. Usage statistics will appear as APIs are used.
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

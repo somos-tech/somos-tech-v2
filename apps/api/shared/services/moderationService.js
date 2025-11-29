@@ -38,6 +38,7 @@ import {
     defangTextUrls
 } from './linkSafetyService.js';
 import { createNotification } from './notificationService.js';
+import { trackVirusTotalCall } from './apiTrackingService.js';
 
 // ============== CONFIGURATION ==============
 
@@ -1105,6 +1106,9 @@ async function checkVirusTotal(url) {
             }
         });
 
+        // Track the URL check API call
+        trackVirusTotalCall('url_check', response.ok || response.status === 404).catch(() => {});
+
         if (response.status === 404) {
             // URL not in database, submit for analysis
             const submitResponse = await fetch(`${VIRUSTOTAL_API_URL}/urls`, {
@@ -1115,6 +1119,9 @@ async function checkVirusTotal(url) {
                 },
                 body: `url=${encodeURIComponent(url)}`
             });
+
+            // Track the URL submit API call
+            trackVirusTotalCall('url_submit', submitResponse.ok).catch(() => {});
 
             if (!submitResponse.ok) {
                 throw new Error(`VirusTotal submission failed: ${submitResponse.status}`);
@@ -1169,6 +1176,8 @@ async function checkVirusTotal(url) {
 
     } catch (error) {
         console.error('[ModerationService] VirusTotal error:', error);
+        // Track the failed API call
+        trackVirusTotalCall('url_check', false).catch(() => {});
         return {
             checked: false,
             error: error.message,

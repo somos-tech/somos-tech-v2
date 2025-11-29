@@ -9,6 +9,8 @@
  * @module auth0Service
  */
 
+import { trackAuth0Call } from './apiTrackingService.js';
+
 // Get Auth0 configuration dynamically to ensure environment variables are loaded
 function getAuth0Config() {
     return {
@@ -58,6 +60,9 @@ async function getManagementToken() {
             })
         });
 
+        // Track the token request
+        trackAuth0Call('get_token', response.ok).catch(() => {});
+
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
             console.error('[Auth0Service] Failed to get management token:', error);
@@ -101,6 +106,10 @@ async function managementApiRequest(endpoint, method = 'GET', body = null) {
     }
 
     const response = await fetch(`https://${config.domain}/api/v2${endpoint}`, options);
+    
+    // Determine operation type from endpoint for tracking
+    const operation = getOperationFromEndpoint(endpoint, method);
+    trackAuth0Call(operation, response.ok || response.status === 204).catch(() => {});
 
     // Handle 204 No Content
     if (response.status === 204) {
@@ -114,6 +123,19 @@ async function managementApiRequest(endpoint, method = 'GET', body = null) {
     }
 
     return response.json();
+}
+
+/**
+ * Get operation name from endpoint for tracking
+ */
+function getOperationFromEndpoint(endpoint, method) {
+    if (endpoint.includes('/users-by-email')) return 'get_user_by_email';
+    if (endpoint.includes('/users')) {
+        if (method === 'GET') return 'get_user';
+        if (method === 'PATCH') return 'update_user';
+        if (method === 'DELETE') return 'delete_user';
+    }
+    return `${method.toLowerCase()}_request`;
 }
 
 /**
