@@ -46,7 +46,7 @@ import { useUserContext } from '@/contexts/UserContext';
 const SOMOS_LOGO_URL = 'https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/shortcircle.png';
 
 // Background image for header
-const HEADER_BG_URL = 'https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/beyondtheclouds';
+const HEADER_BG_URL = 'https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/beyondthecouldv2';
 
 // Message type
 interface Message {
@@ -176,7 +176,7 @@ function ChannelSidebar({
         >
             {/* Community Header with Background */}
             <div 
-                className="h-32 px-5 flex items-center justify-between relative overflow-hidden"
+                className="h-20 px-5 flex items-center justify-between relative overflow-hidden"
                 style={{ 
                     borderBottom: '1px solid rgba(0, 255, 145, 0.08)',
                 }}
@@ -187,8 +187,8 @@ function ChannelSidebar({
                     style={{
                         backgroundImage: `url(${HEADER_BG_URL})`,
                         backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        opacity: 0.6
+                        backgroundPosition: 'center top',
+                        opacity: 0.7
                     }}
                 />
                 {/* Gradient Overlay - more transparent */}
