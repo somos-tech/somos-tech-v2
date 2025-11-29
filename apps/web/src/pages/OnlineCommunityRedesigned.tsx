@@ -139,18 +139,17 @@ const DEFAULT_NOTIFICATIONS = {
 // Quick emoji reactions - organized by category
 const EMOJI_CATEGORIES = {
     reactions: ['❤️', '👍', '🔥', '😂', '🎉', '👀', '🚀', '💯', '🙌', '💪', '🤝', '✨'],
+    pride: ['🏳️‍🌈', '🏳️‍⚧️', '🌈'],
     flags: [
-        // Pride flags
-        '🏳️‍🌈', '🏳️‍⚧️',
         // North America
         '🇺🇸', '🇲🇽',
         // Caribbean
-        '🇵🇷', '🇨🇺', '🇩🇴', '🇭🇹', '🇯🇲', '🇹🇹', '🇧🇸', '🇧🇧', '🇦🇼', '🇨🇼',
-        // Central America
+        '🇵🇷', '🇨🇺', '🇩🇴', '🇭🇹', '🇯🇲', '🇹🇹', '🇧🇸', '🇧🇧',
+        // Central America  
         '🇬🇹', '🇧🇿', '🇭🇳', '🇸🇻', '🇳🇮', '🇨🇷', '🇵🇦',
         // South America
         '🇨🇴', '🇻🇪', '🇪🇨', '🇵🇪', '🇧🇴', '🇧🇷', '🇵🇾', '🇺🇾', '🇦🇷', '🇨🇱',
-        // Europe (Spanish/Portuguese speaking)
+        // Europe
         '🇪🇸', '🇵🇹'
     ]
 };
@@ -197,22 +196,22 @@ function ChannelSidebar({
                     borderBottom: '1px solid rgba(0, 255, 145, 0.08)',
                 }}
             >
-                {/* Background Image */}
+                {/* Background Image - aligned right */}
                 <div 
                     className="absolute inset-0 z-0"
                     style={{
                         backgroundImage: `url(${HEADER_BG_URL})`,
                         backgroundSize: 'auto 100%',
-                        backgroundPosition: 'left center',
+                        backgroundPosition: 'right center',
                         backgroundRepeat: 'no-repeat',
                         opacity: 0.9
                     }}
                 />
-                {/* Gradient Overlay - fade from right */}
+                {/* Gradient Overlay - fade from left */}
                 <div 
                     className="absolute inset-0 z-[1]"
                     style={{
-                        background: 'linear-gradient(90deg, transparent 0%, rgba(10, 21, 32, 0.3) 40%, rgba(10, 21, 32, 0.8) 100%)'
+                        background: 'linear-gradient(270deg, transparent 0%, rgba(10, 21, 32, 0.3) 40%, rgba(10, 21, 32, 0.8) 100%)'
                     }}
                 />
                 <div className="relative z-10">
@@ -682,7 +681,7 @@ function ChatMessageItem({
                             {/* Emoji Picker Dropdown - organized sections */}
                             {showEmojiPicker && (
                                 <div 
-                                    className="absolute left-0 top-full mt-2 p-3 rounded-xl shadow-2xl z-[100] w-72"
+                                    className="absolute left-0 top-full mt-2 p-3 rounded-xl shadow-2xl z-[100] w-80 max-h-72 overflow-y-auto"
                                     style={{ 
                                         backgroundColor: 'rgba(8, 20, 35, 0.98)',
                                         border: '1px solid rgba(0, 255, 145, 0.15)',
@@ -709,9 +708,28 @@ function ChatMessageItem({
                                     {/* Divider */}
                                     <div className="border-t border-white/10 my-2"></div>
                                     
-                                    {/* Flags Section */}
+                                    {/* Pride Section */}
+                                    <div className="mb-2">
+                                        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1.5 px-1">Pride</div>
+                                        <div className="grid grid-cols-6 gap-0.5">
+                                            {EMOJI_CATEGORIES.pride.map(emoji => (
+                                                <button
+                                                    key={emoji}
+                                                    onClick={() => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
+                                                    className="p-1.5 rounded-lg hover:bg-white/10 transition-all hover:scale-110 text-lg"
+                                                >
+                                                    {emoji}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Divider */}
+                                    <div className="border-t border-white/10 my-2"></div>
+                                    
+                                    {/* Country Flags Section */}
                                     <div>
-                                        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1.5 px-1">Flags</div>
+                                        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1.5 px-1">Country Flags</div>
                                         <div className="grid grid-cols-8 gap-0.5">
                                             {EMOJI_CATEGORIES.flags.map(emoji => (
                                                 <button
