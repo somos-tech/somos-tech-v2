@@ -50,7 +50,7 @@ export default function Navigation() {
                         onClick={() => navigate('/')}
                     >
                         <img 
-                            src="https://static.wixstatic.com/media/0c204d_5f310ee2b2a848ceac8e68b25c0c39eb~mv2.png"
+                            src="https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/shortcircle.png"
                             alt="SOMOS.tech Logo"
                             className="w-12 h-12 rounded-full"
                             style={{ 

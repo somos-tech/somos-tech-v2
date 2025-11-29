@@ -57,7 +57,7 @@ Upload the following assets:
 
 Logo URL for reference:
 ```
-https://static.wixstatic.com/media/0c204d_5f310ee2b2a848ceac8e68b25c0c39eb~mv2.png
+https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/shortcircle.png
 ```
 
 ### Step 5: Configure Page Layout

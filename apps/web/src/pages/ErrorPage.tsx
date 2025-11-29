@@ -1,6 +1,9 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Home, RefreshCw, ArrowLeft, MessageCircle } from 'lucide-react';
+import { Home, ArrowLeft } from 'lucide-react';
+
+// Official SOMOS.tech logo URL
+const SOMOS_LOGO_URL = 'https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/shortcircle.png';
 
 /**
  * Astronaut-themed Error Page
@@ -77,8 +80,8 @@ export default function ErrorPage() {
                 {/* Astronaut SVG */}
                 <div className="relative mb-8 animate-bounce" style={{ animationDuration: '3s' }}>
                     <svg
-                        viewBox="0 0 200 200"
-                        className="w-48 h-48 mx-auto"
+                        viewBox="0 0 200 240"
+                        className="w-48 h-56 mx-auto"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
                     >
@@ -111,8 +114,20 @@ export default function ErrorPage() {
                         <ellipse cx="80" cy="198" rx="10" ry="6" fill="#444444"/>
                         <ellipse cx="120" cy="203" rx="10" ry="6" fill="#444444"/>
                         
-                        {/* SOMOS logo on chest */}
-                        <text x="100" y="155" textAnchor="middle" fill="#00FF91" fontSize="12" fontWeight="bold">ST</text>
+                        {/* SOMOS logo on chest - using official logo */}
+                        <defs>
+                            <clipPath id="chestClip">
+                                <circle cx="100" cy="148" r="18"/>
+                            </clipPath>
+                        </defs>
+                        <image 
+                            href={SOMOS_LOGO_URL}
+                            x="82" 
+                            y="130" 
+                            width="36" 
+                            height="36" 
+                            clipPath="url(#chestClip)"
+                        />
                         
                         {/* Floating cable */}
                         <path
@@ -187,10 +202,10 @@ export default function ErrorPage() {
                     <div className="flex flex-wrap gap-4 justify-center">
                         <Button
                             onClick={() => navigate('/')}
-                            className="rounded-full px-6 py-2 flex items-center gap-2 transition-all hover:scale-105"
+                            className="rounded-full px-8 py-3 flex items-center gap-2 transition-all hover:scale-105 text-lg font-semibold"
                             style={{ backgroundColor: '#00FF91', color: '#051323' }}
                         >
-                            <Home className="w-4 h-4" />
+                            <Home className="w-5 h-5" />
                             Return to Base
                         </Button>
                         
@@ -205,26 +220,6 @@ export default function ErrorPage() {
                                 Go Back
                             </Button>
                         )}
-                        
-                        <Button
-                            onClick={() => window.location.reload()}
-                            variant="outline"
-                            className="rounded-full px-6 py-2 flex items-center gap-2 transition-all hover:scale-105"
-                            style={{ borderColor: '#8394A7', color: '#8394A7' }}
-                        >
-                            <RefreshCw className="w-4 h-4" />
-                            Try Again
-                        </Button>
-                        
-                        <Button
-                            onClick={() => navigate('/online')}
-                            variant="outline"
-                            className="rounded-full px-6 py-2 flex items-center gap-2 transition-all hover:scale-105"
-                            style={{ borderColor: '#8394A7', color: '#8394A7' }}
-                        >
-                            <MessageCircle className="w-4 h-4" />
-                            Contact Support
-                        </Button>
                     </div>
                 </div>
 
