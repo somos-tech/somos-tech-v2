@@ -3,9 +3,9 @@ import { requireAdmin, logAuthEvent } from '../shared/authMiddleware.js';
 import { getContainer } from '../shared/db.js';
 
 const CONTAINERS = {
-    GROUPS: 'groups',
+    GROUPS: 'community-groups',
     MEMBERSHIPS: 'group-memberships',
-    COMMUNITY_GROUPS: 'community-groups'
+    LEGACY_GROUPS: 'groups'
 };
 
 // US State coordinates for heat map
@@ -90,20 +90,22 @@ app.http('groupStats', {
                     .query('SELECT * FROM c ORDER BY c.city ASC')
                     .fetchAll();
                 groups = resources;
+                context.log(`Found ${groups.length} groups in community-groups container`);
             } catch (e) {
-                context.log('Error fetching from groups container:', e.message);
+                context.log('Error fetching from community-groups container:', e.message);
             }
 
-            // If no groups found, try community-groups container
+            // If no groups found, try legacy groups container
             if (groups.length === 0) {
                 try {
-                    const communityGroupsContainer = getContainer(CONTAINERS.COMMUNITY_GROUPS);
-                    const { resources } = await communityGroupsContainer.items
+                    const legacyGroupsContainer = getContainer(CONTAINERS.LEGACY_GROUPS);
+                    const { resources } = await legacyGroupsContainer.items
                         .query('SELECT * FROM c ORDER BY c.city ASC')
                         .fetchAll();
                     groups = resources;
+                    context.log(`Found ${groups.length} groups in legacy groups container`);
                 } catch (e) {
-                    context.log('Error fetching from community-groups container:', e.message);
+                    context.log('Error fetching from legacy groups container:', e.message);
                 }
             }
 
@@ -114,6 +116,8 @@ app.http('groupStats', {
                 const { resources: memberships } = await membershipsContainer.items
                     .query('SELECT c.groupId FROM c')
                     .fetchAll();
+                
+                context.log(`Found ${memberships.length} memberships`);
                 
                 // Count members per group
                 for (const membership of memberships) {

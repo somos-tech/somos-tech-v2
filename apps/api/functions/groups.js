@@ -2,7 +2,8 @@ import { app } from '@azure/functions';
 import { requireAuth, requireAdmin, logAuthEvent } from '../shared/authMiddleware.js';
 import { getContainer } from '../shared/db.js';
 
-const containerId = 'groups';
+// Use community-groups container (where the actual data is stored)
+const containerId = 'community-groups';
 
 /**
  * Groups API - CRUD operations for city/location groups
