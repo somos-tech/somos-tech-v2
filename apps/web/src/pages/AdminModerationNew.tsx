@@ -490,19 +490,19 @@ export default function AdminModeration() {
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const configRes = await fetch('/api/moderation/config');
+            const configRes = await fetch('/api/moderation/config', { credentials: 'include' });
             if (configRes.ok) {
                 const configData = await configRes.json();
                 setConfig(configData.data || configData);
             }
 
-            const statsRes = await fetch('/api/moderation/stats');
+            const statsRes = await fetch('/api/moderation/stats', { credentials: 'include' });
             if (statsRes.ok) {
                 const statsData = await statsRes.json();
                 setStats(statsData.data || statsData);
             }
 
-            const queueRes = await fetch(`/api/moderation/queue?status=${queueFilter}`);
+            const queueRes = await fetch(`/api/moderation/queue?status=${queueFilter}`, { credentials: 'include' });
             if (queueRes.ok) {
                 const queueData = await queueRes.json();
                 const queuePayload = queueData.data || queueData;
@@ -527,6 +527,7 @@ export default function AdminModeration() {
             const res = await fetch('/api/moderation/config', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify(config)
             });
             if (res.ok) {
@@ -642,6 +643,7 @@ export default function AdminModeration() {
             const res = await fetch(`/api/moderation/queue/${itemId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ action, notes: reviewNotes[itemId] || '' })
             });
             if (res.ok) {
