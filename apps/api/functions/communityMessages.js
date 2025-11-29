@@ -182,55 +182,68 @@ app.http('communityMessages', {
                 }
 
                 // Send new message
-                const body = await request.json();
+                let body;
+                try {
+                    body = await request.json();
+                } catch (parseError) {
+                    context.log(`[CommunityMessages] JSON parse error:`, parseError.message);
+                    return errorResponse(400, 'Invalid JSON in request body');
+                }
+                
                 const { content, replyTo } = body;
+                context.log(`[CommunityMessages] Received message request - content length: ${content?.length || 0}, hasReplyTo: ${!!replyTo}`);
 
                 if (!content || !content.trim()) {
                     return errorResponse(400, 'Message content is required');
                 }
 
-                // Content moderation check
-                try {
-                    const moderationResult = await moderateContent({
-                        type: 'message',
-                        text: content.trim(),
-                        userId: principal.userId,
-                        userEmail: principal.userDetails,
-                        channelId: channelId,
-                        workflow: 'community' // Specify community workflow for tier configuration
-                    });
+                // Get user profile first to check admin status
+                const userProfile = await getUserProfile(principal.userId, principal.userDetails, usersContainer);
+                const isAdmin = userProfile?.isAdmin === true;
 
-                    if (!moderationResult.allowed) {
-                        context.log(`[CommunityMessages] Content blocked for user ${principal.userDetails}:`, moderationResult.reason);
-                        
-                        // Provide specific error message based on tier
-                        let errorMessage = 'Your message contains content that violates our community guidelines.';
-                        if (moderationResult.reason === 'tier1_keyword_match') {
-                            errorMessage = 'Your message contains prohibited words or phrases.';
-                        } else if (moderationResult.reason === 'tier2_malicious_link') {
-                            errorMessage = 'Your message contains a potentially harmful link.';
-                        } else if (moderationResult.reason === 'tier3_ai_violation') {
-                            errorMessage = 'Your message was flagged for potentially harmful content.';
+                // Content moderation check (admins bypass moderation)
+                if (!isAdmin) {
+                    try {
+                        const moderationResult = await moderateContent({
+                            type: 'message',
+                            text: content.trim(),
+                            userId: principal.userId,
+                            userEmail: principal.userDetails,
+                            channelId: channelId,
+                            workflow: 'community' // Specify community workflow for tier configuration
+                        });
+
+                        if (!moderationResult.allowed) {
+                            context.log(`[CommunityMessages] Content blocked for user ${principal.userDetails}:`, moderationResult.reason);
+                            
+                            // Provide specific error message based on tier
+                            let errorMessage = 'Your message contains content that violates our community guidelines.';
+                            if (moderationResult.reason === 'tier1_keyword_match') {
+                                errorMessage = 'Your message contains prohibited words or phrases.';
+                            } else if (moderationResult.reason === 'tier2_malicious_link') {
+                                errorMessage = 'Your message contains a potentially harmful link.';
+                            } else if (moderationResult.reason === 'tier3_ai_violation') {
+                                errorMessage = 'Your message was flagged for potentially harmful content.';
+                            }
+                            
+                            return errorResponse(400, errorMessage, {
+                                reason: moderationResult.reason,
+                                action: moderationResult.action,
+                                tierFlow: moderationResult.tierFlow
+                            });
                         }
                         
-                        return errorResponse(400, errorMessage, {
-                            reason: moderationResult.reason,
-                            action: moderationResult.action,
-                            tierFlow: moderationResult.tierFlow
-                        });
+                        // Log if content is pending review
+                        if (moderationResult.action === 'pending') {
+                            context.log(`[CommunityMessages] Content pending review for ${principal.userDetails}`);
+                        }
+                    } catch (moderationError) {
+                        // Log but don't block on moderation errors
+                        console.warn('[CommunityMessages] Moderation check failed, allowing message:', moderationError.message);
                     }
-                    
-                    // Log if content is pending review
-                    if (moderationResult.action === 'pending') {
-                        context.log(`[CommunityMessages] Content pending review for ${principal.userDetails}`);
-                    }
-                } catch (moderationError) {
-                    // Log but don't block on moderation errors
-                    console.warn('[CommunityMessages] Moderation check failed, allowing message:', moderationError.message);
+                } else {
+                    context.log(`[CommunityMessages] Admin ${principal.userDetails} bypassing content moderation`);
                 }
-
-                // Get user profile for display (pass email for Azure AD fallback lookup)
-                const userProfile = await getUserProfile(principal.userId, principal.userDetails, usersContainer);
 
                 const newMessage = {
                     id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
