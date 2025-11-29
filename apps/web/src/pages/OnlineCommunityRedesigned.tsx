@@ -271,6 +271,7 @@ function LinkPreview({ url }: { url: string }) {
         title?: string; 
         description?: string; 
         image?: string; 
+        icon?: string;
         siteName?: string;
         loading: boolean; 
         error: boolean 
@@ -278,9 +279,11 @@ function LinkPreview({ url }: { url: string }) {
         loading: true,
         error: false
     });
+    const [imageError, setImageError] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
+        setImageError(false);
         
         const fetchPreview = async () => {
             try {
@@ -300,6 +303,7 @@ function LinkPreview({ url }: { url: string }) {
                         title: data.title,
                         description: data.description,
                         image: data.image,
+                        icon: data.icon,
                         siteName: data.siteName,
                         loading: false,
                         error: false
@@ -335,11 +339,13 @@ function LinkPreview({ url }: { url: string }) {
     if (preview.loading) {
         return (
             <div className="mt-3 rounded-xl border overflow-hidden animate-pulse" style={{ backgroundColor: 'rgba(10, 22, 40, 0.8)', borderColor: 'rgba(255,255,255,0.08)' }}>
-                <div className="h-32 bg-white/5"></div>
-                <div className="p-3">
-                    <div className="h-3 bg-white/10 rounded w-1/4 mb-2"></div>
-                    <div className="h-4 bg-white/10 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-white/5 rounded w-full"></div>
+                <div className="p-4 flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-white/10 flex-shrink-0"></div>
+                    <div className="flex-1">
+                        <div className="h-3 bg-white/10 rounded w-1/4 mb-2"></div>
+                        <div className="h-4 bg-white/10 rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-white/5 rounded w-full"></div>
+                    </div>
                 </div>
             </div>
         );
@@ -348,7 +354,7 @@ function LinkPreview({ url }: { url: string }) {
     if (preview.error) return null;
 
     // Check if we have an image for rich preview
-    const hasImage = preview.image && !preview.image.includes('undefined');
+    const hasImage = preview.image && !preview.image.includes('undefined') && !imageError;
 
     return (
         <a
@@ -365,10 +371,7 @@ function LinkPreview({ url }: { url: string }) {
                         src={preview.image}
                         alt={preview.title || 'Link preview'}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                            // Hide broken images
-                            (e.target as HTMLImageElement).style.display = 'none';
-                        }}
+                        onError={() => setImageError(true)}
                     />
                     {/* Gradient overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#051323] via-transparent to-transparent opacity-60" />
@@ -377,18 +380,27 @@ function LinkPreview({ url }: { url: string }) {
             
             {/* Content */}
             <div className="p-3">
-                {/* Site name / domain */}
+                {/* Site name / domain with icon */}
                 <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-4 h-4 rounded bg-gradient-to-br from-[#00FF91]/20 to-[#02dbff]/20 flex items-center justify-center flex-shrink-0">
-                        <ExternalLink className="w-2.5 h-2.5 text-[#02dbff]" />
-                    </div>
+                    {preview.icon ? (
+                        <img 
+                            src={preview.icon} 
+                            alt="" 
+                            className="w-4 h-4 rounded flex-shrink-0"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                    ) : (
+                        <div className="w-4 h-4 rounded bg-gradient-to-br from-[#00FF91]/20 to-[#02dbff]/20 flex items-center justify-center flex-shrink-0">
+                            <ExternalLink className="w-2.5 h-2.5 text-[#02dbff]" />
+                        </div>
+                    )}
                     <span className="text-xs text-gray-500 font-medium truncate">
                         {preview.siteName || new URL(url).hostname.replace('www.', '')}
                     </span>
                 </div>
                 
                 {/* Title */}
-                {preview.title && (
+                {preview.title && preview.title !== preview.siteName && (
                     <h4 className="text-sm font-semibold text-white group-hover:text-[#00FF91] transition-colors line-clamp-2 mb-1">
                         {preview.title}
                     </h4>

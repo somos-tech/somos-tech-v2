@@ -16,6 +16,59 @@ import { successResponse, errorResponse } from '../shared/httpResponse.js';
 const previewCache = new Map();
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
+// Known site metadata (for sites that block bots)
+const KNOWN_SITES = {
+    'linkedin.com': {
+        siteName: 'LinkedIn',
+        icon: 'https://static.licdn.com/aero-v1/sc/h/al2o9zrvru7aqj8e1x2rzsrca',
+        defaultImage: 'https://static.licdn.com/aero-v1/sc/h/9c8pery4andzj6ohjkjp54ma2'
+    },
+    'twitter.com': {
+        siteName: 'X (Twitter)',
+        icon: 'https://abs.twimg.com/favicons/twitter.3.ico'
+    },
+    'x.com': {
+        siteName: 'X',
+        icon: 'https://abs.twimg.com/favicons/twitter.3.ico'
+    },
+    'github.com': {
+        siteName: 'GitHub',
+        icon: 'https://github.githubassets.com/favicons/favicon.svg'
+    },
+    'youtube.com': {
+        siteName: 'YouTube',
+        icon: 'https://www.youtube.com/s/desktop/favicon.ico'
+    },
+    'spotify.com': {
+        siteName: 'Spotify',
+        icon: 'https://open.spotifycdn.com/cdn/images/favicon32.b64ecc03.png'
+    },
+    'open.spotify.com': {
+        siteName: 'Spotify',
+        icon: 'https://open.spotifycdn.com/cdn/images/favicon32.b64ecc03.png'
+    },
+    'instagram.com': {
+        siteName: 'Instagram',
+        icon: 'https://static.cdninstagram.com/rsrc.php/v3/yt/r/30PrGfR3xhB.png'
+    },
+    'facebook.com': {
+        siteName: 'Facebook',
+        icon: 'https://static.xx.fbcdn.net/rsrc.php/yb/r/hLRJ1GG_y0J.ico'
+    },
+    'medium.com': {
+        siteName: 'Medium',
+        icon: 'https://miro.medium.com/v2/1*m-R_BkNf1Qjr1YbyOIJY2w.png'
+    },
+    'notion.so': {
+        siteName: 'Notion',
+        icon: 'https://www.notion.so/images/favicon.ico'
+    },
+    'figma.com': {
+        siteName: 'Figma',
+        icon: 'https://static.figma.com/app/icon/1/favicon.png'
+    }
+};
+
 /**
  * Extract Open Graph and meta tags from HTML
  */
@@ -163,20 +216,35 @@ app.http('linkPreview', {
                 return successResponse(cached.data);
             }
 
-            // Fetch the URL
+            // Get known site info
+            const hostname = urlObj.hostname.replace('www.', '');
+            const knownSite = KNOWN_SITES[hostname] || Object.entries(KNOWN_SITES).find(([domain]) => hostname.endsWith(domain))?.[1];
+
+            // Fetch the URL with a realistic browser user agent
             let html;
+            let fetchSucceeded = false;
             try {
                 const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                const timeout = setTimeout(() => controller.abort(), 8000); // 8 second timeout
 
                 const response = await fetch(url, {
                     method: 'GET',
                     headers: {
-                        'User-Agent': 'Mozilla/5.0 (compatible; SOMOSTechBot/1.0; +https://somos.tech)',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                        'Accept-Language': 'en-US,en;q=0.5'
+                        // Use a realistic Chrome user agent
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Accept-Encoding': 'gzip, deflate, br',
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache',
+                        'Sec-Fetch-Dest': 'document',
+                        'Sec-Fetch-Mode': 'navigate',
+                        'Sec-Fetch-Site': 'none',
+                        'Sec-Fetch-User': '?1',
+                        'Upgrade-Insecure-Requests': '1'
                     },
-                    signal: controller.signal
+                    signal: controller.signal,
+                    redirect: 'follow'
                 });
 
                 clearTimeout(timeout);
@@ -185,46 +253,54 @@ app.http('linkPreview', {
                     throw new Error(`HTTP ${response.status}`);
                 }
 
-                // Only read first 50KB to avoid large payloads
-                const reader = response.body.getReader();
-                const chunks = [];
-                let totalSize = 0;
-                const maxSize = 50 * 1024; // 50KB
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    
-                    chunks.push(value);
-                    totalSize += value.length;
-                    
-                    if (totalSize >= maxSize) {
-                        reader.cancel();
-                        break;
-                    }
+                // Read the response as text (handles encoding automatically)
+                html = await response.text();
+                // Limit to first 100KB
+                if (html.length > 100 * 1024) {
+                    html = html.substring(0, 100 * 1024);
                 }
-
-                const decoder = new TextDecoder();
-                html = chunks.map(chunk => decoder.decode(chunk, { stream: true })).join('');
+                fetchSucceeded = true;
+                context.log('[LinkPreview] Successfully fetched:', url, '- HTML length:', html.length);
 
             } catch (fetchError) {
                 context.log('[LinkPreview] Fetch error for', url, ':', fetchError.message);
                 
-                // Return basic info even if fetch fails
+                // If fetch fails, return known site data or basic fallback
                 const fallbackData = {
-                    title: urlObj.hostname.replace('www.', ''),
+                    title: knownSite?.siteName || hostname,
                     description: url,
-                    image: null,
-                    siteName: urlObj.hostname.replace('www.', ''),
+                    image: knownSite?.defaultImage || null,
+                    icon: knownSite?.icon || null,
+                    siteName: knownSite?.siteName || hostname,
                     url: url,
                     fetchError: true
                 };
+                
+                // Cache the fallback too
+                previewCache.set(cacheKey, {
+                    data: fallbackData,
+                    timestamp: Date.now()
+                });
                 
                 return successResponse(fallbackData);
             }
 
             // Extract metadata
             const metadata = extractMetadata(html, url);
+            
+            // Enhance with known site data if metadata is missing
+            if (knownSite) {
+                if (!metadata.siteName) metadata.siteName = knownSite.siteName;
+                if (!metadata.image && knownSite.defaultImage) metadata.image = knownSite.defaultImage;
+                metadata.icon = knownSite.icon;
+            }
+            
+            context.log('[LinkPreview] Extracted metadata:', {
+                title: metadata.title?.substring(0, 50),
+                description: metadata.description?.substring(0, 50),
+                image: metadata.image ? 'yes' : 'no',
+                siteName: metadata.siteName
+            });
 
             // Cache the result
             previewCache.set(cacheKey, {
