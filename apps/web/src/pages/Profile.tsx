@@ -444,7 +444,7 @@ export default function Profile() {
                         <Button
                             onClick={handleLogout}
                             className="flex-1 rounded-full py-6 text-lg font-semibold"
-                            style={{ backgroundColor: '#8394A7', color: '#051323' }}
+                            style={{ backgroundColor: '#02dbff', color: '#051323' }}
                         >
                             <LogOut className="mr-2 h-5 w-5" />
                             Sign Out
