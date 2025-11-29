@@ -97,8 +97,7 @@ export default function AdminSettings() {
             description: 'API keys and third-party service connections',
             icon: Key,
             path: '/admin/settings/integrations',
-            color: '#4CC9F0',
-            badge: 'Coming Soon'
+            color: '#4CC9F0'
         },
         {
             title: 'Email Settings',

@@ -14,6 +14,7 @@ import AdminModeration from './pages/AdminModerationNew'
 import AdminOptions from './pages/AdminOptions'
 import AdminNotifications from './pages/AdminNotifications'
 import AdminAnnouncements from './pages/AdminAnnouncements'
+import AdminIntegrations from './pages/AdminIntegrations'
 import APIHealthDashboard from './pages/APIHealthDashboard'
 import SecurityDashboard from './pages/SecurityDashboard'
 import ErrorPage from './pages/ErrorPage'
@@ -186,6 +187,14 @@ function AppContent() {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <AdminOptions />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/settings/integrations" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminIntegrations />
               </ProtectedRoute>
             } 
           />
