@@ -138,36 +138,87 @@ const DEFAULT_BLOCKLIST = [
  * Note: URL shorteners are blocked because they can mask malicious destinations
  */
 const DEFAULT_BLOCKED_DOMAINS = [
-    // URL Shorteners (can hide malicious links)
-    'bit.ly', 'tinyurl.com', 'goo.gl', 't.co', 'ow.ly', 'is.gd', 'buff.ly',
-    'adf.ly', 'bit.do', 'mcaf.ee', 'su.pr', 'tiny.cc', 'shorte.st', 'bc.vc',
-    'j.mp', 'v.gd', 'tr.im', 'soo.gd', 'cutt.ly', 's.id', 'rb.gy', 'clck.ru',
-    'shorturl.at', '1url.com', 'hyperurl.co', 'urlzs.com', 'u.to', '0rz.tw',
+    // ===== URL SHORTENERS (commonly used to hide malicious links) =====
+    // Major shorteners
+    'bit.ly', 'bitly.com', 'tinyurl.com', 'goo.gl', 't.co', 'ow.ly', 'is.gd', 
+    'buff.ly', 'adf.ly', 'bit.do', 'mcaf.ee', 'su.pr', 'tiny.cc', 'shorte.st', 
+    'bc.vc', 'j.mp', 'v.gd', 'tr.im', 'soo.gd', 'cutt.ly', 's.id', 'rb.gy', 
+    'clck.ru', 'shorturl.at', '1url.com', 'hyperurl.co', 'urlzs.com', 'u.to', 
+    '0rz.tw', 'cli.gs', 'short.to', 'budurl.com', 'ping.fm', 'post.ly',
+    'just.as', 'bkite.com', 'snipr.com', 'fic.kr', 'loopt.us', 'doiop.com',
+    'twitthis.com', 'htxt.it', 'ak.gt', 'yep.it', 'posted.at', 'xrl.us',
+    'metamark.net', 'sn.im', 'hurl.ws', 'eurl.us', 'yourls.org',
+    // Additional shorteners commonly abused
+    'lnk.to', 'lnkd.in', 'rebrand.ly', 'go2l.ink', 'shrinkme.io', 'ouo.io',
+    'za.gl', 'exe.io', 'fc.lc', 'shrinkearn.com', 'linkvertise.com', 
+    'link-to.net', 'linkshrink.net', 'adfoc.us', 'adyou.me', 'ay.gy',
+    'clik.pw', 'clk.sh', 'dfrnt.us', 'hive.am', 'ity.im', 'l.gg',
+    'mfrnt.cc', 'plu.sh', 'q.gs', 'qq.tc', 'rdrct.it', 'shortur.com',
+    'u.bb', 'tii.la', 'viid.su', 'waa.ai', 'wow.link', 'xii.cc', 'yns.io',
     
-    // Known malicious/phishing patterns
-    'freegiftcard', 'free-iphone', 'claim-prize', 'you-won', 'winner-alert',
+    // ===== KNOWN MALICIOUS/PHISHING PATTERNS =====
+    // Gift card scams
+    'freegiftcard', 'free-giftcard', 'giftcard-free', 'amazon-giftcard-free',
+    'free-iphone', 'iphone-giveaway', 'free-ipad', 'win-iphone',
+    'claim-prize', 'you-won', 'winner-alert', 'lottery-winner',
+    'prize-claim', 'winner-notification', 'jackpot-winner',
+    // Account phishing
     'urgent-action', 'verify-account', 'suspended-account', 'security-alert',
     'login-verify', 'account-update', 'confirm-identity', 'password-reset-now',
+    'account-suspended', 'verify-your-account', 'secure-login', 'auth-verify',
+    'update-payment', 'billing-update', 'payment-failed', 'reactivate-account',
     
-    // Crypto scam domains
+    // ===== CRYPTO SCAM DOMAINS =====
     'double-bitcoin', 'free-crypto', 'crypto-giveaway', 'elon-giveaway',
     'btc-double', 'eth-airdrop', 'nft-free', 'token-airdrop',
+    'bitcoin-doubler', 'crypto-doubler', 'free-btc', 'free-eth',
+    'elon-bitcoin', 'musk-giveaway', 'tesla-btc', 'tesla-crypto',
+    'solana-airdrop', 'doge-giveaway', 'shiba-free', 'binance-giveaway',
     
-    // Adult content domains (explicit - commonly blocked in professional communities)
+    // ===== ADULT CONTENT DOMAINS =====
     'pornhub.com', 'xvideos.com', 'xnxx.com', 'xhamster.com', 'redtube.com',
     'youporn.com', 'spankbang.com', 'porn.com', 'tube8.com', 'beeg.com',
+    'brazzers.com', 'onlyfans.com', 'chaturbate.com', 'livejasmin.com',
+    'cam4.com', 'myfreecams.com', 'stripchat.com', 'bongacams.com',
     
-    // Piracy/illegal streaming
+    // ===== PIRACY/ILLEGAL STREAMING =====
     '123movies', 'putlocker', 'fmovies', 'soap2day', 'yts.mx', 'rarbg',
-    'thepiratebay', '1337x', 'kickass', 'torrentz',
+    'thepiratebay', '1337x', 'kickass', 'torrentz', 'limetorrents',
+    'torrentgalaxy', 'nyaa.si', 'rutracker', 'fitgirl-repacks',
+    'crackwatch', 'skidrow', 'codex', 'reloaded', 'cpy',
     
-    // Known scam TLDs and patterns (be careful - some legit sites use these)
-    // These are patterns, not full domains
-    '.xyz/free', '.top/claim', '.tk/', '.ml/', '.ga/', '.cf/', '.gq/',
+    // ===== FREE TLDs (commonly used for scams) =====
+    '.tk', '.ml', '.ga', '.cf', '.gq', '.cc', '.pw',
     
-    // Discord phishing (common patterns)
+    // ===== DISCORD PHISHING =====
     'discord-nitro-free', 'discordgift', 'dlscord', 'd1scord', 'discordc',
-    'nitro-gift', 'free-nitro', 'steam-gift', 'roblox-robux'
+    'nitro-gift', 'free-nitro', 'discord-airdrop', 'disc0rd', 'discorcl',
+    'discordapp.gift', 'discordnitro', 'discord-free', 'nitrofree',
+    
+    // ===== STEAM/GAMING PHISHING =====
+    'steam-gift', 'steamcommunity.ru', 'steampowered.ru', 'steam-trade',
+    'free-steam', 'steam-wallet', 'csgo-free', 'free-skins',
+    'roblox-robux', 'free-robux', 'robux-generator', 'vbucks-free',
+    'fortnite-free', 'minecraft-free', 'free-vbucks',
+    
+    // ===== SOCIAL MEDIA PHISHING =====
+    'instagram-followers', 'free-followers', 'twitter-followers',
+    'tiktok-followers', 'youtube-subscribers', 'facebook-hack',
+    'instagram-hack', 'snapchat-hack', 'whatsapp-hack',
+    
+    // ===== MALWARE DISTRIBUTION =====
+    'download-free', 'crack-download', 'keygen', 'serial-key',
+    'activation-key', 'license-key-free', 'software-crack',
+    'patch-download', 'loader-download', 'activator-free',
+    
+    // ===== SURVEY SCAMS =====
+    'survey-for-gift', 'complete-survey', 'survey-reward',
+    'human-verification', 'verify-human', 'captcha-bypass',
+    
+    // ===== KNOWN MALICIOUS DOMAINS (from threat feeds) =====
+    'grabify.link', 'iplogger.org', 'iplogger.com', 'iplogger.ru',
+    '2no.co', 'yip.su', 'ipgrabber', 'blasze.tk', 'blasze.com',
+    'ps3cfw.com', 'urlz.fr', 'webry.info', 'whatstheirip.com'
 ];
 
 // ============== TIER 3: AZURE AI CONTENT SAFETY ==============
