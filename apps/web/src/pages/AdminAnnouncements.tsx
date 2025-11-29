@@ -40,7 +40,8 @@ import {
     XCircle,
     RefreshCw,
     MapPin,
-    Globe
+    Globe,
+    Bell
 } from 'lucide-react';
 import AdminQuickNav from '@/components/AdminQuickNav';
 
@@ -141,7 +142,8 @@ export default function AdminAnnouncements() {
         isPublic: true,
         ctaText: '',
         ctaUrl: '',
-        targetAudience: 'all'
+        targetAudience: 'all',
+        deliveryMethod: 'email' as 'email' | 'push' | 'both'
     });
     const [sending, setSending] = useState(false);
     const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -310,7 +312,7 @@ export default function AdminAnnouncements() {
             }
 
             // Reset form
-            setFormData({ title: '', content: '', type: 'general', isPublic: true, ctaText: '', ctaUrl: '', targetAudience: 'all' });
+            setFormData({ title: '', content: '', type: 'general', isPublic: true, ctaText: '', ctaUrl: '', targetAudience: 'all', deliveryMethod: 'email' });
             setShowComposer(false);
             setEditingAnnouncement(null);
             await loadAnnouncements();
@@ -352,7 +354,8 @@ export default function AdminAnnouncements() {
             isPublic: announcement.isPublic,
             ctaText: announcement.ctaText || '',
             ctaUrl: announcement.ctaUrl || '',
-            targetAudience: announcement.targetAudience || 'all'
+            targetAudience: announcement.targetAudience || 'all',
+            deliveryMethod: (announcement as any).deliveryMethod || 'email'
         });
         setShowComposer(true);
     };
@@ -530,7 +533,7 @@ export default function AdminAnnouncements() {
                                                 onClick={() => {
                                                     setShowComposer(false);
                                                     setEditingAnnouncement(null);
-                                                    setFormData({ title: '', content: '', type: 'general', isPublic: true, ctaText: '', ctaUrl: '', targetAudience: 'all' });
+                                                    setFormData({ title: '', content: '', type: 'general', isPublic: true, ctaText: '', ctaUrl: '', targetAudience: 'all', deliveryMethod: 'email' });
                                                 }}
                                                 className="text-gray-400 hover:text-white"
                                             >
@@ -540,6 +543,52 @@ export default function AdminAnnouncements() {
                                     </div>
                                     
                                     <div className="p-6 space-y-4">
+                                        {/* Delivery Method */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-white mb-2">Delivery Method</label>
+                                            <div className="flex gap-2 flex-wrap">
+                                                <button
+                                                    onClick={() => setFormData(f => ({ ...f, deliveryMethod: 'email' }))}
+                                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                                                        formData.deliveryMethod === 'email'
+                                                            ? 'bg-[#00D4FF] text-[#051323]'
+                                                            : 'text-white border border-white/20 hover:border-white/40'
+                                                    }`}
+                                                >
+                                                    <Mail className="w-4 h-4" />
+                                                    Send Email
+                                                </button>
+                                                <button
+                                                    onClick={() => setFormData(f => ({ ...f, deliveryMethod: 'push' }))}
+                                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                                                        formData.deliveryMethod === 'push'
+                                                            ? 'bg-[#00FF91] text-[#051323]'
+                                                            : 'text-white border border-white/20 hover:border-white/40'
+                                                    }`}
+                                                >
+                                                    <Bell className="w-4 h-4" />
+                                                    Push Notification
+                                                </button>
+                                                <button
+                                                    onClick={() => setFormData(f => ({ ...f, deliveryMethod: 'both' }))}
+                                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                                                        formData.deliveryMethod === 'both'
+                                                            ? 'bg-gradient-to-r from-[#00D4FF] to-[#00FF91] text-[#051323]'
+                                                            : 'text-white border border-white/20 hover:border-white/40'
+                                                    }`}
+                                                >
+                                                    <Mail className="w-4 h-4" />
+                                                    <Bell className="w-4 h-4" />
+                                                    Both
+                                                </button>
+                                            </div>
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                {formData.deliveryMethod === 'email' && 'Send announcement via email to subscribed contacts'}
+                                                {formData.deliveryMethod === 'push' && 'Send in-app push notification (appears in notification bell)'}
+                                                {formData.deliveryMethod === 'both' && 'Send both email and push notification'}
+                                            </p>
+                                        </div>
+
                                         {/* Type Selection */}
                                         <div>
                                             <label className="block text-sm font-medium text-white mb-2">Type</label>

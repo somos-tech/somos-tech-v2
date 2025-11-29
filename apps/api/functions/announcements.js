@@ -23,7 +23,7 @@ import { app } from '@azure/functions';
 import { requireAdmin, getClientPrincipal } from '../shared/authMiddleware.js';
 import { getContainer } from '../shared/db.js';
 import { successResponse, errorResponse } from '../shared/httpResponse.js';
-import { sendEmailNotification } from '../shared/services/notificationService.js';
+import { sendEmailNotification, createNotification } from '../shared/services/notificationService.js';
 import crypto from 'crypto';
 
 /**
@@ -38,7 +38,9 @@ const SUBSCRIPTION_TYPES = {
 const CONTAINERS = {
     ANNOUNCEMENTS: 'announcements',
     EMAIL_CONTACTS: 'email-contacts',
-    USERS: 'users'
+    USERS: 'users',
+    GROUP_MEMBERSHIPS: 'group-memberships',
+    COMMUNITY_MESSAGES: 'community-messages'
 };
 
 /**
@@ -230,6 +232,106 @@ function generatePlainText(announcement, unsubscribeUrl) {
 }
 
 /**
+ * Send push notifications to users
+ */
+async function sendPushNotifications(announcement, context) {
+    const membershipsContainer = getContainer(CONTAINERS.GROUP_MEMBERSHIPS);
+    const usersContainer = getContainer(CONTAINERS.USERS);
+    const messagesContainer = getContainer(CONTAINERS.COMMUNITY_MESSAGES);
+    
+    const results = {
+        sent: 0,
+        failed: 0,
+        errors: []
+    };
+    
+    const frontendUrl = process.env.FRONTEND_URL || 'https://dev.somos.tech';
+    let targetUsers = [];
+    let channelId = null;
+    
+    // Determine target users
+    if (announcement.targetAudience && announcement.targetAudience !== 'all' && announcement.targetAudience.startsWith('group-')) {
+        const groupId = announcement.targetAudience;
+        channelId = `${groupId.replace('group-', '')}-announcements`;
+        
+        // Get group members
+        const { resources: members } = await membershipsContainer.items
+            .query({
+                query: 'SELECT c.userId, c.userName, c.userEmail FROM c WHERE c.groupId = @groupId AND c.status = "active"',
+                parameters: [{ name: '@groupId', value: groupId }]
+            })
+            .fetchAll();
+        
+        targetUsers = members.map(m => ({
+            id: m.userId,
+            name: m.userName,
+            email: m.userEmail
+        }));
+    } else {
+        // All users
+        channelId = 'announcements';
+        const { resources: users } = await usersContainer.items
+            .query('SELECT c.id, c.displayName, c.email FROM c WHERE c.status = "active"')
+            .fetchAll();
+        
+        targetUsers = users.map(u => ({
+            id: u.id,
+            name: u.displayName,
+            email: u.email
+        }));
+    }
+    
+    context.log(`[Announcements] Sending push to ${targetUsers.length} users`);
+    
+    // Create notification for each user
+    for (const user of targetUsers) {
+        try {
+            await createNotification({
+                userId: user.id,
+                type: 'announcement',
+                title: announcement.title,
+                message: announcement.content.substring(0, 200) + (announcement.content.length > 200 ? '...' : ''),
+                actionUrl: `${frontendUrl}/online?channel=${channelId}`,
+                metadata: {
+                    announcementId: announcement.id,
+                    announcementType: announcement.type
+                }
+            });
+            results.sent++;
+        } catch (error) {
+            results.failed++;
+            results.errors.push({ userId: user.id, error: error.message });
+        }
+    }
+    
+    // Post to community channel
+    try {
+        const announcementMessage = {
+            id: `announcement-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            channelId,
+            content: `📢 **${announcement.title}**\n\n${announcement.content}`,
+            userId: 'system',
+            userName: announcement.createdBy?.email || 'SOMOS Admin',
+            userPhoto: null,
+            isAnnouncement: true,
+            reactions: [],
+            createdAt: new Date().toISOString(),
+            metadata: {
+                type: 'broadcast_announcement',
+                announcementId: announcement.id
+            }
+        };
+        
+        await messagesContainer.items.create(announcementMessage);
+        context.log(`[Announcements] Posted to channel: ${channelId}`);
+    } catch (error) {
+        context.warn(`[Announcements] Failed to post to channel: ${error.message}`);
+    }
+    
+    return results;
+}
+
+/**
  * Send announcement to all eligible recipients
  */
 async function sendAnnouncement(announcement, context) {
@@ -241,91 +343,114 @@ async function sendAnnouncement(announcement, context) {
     announcement.sendStartedAt = new Date().toISOString();
     await announcementsContainer.item(announcement.id, announcement.id).replace(announcement);
     
-    const recipients = await getEligibleRecipients(announcement.type, announcement.targetAudience);
-    
-    context.log(`[Announcements] Sending to ${recipients.length} recipients`);
-    
-    const results = {
-        sent: 0,
-        failed: 0,
-        errors: []
-    };
-    
+    const deliveryMethod = announcement.deliveryMethod || 'email';
     const frontendUrl = process.env.FRONTEND_URL || 'https://dev.somos.tech';
     
-    // Send emails in batches to avoid rate limiting
-    const batchSize = 10;
-    for (let i = 0; i < recipients.length; i += batchSize) {
-        const batch = recipients.slice(i, i + batchSize);
+    const results = {
+        email: { sent: 0, failed: 0, errors: [] },
+        push: { sent: 0, failed: 0, errors: [] }
+    };
+    
+    // Send emails if method is 'email' or 'both'
+    if (deliveryMethod === 'email' || deliveryMethod === 'both') {
+        const recipients = await getEligibleRecipients(announcement.type, announcement.targetAudience);
+        context.log(`[Announcements] Sending email to ${recipients.length} recipients`);
         
-        const promises = batch.map(async (recipient) => {
-            const unsubscribeUrl = `${frontendUrl}/unsubscribe/${recipient.unsubscribeToken}`;
+        // Send emails in batches to avoid rate limiting
+        const batchSize = 10;
+        for (let i = 0; i < recipients.length; i += batchSize) {
+            const batch = recipients.slice(i, i + batchSize);
             
-            try {
-                const htmlBody = generateEmailHtml(announcement, unsubscribeUrl);
-                const plainText = generatePlainText(announcement, unsubscribeUrl);
+            const promises = batch.map(async (recipient) => {
+                const unsubscribeUrl = `${frontendUrl}/unsubscribe/${recipient.unsubscribeToken}`;
                 
-                const result = await sendEmailNotification({
-                    to: recipient.email,
-                    subject: announcement.title,
-                    body: plainText,
-                    htmlBody: htmlBody
-                });
-                
-                if (result.success) {
-                    results.sent++;
+                try {
+                    const htmlBody = generateEmailHtml(announcement, unsubscribeUrl);
+                    const plainText = generatePlainText(announcement, unsubscribeUrl);
                     
-                    // Update contact's last email sent timestamp
-                    try {
-                        const { resources } = await contactsContainer.items
-                            .query({
-                                query: 'SELECT * FROM c WHERE c.email = @email',
-                                parameters: [{ name: '@email', value: recipient.email }]
-                            })
-                            .fetchAll();
+                    const result = await sendEmailNotification({
+                        to: recipient.email,
+                        subject: announcement.title,
+                        body: plainText,
+                        htmlBody: htmlBody
+                    });
+                    
+                    if (result.success) {
+                        results.email.sent++;
                         
-                        if (resources.length > 0) {
-                            const contact = resources[0];
-                            contact.lastEmailSentAt = new Date().toISOString();
-                            contact.emailCount = (contact.emailCount || 0) + 1;
-                            await contactsContainer.item(contact.id, contact.id).replace(contact);
+                        // Update contact's last email sent timestamp
+                        try {
+                            const { resources } = await contactsContainer.items
+                                .query({
+                                    query: 'SELECT * FROM c WHERE c.email = @email',
+                                    parameters: [{ name: '@email', value: recipient.email }]
+                                })
+                                .fetchAll();
+                            
+                            if (resources.length > 0) {
+                                const contact = resources[0];
+                                contact.lastEmailSentAt = new Date().toISOString();
+                                contact.emailCount = (contact.emailCount || 0) + 1;
+                                await contactsContainer.item(contact.id, contact.id).replace(contact);
+                            }
+                        } catch (e) {
+                            // Non-critical, continue
                         }
-                    } catch (e) {
-                        // Non-critical, continue
+                    } else {
+                        results.email.failed++;
+                        results.email.errors.push({ email: recipient.email, error: result.error });
                     }
-                } else {
-                    results.failed++;
-                    results.errors.push({ email: recipient.email, error: result.error });
+                } catch (error) {
+                    results.email.failed++;
+                    results.email.errors.push({ email: recipient.email, error: error.message });
                 }
-            } catch (error) {
-                results.failed++;
-                results.errors.push({ email: recipient.email, error: error.message });
+            });
+            
+            await Promise.all(promises);
+            
+            // Small delay between batches
+            if (i + batchSize < recipients.length) {
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
-        });
-        
-        await Promise.all(promises);
-        
-        // Small delay between batches
-        if (i + batchSize < recipients.length) {
-            await new Promise(resolve => setTimeout(resolve, 500));
         }
     }
     
+    // Send push notifications if method is 'push' or 'both'
+    if (deliveryMethod === 'push' || deliveryMethod === 'both') {
+        const pushResults = await sendPushNotifications(announcement, context);
+        results.push = pushResults;
+    }
+    
+    // Calculate totals
+    const totalSent = results.email.sent + results.push.sent;
+    const totalFailed = results.email.failed + results.push.failed;
+    
     // Update announcement with results
-    announcement.status = results.failed === recipients.length 
+    announcement.status = (totalSent === 0 && totalFailed > 0)
         ? ANNOUNCEMENT_STATUS.FAILED 
         : ANNOUNCEMENT_STATUS.SENT;
     announcement.sentAt = new Date().toISOString();
     announcement.sendResults = {
-        totalRecipients: recipients.length,
-        sent: results.sent,
-        failed: results.failed,
-        errors: results.errors.slice(0, 10) // Keep first 10 errors
+        deliveryMethod,
+        email: {
+            totalRecipients: results.email.sent + results.email.failed,
+            sent: results.email.sent,
+            failed: results.email.failed,
+            errors: results.email.errors.slice(0, 5)
+        },
+        push: {
+            totalRecipients: results.push.sent + results.push.failed,
+            sent: results.push.sent,
+            failed: results.push.failed,
+            errors: results.push.errors.slice(0, 5)
+        },
+        totalSent,
+        totalFailed
     };
     
     await announcementsContainer.item(announcement.id, announcement.id).replace(announcement);
     
-    return results;
+    return { sent: totalSent, failed: totalFailed, details: results };
 }
 
 /**
@@ -407,7 +532,7 @@ app.http('announcements', {
             // POST /api/announcements - Create announcement
             if (method === 'POST' && !id) {
                 const body = await request.json();
-                const { title, content, type, ctaText, ctaUrl, isPublic, targetAudience } = body;
+                const { title, content, type, ctaText, ctaUrl, isPublic, targetAudience, deliveryMethod } = body;
                 
                 if (!title || !content) {
                     return errorResponse(400, 'Title and content are required');
@@ -424,6 +549,7 @@ app.http('announcements', {
                     ctaUrl: ctaUrl || null,
                     isPublic: isPublic !== false, // Default to public
                     targetAudience: targetAudience || 'all',
+                    deliveryMethod: deliveryMethod || 'email', // 'email', 'push', or 'both'
                     createdBy: {
                         userId: principal?.userId,
                         email: principal?.userDetails
@@ -463,6 +589,7 @@ app.http('announcements', {
                         ctaUrl: body.ctaUrl !== undefined ? body.ctaUrl : existing.ctaUrl,
                         isPublic: body.isPublic !== undefined ? body.isPublic : existing.isPublic,
                         targetAudience: body.targetAudience || existing.targetAudience,
+                        deliveryMethod: body.deliveryMethod || existing.deliveryMethod || 'email',
                         updatedAt: new Date().toISOString()
                     };
                     
