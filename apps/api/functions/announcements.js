@@ -68,6 +68,7 @@ const ANNOUNCEMENT_STATUS = {
 async function getEligibleRecipients(announcementType, targetAudience = 'all') {
     const contactsContainer = getContainer(CONTAINERS.EMAIL_CONTACTS);
     const usersContainer = getContainer(CONTAINERS.USERS);
+    const membershipsContainer = getContainer(CONTAINERS.GROUP_MEMBERSHIPS);
     
     // Map announcement type to subscription type
     const subscriptionType = announcementType === 'event' 
@@ -86,8 +87,32 @@ async function getEligibleRecipients(announcementType, targetAudience = 'all') {
         })
         .fetchAll();
     
-    // If targeting specific audience (e.g., a group), filter accordingly
-    // For now, we return all eligible contacts
+    // If targeting a specific group, filter to group members
+    if (targetAudience && targetAudience !== 'all' && targetAudience.startsWith('group-')) {
+        const groupId = targetAudience;
+        
+        // Get all user IDs that are members of this group
+        const { resources: memberships } = await membershipsContainer.items
+            .query({
+                query: `SELECT m.userId FROM m WHERE m.groupId = @groupId AND m.status = "active"`,
+                parameters: [{ name: '@groupId', value: groupId }]
+            })
+            .fetchAll();
+        
+        const groupMemberUserIds = new Set(memberships.map(m => m.userId));
+        
+        // Filter contacts to only those linked to group members
+        const filteredContacts = contacts.filter(c => 
+            c.linkedUserId && groupMemberUserIds.has(c.linkedUserId)
+        );
+        
+        return filteredContacts.map(c => ({
+            email: c.email,
+            name: c.name || c.email.split('@')[0],
+            unsubscribeToken: c.unsubscribeToken,
+            linkedUserId: c.linkedUserId
+        }));
+    }
     
     return contacts.map(c => ({
         email: c.email,

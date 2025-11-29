@@ -20,17 +20,18 @@ const CONTAINERS = {
     GROUPS: 'community-groups',
     MEMBERSHIPS: 'group-memberships',
     USERS: 'users',
-    BROADCASTS: 'broadcasts'
+    BROADCASTS: 'broadcasts',
+    COMMUNITY_MESSAGES: 'community-messages'
 };
 
 /**
- * Get all members for a specific group
+ * Get all members for a specific group (includes userId for notifications)
  */
 async function getGroupMembers(groupId) {
     const membershipsContainer = getContainer(CONTAINERS.MEMBERSHIPS);
     const { resources: members } = await membershipsContainer.items
         .query({
-            query: 'SELECT c.userEmail, c.userName FROM c WHERE c.groupId = @groupId',
+            query: 'SELECT c.userId, c.userEmail, c.userName FROM c WHERE c.groupId = @groupId AND c.status = "active"',
             parameters: [{ name: '@groupId', value: groupId }]
         })
         .fetchAll();
@@ -59,6 +60,37 @@ async function getAllGroups() {
         .query('SELECT c.id, c.name, c.city, c.state, c.memberCount FROM c WHERE c.visibility = "Public" ORDER BY c.name ASC')
         .fetchAll();
     return groups;
+}
+
+/**
+ * Post announcement to community channel
+ */
+async function postAnnouncementToChannel(channelId, subject, message, senderName, senderEmail) {
+    try {
+        const messagesContainer = getContainer(CONTAINERS.COMMUNITY_MESSAGES);
+        
+        const announcementMessage = {
+            id: `announcement-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            channelId,
+            content: `📢 **${subject}**\n\n${message}`,
+            userId: 'system',
+            userName: senderName || 'SOMOS Admin',
+            userPhoto: null,
+            isAnnouncement: true,
+            reactions: [],
+            createdAt: new Date().toISOString(),
+            metadata: {
+                type: 'broadcast_announcement',
+                senderEmail
+            }
+        };
+        
+        const { resource } = await messagesContainer.items.create(announcementMessage);
+        return resource;
+    } catch (error) {
+        console.error(`[BroadcastNotifications] Failed to post to channel ${channelId}:`, error.message);
+        return null;
+    }
 }
 
 /**
@@ -193,8 +225,30 @@ app.http('broadcastNotifications', {
                 // Send notifications through selected channels
                 const results = {
                     email: { sent: 0, failed: 0 },
-                    push: { sent: 0, failed: 0 }
+                    push: { sent: 0, failed: 0 },
+                    channel: { posted: false, messageId: null }
                 };
+
+                // Determine the community channel to post to
+                // For group broadcasts, use the group channel (e.g., "group-seattle")
+                // For all-member broadcasts, use the "announcements" channel
+                const channelId = targetType === 'group' ? targetGroupId : 'announcements';
+                const actionUrl = `/online?channel=${channelId}`;
+
+                // Post to community channel (for push notifications, always post)
+                if (channels.includes('push')) {
+                    const channelPost = await postAnnouncementToChannel(
+                        channelId,
+                        subject,
+                        message,
+                        principal?.userDetails?.split('@')[0] || 'Admin',
+                        principal?.userDetails || 'admin@somos.tech'
+                    );
+                    if (channelPost) {
+                        results.channel = { posted: true, messageId: channelPost.id };
+                        context.log(`[BroadcastNotifications] Posted to channel ${channelId}: ${channelPost.id}`);
+                    }
+                }
 
                 // Send email notifications
                 if (channels.includes('email')) {
@@ -217,14 +271,15 @@ app.http('broadcastNotifications', {
                         try {
                             await createNotification({
                                 type: 'broadcast',
-                                title: subject,
-                                message: message,
+                                title: `📢 ${subject}`,
+                                message: message.length > 100 ? message.substring(0, 100) + '...' : message,
                                 severity: 'info',
-                                actionUrl: null,
+                                actionUrl: actionUrl,
                                 metadata: {
-                                    broadcastId: `broadcast-${Date.now()}`,
+                                    broadcastId: results.channel.messageId || `broadcast-${Date.now()}`,
                                     targetType,
-                                    targetGroupId
+                                    targetGroupId,
+                                    channelId
                                 },
                                 recipientEmail: recipient.email,
                                 createdBy: principal?.userDetails || 'admin'
@@ -247,6 +302,8 @@ app.http('broadcastNotifications', {
                     subject,
                     message,
                     channels,
+                    channelId,
+                    channelMessageId: results.channel.messageId,
                     recipientCount: recipients.length,
                     results,
                     sentBy: principal?.userDetails || 'admin',

@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Hash,
     ChevronDown,
@@ -503,8 +503,11 @@ function MemberSidebar({
 export default function OnlineCommunity() {
     const { authUser, displayName, profilePicture } = useUserContext();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     
-    const [selectedChannel, setSelectedChannel] = useState('general');
+    // Get channel from URL query param (for deep linking from notifications)
+    const urlChannel = searchParams.get('channel');
+    const [selectedChannel, setSelectedChannel] = useState(urlChannel || 'general');
     const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
     const [messageInput, setMessageInput] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
@@ -765,13 +768,23 @@ export default function OnlineCommunity() {
             const channel = category.channels.find(c => c.id === selectedChannel);
             if (channel) return channel.name;
         }
-        return 'general';
+        // Handle dynamic group channels (e.g., "seattle-announcements")
+        if (selectedChannel.endsWith('-announcements')) {
+            const groupName = selectedChannel.replace('-announcements', '');
+            return `${groupName}-announcements`;
+        }
+        return selectedChannel || 'general';
     };
 
     const getCurrentChannelDescription = () => {
         for (const category of CHANNEL_CATEGORIES) {
             const channel = category.channels.find(c => c.id === selectedChannel);
             if (channel) return channel.description;
+        }
+        // Handle dynamic group channels
+        if (selectedChannel.endsWith('-announcements')) {
+            const groupName = selectedChannel.replace('-announcements', '');
+            return `Announcements for ${groupName.charAt(0).toUpperCase() + groupName.slice(1)} community`;
         }
         return '';
     };

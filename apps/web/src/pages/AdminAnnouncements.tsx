@@ -38,7 +38,9 @@ import {
     AlertTriangle,
     CheckCircle,
     XCircle,
-    RefreshCw
+    RefreshCw,
+    MapPin,
+    Globe
 } from 'lucide-react';
 import AdminQuickNav from '@/components/AdminQuickNav';
 
@@ -72,6 +74,7 @@ interface Announcement {
     isPublic: boolean;
     ctaText?: string;
     ctaUrl?: string;
+    targetAudience?: string;
     createdAt: string;
     sentAt?: string;
     sendResults?: {
@@ -82,6 +85,13 @@ interface Announcement {
     createdBy?: {
         email: string;
     };
+}
+
+interface CommunityGroup {
+    id: string;
+    name: string;
+    city?: string;
+    memberCount: number;
 }
 
 interface SubscriptionStats {
@@ -117,6 +127,9 @@ export default function AdminAnnouncements() {
     const [contactSearch, setContactSearch] = useState('');
     const [showImportModal, setShowImportModal] = useState(false);
     
+    // Groups state for targeting
+    const [groups, setGroups] = useState<CommunityGroup[]>([]);
+    
     // Stats state
     const [stats, setStats] = useState<SubscriptionStats | null>(null);
     
@@ -127,7 +140,8 @@ export default function AdminAnnouncements() {
         type: 'general' as Announcement['type'],
         isPublic: true,
         ctaText: '',
-        ctaUrl: ''
+        ctaUrl: '',
+        targetAudience: 'all'
     });
     const [sending, setSending] = useState(false);
     const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -143,7 +157,8 @@ export default function AdminAnnouncements() {
             await Promise.all([
                 loadAnnouncements(),
                 loadContacts(),
-                loadStats()
+                loadStats(),
+                loadGroups()
             ]);
         } catch (error) {
             console.error('Failed to load data:', error);
@@ -197,6 +212,18 @@ export default function AdminAnnouncements() {
                 events: contacts.filter(c => c.subscriptions?.events).length,
                 announcements: contacts.filter(c => c.subscriptions?.announcements).length
             });
+        }
+    };
+
+    const loadGroups = async () => {
+        try {
+            const response = await fetch(`${API_BASE}/community-groups`, { credentials: 'include' });
+            if (!response.ok) throw new Error('Failed to load groups');
+            const data = await response.json();
+            const groupsList = data.groups || data.data?.groups || [];
+            setGroups(groupsList);
+        } catch (error) {
+            console.error('Failed to load groups:', error);
         }
     };
 
@@ -283,7 +310,7 @@ export default function AdminAnnouncements() {
             }
 
             // Reset form
-            setFormData({ title: '', content: '', type: 'general', isPublic: true, ctaText: '', ctaUrl: '' });
+            setFormData({ title: '', content: '', type: 'general', isPublic: true, ctaText: '', ctaUrl: '', targetAudience: 'all' });
             setShowComposer(false);
             setEditingAnnouncement(null);
             await loadAnnouncements();
@@ -324,7 +351,8 @@ export default function AdminAnnouncements() {
             type: announcement.type,
             isPublic: announcement.isPublic,
             ctaText: announcement.ctaText || '',
-            ctaUrl: announcement.ctaUrl || ''
+            ctaUrl: announcement.ctaUrl || '',
+            targetAudience: announcement.targetAudience || 'all'
         });
         setShowComposer(true);
     };
@@ -502,7 +530,7 @@ export default function AdminAnnouncements() {
                                                 onClick={() => {
                                                     setShowComposer(false);
                                                     setEditingAnnouncement(null);
-                                                    setFormData({ title: '', content: '', type: 'general', isPublic: true, ctaText: '', ctaUrl: '' });
+                                                    setFormData({ title: '', content: '', type: 'general', isPublic: true, ctaText: '', ctaUrl: '', targetAudience: 'all' });
                                                 }}
                                                 className="text-gray-400 hover:text-white"
                                             >
@@ -532,6 +560,46 @@ export default function AdminAnnouncements() {
                                                     </button>
                                                 ))}
                                             </div>
+                                        </div>
+
+                                        {/* Target Audience */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-white mb-2">Target Audience</label>
+                                            <div className="flex gap-2 flex-wrap">
+                                                <button
+                                                    onClick={() => setFormData(f => ({ ...f, targetAudience: 'all' }))}
+                                                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                                                        formData.targetAudience === 'all'
+                                                            ? 'bg-[#00FF91] text-[#051323]'
+                                                            : 'text-white border border-white/20 hover:border-white/40'
+                                                    }`}
+                                                >
+                                                    <Globe className="w-4 h-4" />
+                                                    All Subscribers
+                                                </button>
+                                                {groups.map(group => (
+                                                    <button
+                                                        key={group.id}
+                                                        onClick={() => setFormData(f => ({ ...f, targetAudience: group.id }))}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                                                            formData.targetAudience === group.id
+                                                                ? 'bg-[#00D4FF] text-[#051323]'
+                                                                : 'text-white border border-white/20 hover:border-white/40'
+                                                        }`}
+                                                    >
+                                                        <MapPin className="w-4 h-4" />
+                                                        {group.city || group.name}
+                                                        {group.memberCount > 0 && (
+                                                            <span className="text-xs opacity-75">({group.memberCount})</span>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                {formData.targetAudience === 'all' 
+                                                    ? 'Email will be sent to all subscribed contacts' 
+                                                    : `Email will be sent only to members of this group`}
+                                            </p>
                                         </div>
 
                                         {/* Title */}

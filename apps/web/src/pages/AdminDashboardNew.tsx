@@ -141,11 +141,10 @@ export default function AdminDashboard() {
         },
         {
             title: 'Announcements',
-            description: 'Create platform-wide announcements and alerts',
+            description: 'Send emails and manage newsletters to the community',
             icon: Megaphone,
             path: '/admin/announcements',
-            color: '#F72585',
-            badge: 'Coming Soon'
+            color: '#F72585'
         },
         {
             title: 'Analytics',

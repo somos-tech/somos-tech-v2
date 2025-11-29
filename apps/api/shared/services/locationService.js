@@ -226,6 +226,38 @@ async function addUserToGroup(groupId, user) {
 }
 
 /**
+ * Find a group by city name in the database
+ * @param {string} cityName - City name to search for
+ * @returns {Promise<Object|null>} Group object or null if not found
+ */
+async function findGroupByCity(cityName) {
+  if (!cityName) return null;
+  
+  const groupsContainer = getContainer(CONTAINERS.GROUPS);
+  
+  // Search for group by city name (case-insensitive)
+  const { resources } = await groupsContainer.items.query({
+    query: 'SELECT * FROM c WHERE LOWER(c.city) = @city OR LOWER(c.name) = @cityName',
+    parameters: [
+      { name: '@city', value: cityName.toLowerCase() },
+      { name: '@cityName', value: `${cityName.toLowerCase()}, wa` } // Also try with state suffix
+    ]
+  }).fetchAll();
+  
+  if (resources.length > 0) {
+    return resources[0];
+  }
+  
+  // Try broader search with CONTAINS
+  const { resources: broadResults } = await groupsContainer.items.query({
+    query: 'SELECT * FROM c WHERE CONTAINS(LOWER(c.city), @city) OR CONTAINS(LOWER(c.name), @city)',
+    parameters: [{ name: '@city', value: cityName.toLowerCase() }]
+  }).fetchAll();
+  
+  return broadResults.length > 0 ? broadResults[0] : null;
+}
+
+/**
  * Assign user to their nearest city group
  * Main entry point for auto-location feature
  * 
@@ -235,8 +267,11 @@ async function addUserToGroup(groupId, user) {
  */
 async function assignUserToNearestGroup(user, location) {
   if (!location || (!location.latitude && !location.city)) {
+    console.log('[LocationService] No location data available for auto-assignment');
     return null;
   }
+
+  console.log('[LocationService] Attempting auto-assignment for user:', user.email, 'location:', JSON.stringify(location));
 
   let result = {
     assigned: false,
@@ -249,53 +284,97 @@ async function assignUserToNearestGroup(user, location) {
   // Try coordinate-based matching first (most accurate)
   if (location.latitude && location.longitude) {
     const nearestCity = findNearestCity(location.latitude, location.longitude);
+    console.log('[LocationService] Nearest city by coordinates:', nearestCity);
     
     if (nearestCity) {
-      // Found a nearby existing group
-      const membershipResult = await addUserToGroup(nearestCity.groupId, user);
+      // Look up the actual group from the database by city name
+      const existingGroup = await findGroupByCity(nearestCity.city);
+      console.log('[LocationService] Found group in database:', existingGroup?.id, existingGroup?.name);
       
-      result = {
-        assigned: true,
-        groupId: nearestCity.groupId,
-        groupName: `${nearestCity.city}, ${nearestCity.state}`,
-        distance: nearestCity.distance,
-        method: 'coordinate-match',
-        alreadyMember: membershipResult.alreadyMember
-      };
+      if (existingGroup) {
+        // Use the actual group ID from the database
+        const membershipResult = await addUserToGroup(existingGroup.id, user);
+        
+        result = {
+          assigned: true,
+          groupId: existingGroup.id,
+          groupName: existingGroup.name,
+          distance: nearestCity.distance,
+          method: 'coordinate-match',
+          alreadyMember: membershipResult.alreadyMember
+        };
+        console.log('[LocationService] User assigned to existing group:', result);
+      } else {
+        // Group doesn't exist in database, create it
+        console.log('[LocationService] Group not found in database, creating new group for:', nearestCity.city);
+        const newGroup = await createCityGroup(
+          nearestCity.city,
+          nearestCity.state,
+          location.latitude,
+          location.longitude
+        );
+        
+        const membershipResult = await addUserToGroup(newGroup.id, user);
+        
+        result = {
+          assigned: true,
+          groupId: newGroup.id,
+          groupName: newGroup.name,
+          distance: nearestCity.distance,
+          method: 'new-group-created',
+          alreadyMember: membershipResult.alreadyMember
+        };
+        console.log('[LocationService] User assigned to newly created group:', result);
+      }
     } else if (location.city) {
-      // No nearby group, create one for their city
-      const newGroup = await createCityGroup(
-        location.city,
-        location.region || '',
-        location.latitude,
-        location.longitude
-      );
+      // No nearby known city, try to find/create group for their city
+      console.log('[LocationService] No nearby known city, looking for group by city name:', location.city);
+      const existingGroup = await findGroupByCity(location.city);
       
-      const membershipResult = await addUserToGroup(newGroup.id, user);
-      
-      result = {
-        assigned: true,
-        groupId: newGroup.id,
-        groupName: newGroup.name,
-        distance: 0,
-        method: 'new-group-created',
-        alreadyMember: membershipResult.alreadyMember
-      };
+      if (existingGroup) {
+        const membershipResult = await addUserToGroup(existingGroup.id, user);
+        
+        result = {
+          assigned: true,
+          groupId: existingGroup.id,
+          groupName: existingGroup.name,
+          distance: null,
+          method: 'city-name-match',
+          alreadyMember: membershipResult.alreadyMember
+        };
+      } else {
+        // Create new group for their city
+        const newGroup = await createCityGroup(
+          location.city,
+          location.region || '',
+          location.latitude,
+          location.longitude
+        );
+        
+        const membershipResult = await addUserToGroup(newGroup.id, user);
+        
+        result = {
+          assigned: true,
+          groupId: newGroup.id,
+          groupName: newGroup.name,
+          distance: 0,
+          method: 'new-group-created',
+          alreadyMember: membershipResult.alreadyMember
+        };
+      }
     }
   } else if (location.city) {
-    // Fallback: Try to match by city name
-    const cityMatch = Object.entries(CITY_COORDINATES).find(
-      ([cityName]) => cityName.toLowerCase() === location.city.toLowerCase()
-    );
+    // Fallback: Try to match by city name only
+    console.log('[LocationService] No coordinates, trying city name match:', location.city);
+    const existingGroup = await findGroupByCity(location.city);
     
-    if (cityMatch) {
-      const [cityName, cityData] = cityMatch;
-      const membershipResult = await addUserToGroup(cityData.groupId, user);
+    if (existingGroup) {
+      const membershipResult = await addUserToGroup(existingGroup.id, user);
       
       result = {
         assigned: true,
-        groupId: cityData.groupId,
-        groupName: `${cityName}, ${cityData.state}`,
+        groupId: existingGroup.id,
+        groupName: existingGroup.name,
         distance: null,
         method: 'city-name-match',
         alreadyMember: membershipResult.alreadyMember
