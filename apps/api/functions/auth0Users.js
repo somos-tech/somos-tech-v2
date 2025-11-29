@@ -258,7 +258,7 @@ app.http('auth0UserDelete', {
                         await deleteFile('profile-photos', blobName);
                         context.log(`[Auth0Users] Deleted profile photo: ${blobName}`);
                     } catch (photoError) {
-                        context.warn(`[Auth0Users] Could not delete profile photo: ${photoError.message}`);
+                        context.log(`[Auth0Users] Warning: Could not delete profile photo: ${photoError.message}`);
                     }
                 }
             }
@@ -400,7 +400,7 @@ app.http('auth0AccountDelete', {
                         context.log(`[Auth0Users] Deleted profile photo: ${blobName}`);
                     } catch (photoError) {
                         // Log but don't fail the deletion - photo cleanup is best effort
-                        context.warn(`[Auth0Users] Could not delete profile photo: ${photoError.message}`);
+                        context.log(`[Auth0Users] Warning: Could not delete profile photo: ${photoError.message}`);
                     }
                 }
             }
