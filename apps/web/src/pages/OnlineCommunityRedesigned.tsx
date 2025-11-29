@@ -136,19 +136,8 @@ const DEFAULT_NOTIFICATIONS = {
     events: true
 };
 
-// Quick emoji reactions - reliable emojis that render across all platforms
-const EMOJI_REACTIONS = [
-    // Row 1: Love & Positivity
-    '❤️', '🧡', '💛', '💚', '💙', '💜',
-    // Row 2: Reactions
-    '👍', '👎', '👏', '🙌', '🤝', '💪',
-    // Row 3: Expressions
-    '😂', '🤣', '😍', '🥳', '😎', '🤔',
-    // Row 4: Celebrations
-    '🎉', '🔥', '⭐', '✨', '💯', '🚀',
-    // Row 5: Nature & Misc
-    '🌈', '☀️', '🌟', '💫', '🎯', '💡'
-];
+// Quick emoji reactions - 5 essential reactions
+const EMOJI_REACTIONS = ['👍', '❤️', '💯', '😎', '😮'];
 
 /**
  * Modern Channel Sidebar Component with Favorites
