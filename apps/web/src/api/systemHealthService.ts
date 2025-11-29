@@ -324,7 +324,7 @@ async function checkApiEndpoints(): Promise<HealthCheck> {
  */
 async function checkAdminSecurity(): Promise<HealthCheck> {
   try {
-    const response = await fetch('/api/admin/security/anomalies', {
+    const response = await fetch('/api/security-admin/anomalies', {
       method: 'GET',
       credentials: 'include',
       signal: AbortSignal.timeout(10000)

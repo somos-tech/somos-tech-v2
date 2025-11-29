@@ -83,7 +83,7 @@ export interface SecurityAlert {
  * Fetch admin security summary
  */
 export async function getSecuritySummary(): Promise<AdminSecuritySummary> {
-  const response = await fetch('/api/admin/security/summary', {
+  const response = await fetch('/api/security-admin/summary', {
     credentials: 'include',
     headers: { 'Accept': 'application/json' }
   });
@@ -99,7 +99,7 @@ export async function getSecuritySummary(): Promise<AdminSecuritySummary> {
  * Check for security anomalies
  */
 export async function checkAnomalies(): Promise<SecurityAnomalyReport> {
-  const response = await fetch('/api/admin/security/anomalies', {
+  const response = await fetch('/api/security-admin/anomalies', {
     credentials: 'include',
     headers: { 'Accept': 'application/json' }
   });
@@ -115,7 +115,7 @@ export async function checkAnomalies(): Promise<SecurityAnomalyReport> {
  * Get full security report
  */
 export async function getSecurityReport(): Promise<SecurityReport> {
-  const response = await fetch('/api/admin/security/report', {
+  const response = await fetch('/api/security-admin/report', {
     credentials: 'include',
     headers: { 'Accept': 'application/json' }
   });
@@ -131,7 +131,7 @@ export async function getSecurityReport(): Promise<SecurityReport> {
  * Get recent security events
  */
 export async function getSecurityEvents(hours: number = 24): Promise<SecurityEvent[]> {
-  const response = await fetch(`/api/admin/security/events?hours=${hours}`, {
+  const response = await fetch(`/api/security-admin/events?hours=${hours}`, {
     credentials: 'include',
     headers: { 'Accept': 'application/json' }
   });
@@ -152,7 +152,7 @@ export async function verifyAdminAccess(email: string): Promise<{
   reason: string;
   userRecord?: AdminRecord;
 }> {
-  const response = await fetch('/api/admin/security/verify-admin', {
+  const response = await fetch('/api/security-admin/verify-admin', {
     method: 'POST',
     credentials: 'include',
     headers: { 
@@ -173,7 +173,7 @@ export async function verifyAdminAccess(email: string): Promise<{
  * Log a security event
  */
 export async function logSecurityEvent(eventType: string, details: Record<string, unknown>): Promise<void> {
-  await fetch('/api/admin/security/log', {
+  await fetch('/api/security-admin/log', {
     method: 'POST',
     credentials: 'include',
     headers: { 

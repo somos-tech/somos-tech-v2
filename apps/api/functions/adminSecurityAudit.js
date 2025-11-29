@@ -239,7 +239,7 @@ async function getSecuritySummary(context) {
 app.http('adminSecurityAudit', {
     methods: ['GET', 'POST'],
     authLevel: 'anonymous',
-    route: 'admin/security/{action?}',
+    route: 'security-admin/{action?}',
     handler: async (request, context) => {
         context.log('[Security Audit] Function invoked');
         
