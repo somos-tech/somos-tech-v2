@@ -8,6 +8,7 @@ import {
     User, Mail, Shield, LogOut, MapPin, Globe, FileText,
     Edit2, Save, X, Loader2, Check
 } from 'lucide-react';
+import { performLogout } from '@/utils/logout';
 import ProfilePhotoUpload from '@/components/ProfilePhotoUpload';
 
 export default function Profile() {
@@ -98,7 +99,8 @@ export default function Profile() {
     };
 
     const handleLogout = () => {
-        window.location.href = '/.auth/logout';
+        // Smart logout: detects identity provider (Auth0 vs Entra ID) and routes appropriately
+        performLogout(authUser?.identityProvider);
     };
 
     if (authLoading || profileLoading) {

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ShieldAlert } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
+import { performLogout } from '@/utils/logout';
 
 export default function Unauthorized() {
     const navigate = useNavigate();
@@ -76,7 +77,7 @@ export default function Unauthorized() {
                         Go Home
                     </Button>
                     <Button
-                        onClick={() => window.location.href = '/.auth/logout'}
+                        onClick={() => performLogout(user?.identityProvider)}
                         variant="outline"
                         className="rounded-full px-6"
                         style={{ borderColor: '#00FF91', color: '#00FF91' }}

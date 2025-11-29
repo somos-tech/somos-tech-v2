@@ -15,6 +15,7 @@ import {
     ChevronRight,
     Sparkles
 } from 'lucide-react';
+import { performLogout } from '@/utils/logout';
 
 export default function MemberDashboard() {
     const { 
@@ -65,7 +66,8 @@ export default function MemberDashboard() {
     }
 
     const handleLogout = () => {
-        window.location.href = '/.auth/logout?post_logout_redirect_uri=' + encodeURIComponent(window.location.origin);
+        // Smart logout: detects identity provider (Auth0 vs Entra ID) and routes appropriately
+        performLogout(authUser?.identityProvider);
     };
 
     // Extract user info from context
