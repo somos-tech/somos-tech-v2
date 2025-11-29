@@ -143,6 +143,32 @@ https://dev-0tp5bbdn7af0lfpv.us.auth0.com/login/callback
 
 ---
 
+## Auth0 Application Settings
+
+In your Auth0 Application settings, ensure these URLs are configured:
+
+### Allowed Callback URLs
+```
+https://dev.somos.tech/.auth/login/auth0/callback,
+https://somos.tech/.auth/login/auth0/callback
+```
+
+### Allowed Logout URLs
+```
+https://dev.somos.tech/.auth/logout/complete,
+https://dev.somos.tech,
+https://somos.tech/.auth/logout/complete,
+https://somos.tech
+```
+
+### Allowed Web Origins
+```
+https://dev.somos.tech,
+https://somos.tech
+```
+
+---
+
 ## Troubleshooting
 
 ### Warning Still Appears
