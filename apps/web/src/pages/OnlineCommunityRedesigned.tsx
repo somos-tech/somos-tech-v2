@@ -216,21 +216,6 @@ function ChannelSidebar({
                 </div>
             </div>
 
-            {/* Quick Links */}
-            <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(0, 255, 145, 0.06)' }}>
-                <button 
-                    onClick={() => navigate('/groups')}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-300 group hover:bg-gradient-to-r hover:from-[#00FF91]/10 hover:to-transparent"
-                    style={{ border: '1px solid rgba(0, 255, 145, 0.08)' }}
-                >
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-[#00FF91]/15 to-[#00FF91]/5 group-hover:from-[#00FF91]/25 group-hover:to-[#00FF91]/10 transition-all">
-                        <Users className="w-4 h-4 text-[#00FF91]" />
-                    </div>
-                    <span className="text-sm text-gray-300 group-hover:text-white font-medium">Browse Groups</span>
-                    <ExternalLink className="w-3 h-3 ml-auto text-gray-600 group-hover:text-[#00FF91]/70 transition-colors" />
-                </button>
-            </div>
-
             {/* Channel Categories */}
             <div className="flex-1 overflow-y-auto px-3 py-4 space-y-4 scrollbar-thin scrollbar-thumb-[#00FF91]/10 scrollbar-track-transparent">
                 {/* Favorites Section - Only show if there are favorites */}

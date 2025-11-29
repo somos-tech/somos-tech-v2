@@ -30,7 +30,7 @@ async function getUserProfile(userId, userEmail, usersContainer) {
         // First try by userId
         let { resources } = await usersContainer.items
             .query({
-                query: 'SELECT c.id, c.email, c.displayName, c.profilePhotoUrl, c.isAdmin FROM c WHERE c.id = @userId',
+                query: 'SELECT c.id, c.email, c.displayName, c.profilePicture, c.isAdmin FROM c WHERE c.id = @userId',
                 parameters: [{ name: '@userId', value: userId }]
             })
             .fetchAll();
@@ -39,7 +39,7 @@ async function getUserProfile(userId, userEmail, usersContainer) {
         if (resources.length === 0 && userEmail) {
             const emailResult = await usersContainer.items
                 .query({
-                    query: 'SELECT c.id, c.email, c.displayName, c.profilePhotoUrl, c.isAdmin FROM c WHERE c.email = @email',
+                    query: 'SELECT c.id, c.email, c.displayName, c.profilePicture, c.isAdmin FROM c WHERE c.email = @email',
                     parameters: [{ name: '@email', value: userEmail.toLowerCase() }]
                 })
                 .fetchAll();
@@ -238,7 +238,7 @@ app.http('communityMessages', {
                     userId: principal.userId,
                     userName: userProfile?.displayName || principal.userDetails?.split('@')[0] || 'Member',
                     userEmail: principal.userDetails,
-                    userPhoto: userProfile?.profilePhotoUrl || null,
+                    userPhoto: userProfile?.profilePicture || null,
                     content: content.trim(),
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
