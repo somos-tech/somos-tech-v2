@@ -170,6 +170,16 @@
   }
 }
 
+/* Hide scrollbar utility class */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 @keyframes shooting-star {
   0% {
     transform: translateX(0) translateY(0);

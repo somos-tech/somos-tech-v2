@@ -183,7 +183,7 @@ export default function AdminQuickNav({ className = '', variant = 'full' }: Admi
                             </span>
                         </div>
                         
-                        <div className="flex items-center gap-1 overflow-x-auto">
+                        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                             {NAV_ITEMS.map((item) => {
                                 const Icon = item.icon;
                                 const active = isActive(item.path);
@@ -228,7 +228,7 @@ export function AdminQuickNavBar({ className = '' }: { className?: string }) {
     const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
     return (
-        <div className={`flex items-center gap-1 overflow-x-auto pb-1 ${className}`}>
+        <div className={`flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide ${className}`} style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.path);

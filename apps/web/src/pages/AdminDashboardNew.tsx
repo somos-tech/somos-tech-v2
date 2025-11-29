@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
 import SystemHealthAlert from '@/components/SystemHealthAlert';
+import SWASizeTracker from '@/components/SWASizeTracker';
 import { getUserStats } from '@/api/userService';
 import eventService from '@/api/eventService';
 import { listGroups } from '@/api/groupsService';
@@ -347,6 +348,11 @@ export default function AdminDashboard() {
                             </div>
                         );
                     })}
+                </div>
+
+                {/* Azure SWA Size Tracker */}
+                <div className="mb-8">
+                    <SWASizeTracker variant="compact" />
                 </div>
 
                 {/* Primary Controls Section */}
