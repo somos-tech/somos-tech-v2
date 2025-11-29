@@ -186,9 +186,9 @@ function ChannelSidebar({
                     className="absolute inset-0 z-0"
                     style={{
                         backgroundImage: `url(${HEADER_BG_URL})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center top',
-                        opacity: 0.7
+                        backgroundSize: '100% 100%',
+                        backgroundPosition: 'center',
+                        opacity: 0.8
                     }}
                 />
                 {/* Gradient Overlay - more transparent */}
