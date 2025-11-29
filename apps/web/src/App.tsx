@@ -14,6 +14,7 @@ import AdminModeration from './pages/AdminModerationNew'
 import AdminOptions from './pages/AdminOptions'
 import AdminNotifications from './pages/AdminNotifications'
 import APIHealthDashboard from './pages/APIHealthDashboard'
+import SecurityDashboard from './pages/SecurityDashboard'
 import GroupsDirectoryRedesigned from './pages/GroupsDirectoryRedesigned'
 import GroupDetail from './pages/GroupDetail'
 import OnlineCommunity from './pages/OnlineCommunity'
@@ -187,6 +188,14 @@ function AppContent() {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <AdminNotifications />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/security" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <SecurityDashboard />
               </ProtectedRoute>
             } 
           />

@@ -3,6 +3,7 @@ import { getContainer } from '../shared/db.js';
 import { requireAdmin, requireAuth, getClientPrincipal, isAdmin } from '../shared/authMiddleware.js';
 import { successResponse, errorResponse } from '../shared/httpResponse.js';
 import { notifyAdminRoleAssigned, notifyAdminRoleRemoved } from '../shared/services/notificationService.js';
+import { logSecurityEvent } from './adminSecurityAudit.js';
 
 const containerId = 'admin-users';
 
@@ -168,6 +169,7 @@ app.http('adminUsers', {
                 }
 
                 // Create new admin user
+                const createdBy = getClientPrincipal(request)?.userDetails || 'system';
                 const newAdminUser = {
                     id: `admin-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     email: email.toLowerCase(),
@@ -175,13 +177,27 @@ app.http('adminUsers', {
                     roles: roles,
                     status: status,
                     createdAt: new Date().toISOString(),
-                    createdBy: getClientPrincipal(request)?.userDetails || 'system',
+                    createdBy: createdBy,
                     lastLogin: null
                 };
 
                 const { resource: created } = await container.items.create(newAdminUser);
 
-                context.log(`Admin user created: ${email} by ${newAdminUser.createdBy}`);
+                context.log(`Admin user created: ${email} by ${createdBy}`);
+
+                // Log security event - CRITICAL: Always log new admin creation
+                try {
+                    await logSecurityEvent(context, 'admin_user_created', {
+                        email: email.toLowerCase(),
+                        name: newAdminUser.name,
+                        roles: roles,
+                        createdBy: createdBy,
+                        createdAt: newAdminUser.createdAt,
+                        isNonSomosDomain: !email.toLowerCase().endsWith('@somos.tech')
+                    });
+                } catch (auditError) {
+                    context.log.error('Failed to log security event:', auditError);
+                }
 
                 // Send notification
                 try {
@@ -189,7 +205,7 @@ app.http('adminUsers', {
                         userEmail: email.toLowerCase(),
                         userName: newAdminUser.name,
                         roles: newAdminUser.roles,
-                        assignedBy: newAdminUser.createdBy
+                        assignedBy: createdBy
                     });
                 } catch (notifError) {
                     context.log.error('Error sending notification:', notifError);
@@ -301,14 +317,28 @@ app.http('adminUsers', {
                 // Delete the user
                 await container.item(user.id, user.email).delete();
 
-                context.log(`Admin user deleted: ${email} by ${currentUser?.userDetails || 'system'}`);
+                const deletedBy = currentUser?.userDetails || 'system';
+                context.log(`Admin user deleted: ${email} by ${deletedBy}`);
+
+                // Log security event - CRITICAL: Always log admin removal
+                try {
+                    await logSecurityEvent(context, 'admin_user_deleted', {
+                        email: email.toLowerCase(),
+                        name: user.name,
+                        deletedBy: deletedBy,
+                        deletedAt: new Date().toISOString(),
+                        previousRoles: user.roles
+                    });
+                } catch (auditError) {
+                    context.log.error('Failed to log security event:', auditError);
+                }
 
                 // Send notification
                 try {
                     await notifyAdminRoleRemoved({
                         userEmail: email.toLowerCase(),
                         userName: user.name,
-                        removedBy: currentUser?.userDetails || 'system'
+                        removedBy: deletedBy
                     });
                 } catch (notifError) {
                     context.log.error('Error sending notification:', notifError);

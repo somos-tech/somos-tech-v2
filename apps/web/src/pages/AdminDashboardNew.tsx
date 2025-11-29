@@ -13,7 +13,8 @@ import {
     Activity,
     TrendingUp,
     AlertTriangle,
-    Loader2
+    Loader2,
+    Shield
 } from 'lucide-react';
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
 import SystemHealthAlert from '@/components/SystemHealthAlert';
@@ -169,6 +170,13 @@ export default function AdminDashboard() {
             path: '/admin/feedback',
             color: '#F9A826',
             badge: 'Coming Soon'
+        },
+        {
+            title: 'Security',
+            description: 'Monitor admin access and security anomalies',
+            icon: Shield,
+            path: '/admin/security',
+            color: '#ef4444'
         },
         {
             title: 'API Health',

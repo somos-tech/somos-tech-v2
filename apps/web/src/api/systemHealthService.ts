@@ -320,6 +320,95 @@ async function checkApiEndpoints(): Promise<HealthCheck> {
 }
 
 /**
+ * Check admin security status - detect anomalies in admin access
+ */
+async function checkAdminSecurity(): Promise<HealthCheck> {
+  try {
+    const response = await fetch('/api/admin/security/anomalies', {
+      method: 'GET',
+      credentials: 'include',
+      signal: AbortSignal.timeout(10000)
+    });
+
+    if (!response.ok) {
+      // 401/403 means not authenticated as admin - that's ok for non-admin users
+      if (response.status === 401 || response.status === 403) {
+        return {
+          name: 'Admin Security',
+          status: 'healthy',
+          message: 'Security check requires admin access',
+          lastChecked: new Date(),
+          details: { note: 'Login as admin to view security status' }
+        };
+      }
+      return {
+        name: 'Admin Security',
+        status: 'degraded',
+        message: `Security API returned ${response.status}`,
+        lastChecked: new Date()
+      };
+    }
+
+    const data = await response.json();
+    
+    // Check for critical or high severity anomalies
+    const hasCritical = data.anomalies?.some((a: { severity: string }) => a.severity === 'critical');
+    const hasHigh = data.anomalies?.some((a: { severity: string }) => a.severity === 'high');
+    
+    if (hasCritical) {
+      return {
+        name: 'Admin Security',
+        status: 'critical',
+        message: `CRITICAL: ${data.anomalyCount} security issue(s) detected`,
+        lastChecked: new Date(),
+        details: { 
+          anomalyCount: data.anomalyCount,
+          anomalies: data.anomalies
+        }
+      };
+    }
+    
+    if (hasHigh) {
+      return {
+        name: 'Admin Security',
+        status: 'degraded',
+        message: `${data.anomalyCount} security issue(s) require attention`,
+        lastChecked: new Date(),
+        details: { 
+          anomalyCount: data.anomalyCount,
+          anomalies: data.anomalies
+        }
+      };
+    }
+    
+    if (data.anomalyCount > 0) {
+      return {
+        name: 'Admin Security',
+        status: 'degraded',
+        message: `${data.anomalyCount} low-priority security finding(s)`,
+        lastChecked: new Date(),
+        details: { anomalyCount: data.anomalyCount }
+      };
+    }
+
+    return {
+      name: 'Admin Security',
+      status: 'healthy',
+      message: 'No security anomalies detected',
+      lastChecked: new Date()
+    };
+  } catch (error) {
+    return {
+      name: 'Admin Security',
+      status: 'degraded',
+      message: 'Could not verify admin security status',
+      lastChecked: new Date(),
+      details: { error: String(error) }
+    };
+  }
+}
+
+/**
  * Run all health checks and compile results
  */
 export async function runHealthChecks(): Promise<SystemHealth> {
@@ -327,7 +416,8 @@ export async function runHealthChecks(): Promise<SystemHealth> {
     checkApiHealth(),
     checkAuthConfiguration(),
     checkMemberAuthConfiguration(),
-    checkApiEndpoints()
+    checkApiEndpoints(),
+    checkAdminSecurity()
   ]);
 
   // Determine overall status
