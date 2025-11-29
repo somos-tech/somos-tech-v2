@@ -9,11 +9,17 @@
  * @module auth0Service
  */
 
-// Auth0 Management API configuration
-const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN || 'auth.somos.tech';
-const AUTH0_MANAGEMENT_CLIENT_ID = process.env.AUTH0_MANAGEMENT_CLIENT_ID;
-const AUTH0_MANAGEMENT_CLIENT_SECRET = process.env.AUTH0_MANAGEMENT_CLIENT_SECRET;
-const AUTH0_AUDIENCE = `https://${AUTH0_DOMAIN}/api/v2/`;
+// Get Auth0 configuration dynamically to ensure environment variables are loaded
+function getAuth0Config() {
+    return {
+        domain: process.env.AUTH0_DOMAIN || 'dev-0tp5bbdn7af0lfpv.us.auth0.com',
+        clientId: process.env.AUTH0_MANAGEMENT_CLIENT_ID,
+        clientSecret: process.env.AUTH0_MANAGEMENT_CLIENT_SECRET,
+        get audience() {
+            return `https://${this.domain}/api/v2/`;
+        }
+    };
+}
 
 // Cache for the management API token
 let managementToken = null;
@@ -25,25 +31,29 @@ let tokenExpiry = null;
  * @returns {Promise<string>} Access token
  */
 async function getManagementToken() {
+    const config = getAuth0Config();
+    
     // Return cached token if still valid (with 5 minute buffer)
     if (managementToken && tokenExpiry && Date.now() < tokenExpiry - 300000) {
         return managementToken;
     }
 
-    if (!AUTH0_MANAGEMENT_CLIENT_ID || !AUTH0_MANAGEMENT_CLIENT_SECRET) {
+    if (!config.clientId || !config.clientSecret) {
+        console.error('[Auth0Service] Missing credentials - clientId:', !!config.clientId, 'clientSecret:', !!config.clientSecret);
         throw new Error('Auth0 Management API credentials not configured. Set AUTH0_MANAGEMENT_CLIENT_ID and AUTH0_MANAGEMENT_CLIENT_SECRET environment variables.');
     }
 
     try {
-        const response = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
+        console.log('[Auth0Service] Requesting token from:', `https://${config.domain}/oauth/token`);
+        const response = await fetch(`https://${config.domain}/oauth/token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                client_id: AUTH0_MANAGEMENT_CLIENT_ID,
-                client_secret: AUTH0_MANAGEMENT_CLIENT_SECRET,
-                audience: AUTH0_AUDIENCE,
+                client_id: config.clientId,
+                client_secret: config.clientSecret,
+                audience: config.audience,
                 grant_type: 'client_credentials'
             })
         });
@@ -75,6 +85,7 @@ async function getManagementToken() {
  * @returns {Promise<Object>} API response
  */
 async function managementApiRequest(endpoint, method = 'GET', body = null) {
+    const config = getAuth0Config();
     const token = await getManagementToken();
 
     const options = {
@@ -89,7 +100,7 @@ async function managementApiRequest(endpoint, method = 'GET', body = null) {
         options.body = JSON.stringify(body);
     }
 
-    const response = await fetch(`https://${AUTH0_DOMAIN}/api/v2${endpoint}`, options);
+    const response = await fetch(`https://${config.domain}/api/v2${endpoint}`, options);
 
     // Handle 204 No Content
     if (response.status === 204) {
@@ -214,7 +225,12 @@ async function deleteAuth0User(auth0UserId) {
  * @returns {boolean} True if configured
  */
 function isAuth0ManagementConfigured() {
-    return !!(AUTH0_MANAGEMENT_CLIENT_ID && AUTH0_MANAGEMENT_CLIENT_SECRET);
+    const config = getAuth0Config();
+    const isConfigured = !!(config.clientId && config.clientSecret);
+    if (!isConfigured) {
+        console.log('[Auth0Service] Not configured - clientId:', !!config.clientId, 'clientSecret:', !!config.clientSecret);
+    }
+    return isConfigured;
 }
 
 /**
