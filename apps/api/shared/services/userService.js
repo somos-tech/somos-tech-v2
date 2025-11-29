@@ -314,6 +314,9 @@ async function getOrCreateUser(authUser) {
     user = await getUserByEmail(authUser.email);
   }
 
+  // Check if this is a deleted user returning - need to reactivate
+  const isDeletedUserReturning = user && user.status === 'deleted';
+  
   // Create new user if doesn't exist
   const isNewUser = !user;
   if (isNewUser) {
@@ -338,6 +341,46 @@ async function getOrCreateUser(authUser) {
         console.error('[LocationService] Failed to auto-assign group:', locationError.message);
       }
     }
+  } else if (isDeletedUserReturning) {
+    // Reactivate deleted user with fresh data from auth provider
+    console.log(`[UserService] Reactivating previously deleted user: ${authUser.userId}`);
+    
+    const now = new Date().toISOString();
+    const providerPicture = extractProfilePictureFromClaims(authUser);
+    const profilePicture = authUser.profilePicture || 
+                           providerPicture || 
+                           generateGravatarUrl(authUser.email);
+    
+    const reactivatedUser = {
+      ...user,
+      // Restore fresh data from auth provider
+      email: authUser.email.toLowerCase(),
+      displayName: authUser.displayName || authUser.name || extractNameFromEmail(authUser.email),
+      profilePicture: profilePicture,
+      providerPicture: providerPicture,
+      // Clear deletion markers
+      status: UserStatus.ACTIVE,
+      deletedAt: null,
+      deletedBy: null,
+      auth0Deleted: null,
+      // Update timestamps
+      updatedAt: now,
+      lastLoginAt: now,
+      reactivatedAt: now,
+      // Track reactivation history
+      reactivationHistory: [
+        ...(user.reactivationHistory || []),
+        {
+          reactivatedAt: now,
+          previouslyDeletedAt: user.deletedAt,
+          ip: authUser.ip
+        }
+      ]
+    };
+    
+    const { resource } = await getContainer().items.upsert(reactivatedUser);
+    user = resource;
+    console.log(`[UserService] User reactivated successfully: ${user.email}`);
   } else {
     // Update last login with location data
     await updateLastLogin(user.id, {

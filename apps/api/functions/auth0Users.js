@@ -409,7 +409,8 @@ app.http('auth0AccountDelete', {
             await deleteAuth0User(finalAuth0UserId);
             context.log(`[Auth0Users] Auth0 user ${finalAuth0UserId} self-deleted`);
 
-            // Update local database if user exists
+            // Update local database if user exists - soft delete with data anonymization
+            // Note: We keep the ID so if user re-registers with same Auth0 ID, we can reactivate
             if (user) {
                 await usersContainer.items.upsert({
                     ...user,
@@ -417,14 +418,17 @@ app.http('auth0AccountDelete', {
                     deletedAt: new Date().toISOString(),
                     deletedBy: 'self',
                     auth0Deleted: true,
-                    // Clear sensitive data
+                    // Store original email for potential reactivation lookup
+                    originalEmail: user.email,
+                    // Clear sensitive/visible data
                     email: `deleted_${user.id}@deleted.local`,
                     displayName: 'Deleted User',
                     name: 'Deleted User',
                     profilePicture: null,
                     bio: null,
                     location: null,
-                    website: null
+                    website: null,
+                    showLocation: false
                 });
             }
 
