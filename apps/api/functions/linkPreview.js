@@ -66,6 +66,20 @@ const KNOWN_SITES = {
     'figma.com': {
         siteName: 'Figma',
         icon: 'https://static.figma.com/app/icon/1/favicon.png'
+    },
+    'somos.tech': {
+        siteName: 'SOMOS.tech',
+        icon: 'https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/shortcircle.png',
+        defaultImage: 'https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/shortcircle.png',
+        defaultTitle: 'SOMOS.tech - Beyond the cloud ☁️',
+        defaultDescription: 'Join the SOMOS.tech community - connecting underrepresented groups in tech through mentorship, networking, and career resources.'
+    },
+    'www.somos.tech': {
+        siteName: 'SOMOS.tech',
+        icon: 'https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/shortcircle.png',
+        defaultImage: 'https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/shortcircle.png',
+        defaultTitle: 'SOMOS.tech - Beyond the cloud ☁️',
+        defaultDescription: 'Join the SOMOS.tech community - connecting underrepresented groups in tech through mentorship, networking, and career resources.'
     }
 };
 
@@ -292,6 +306,8 @@ app.http('linkPreview', {
             if (knownSite) {
                 if (!metadata.siteName) metadata.siteName = knownSite.siteName;
                 if (!metadata.image && knownSite.defaultImage) metadata.image = knownSite.defaultImage;
+                if (!metadata.title && knownSite.defaultTitle) metadata.title = knownSite.defaultTitle;
+                if (!metadata.description && knownSite.defaultDescription) metadata.description = knownSite.defaultDescription;
                 metadata.icon = knownSite.icon;
             }
             

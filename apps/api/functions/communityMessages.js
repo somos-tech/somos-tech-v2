@@ -23,16 +23,29 @@ const CONTAINERS = {
 };
 
 /**
- * Get user profile data
+ * Get user profile data - looks up by userId first, then by email as fallback
  */
-async function getUserProfile(userId, usersContainer) {
+async function getUserProfile(userId, userEmail, usersContainer) {
     try {
-        const { resources } = await usersContainer.items
+        // First try by userId
+        let { resources } = await usersContainer.items
             .query({
                 query: 'SELECT c.id, c.email, c.displayName, c.profilePhotoUrl, c.isAdmin FROM c WHERE c.id = @userId',
                 parameters: [{ name: '@userId', value: userId }]
             })
             .fetchAll();
+        
+        // If not found by userId, try by email (handles Auth0 ID mismatch)
+        if (resources.length === 0 && userEmail) {
+            const emailResult = await usersContainer.items
+                .query({
+                    query: 'SELECT c.id, c.email, c.displayName, c.profilePhotoUrl, c.isAdmin FROM c WHERE c.email = @email',
+                    parameters: [{ name: '@email', value: userEmail.toLowerCase() }]
+                })
+                .fetchAll();
+            resources = emailResult.resources;
+        }
+        
         return resources[0] || null;
     } catch (error) {
         console.error('[CommunityMessages] Error getting user profile:', error);
@@ -216,8 +229,8 @@ app.http('communityMessages', {
                     console.warn('[CommunityMessages] Moderation check failed, allowing message:', moderationError.message);
                 }
 
-                // Get user profile for display
-                const userProfile = await getUserProfile(principal.userId, usersContainer);
+                // Get user profile for display (pass email for Azure AD fallback lookup)
+                const userProfile = await getUserProfile(principal.userId, principal.userDetails, usersContainer);
 
                 const newMessage = {
                     id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -263,8 +276,8 @@ app.http('communityMessages', {
 
                 // Only allow deletion by message author or admin
                 if (message.userId !== principal.userId) {
-                    // Check if user is admin
-                    const userProfile = await getUserProfile(principal.userId, usersContainer);
+                    // Check if user is admin (pass email for Azure AD fallback lookup)
+                    const userProfile = await getUserProfile(principal.userId, principal.userDetails, usersContainer);
                     context.log(`[CommunityMessages] Delete check - User: ${principal.userId}, isAdmin: ${userProfile?.isAdmin}, messageOwner: ${message.userId}`);
                     
                     if (!userProfile?.isAdmin) {
