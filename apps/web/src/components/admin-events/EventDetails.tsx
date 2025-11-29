@@ -389,7 +389,7 @@ export default function EventDetails({ eventId, onClose }: { eventId: string; on
                                                 <strong style={{ color: '#FFFFFF' }}>Last reply:</strong> 1 day ago
                                             </div>
                                             <div className="flex gap-2 flex-wrap">
-                                                <Button size="sm" variant="outline" className="rounded-xl text-xs" style={{ borderColor: '#8394A7', color: '#8394A7' }}>
+                                                <Button size="sm" variant="outline" className="rounded-xl text-xs" style={{ borderColor: '#02dbff', color: '#02dbff' }}>
                                                     Details
                                                 </Button>
                                                 <Button size="sm" className="rounded-xl text-xs" style={{ backgroundColor: '#00FF91', color: '#000000' }}>
@@ -421,7 +421,7 @@ export default function EventDetails({ eventId, onClose }: { eventId: string; on
                                                     <strong style={{ color: '#FFFFFF' }}>Agent:</strong> Sent gold tier proposal ($7,500)
                                                 </div>
                                                 <div className="flex gap-2 flex-wrap">
-                                                    <Button size="sm" variant="outline" className="rounded-xl text-xs" style={{ borderColor: '#8394A7', color: '#8394A7' }}>
+                                                    <Button size="sm" variant="outline" className="rounded-xl text-xs" style={{ borderColor: '#02dbff', color: '#02dbff' }}>
                                                         View
                                                     </Button>
                                                     <Button size="sm" variant="outline" className="rounded-xl text-xs" style={{ borderColor: '#00FF91', color: '#00FF91' }}>

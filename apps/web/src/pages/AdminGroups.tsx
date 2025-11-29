@@ -249,7 +249,7 @@ export default function AdminGroups() {
                                     <Button
                                         type="button"
                                         onClick={handleCloseDialog}
-                                        style={{ backgroundColor: '#8394A7', color: '#051323' }}
+                                        style={{ backgroundColor: '#02dbff', color: '#051323' }}
                                     >
                                         Cancel
                                     </Button>
@@ -315,7 +315,7 @@ export default function AdminGroups() {
                                 <Button
                                     size="sm"
                                     className="flex-1"
-                                    style={{ backgroundColor: '#8394A7', color: '#051323' }}
+                                    style={{ backgroundColor: '#02dbff', color: '#051323' }}
                                 >
                                     <Eye className="h-3 w-3" />
                                 </Button>
