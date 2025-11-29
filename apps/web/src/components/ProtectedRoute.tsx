@@ -1,5 +1,5 @@
 import { ReactNode, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useUserContext } from '@/contexts/UserContext';
 import { Loader2 } from 'lucide-react';
 
@@ -11,6 +11,7 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
     const { isAuthenticated, isAdmin, isLoading } = useUserContext();
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
@@ -26,10 +27,13 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
         }
 
         if (!isLoading && isAuthenticated && requireAdmin && !isAdmin) {
-            // User is authenticated but not an admin
-            navigate('/unauthorized', { replace: true });
+            // User is authenticated but not an admin - pass the attempted path
+            navigate('/unauthorized', { 
+                replace: true, 
+                state: { from: location.pathname } 
+            });
         }
-    }, [isAuthenticated, isAdmin, isLoading, requireAdmin, navigate]);
+    }, [isAuthenticated, isAdmin, isLoading, requireAdmin, navigate, location.pathname]);
 
     if (isLoading) {
         return (

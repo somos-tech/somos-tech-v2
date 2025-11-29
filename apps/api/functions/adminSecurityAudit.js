@@ -381,5 +381,188 @@ app.http('adminSecurityAudit', {
     }
 });
 
+/**
+ * Log unauthorized admin access attempt
+ * This endpoint can be called without admin privileges to report unauthorized access attempts
+ * POST /api/security/unauthorized-access
+ */
+app.http('logUnauthorizedAccess', {
+    methods: ['POST'],
+    authLevel: 'anonymous',
+    route: 'security/unauthorized-access',
+    handler: async (request, context) => {
+        try {
+            // Get client principal from Azure SWA auth
+            const clientPrincipalHeader = request.headers.get('x-ms-client-principal');
+            let clientPrincipal = null;
+            
+            if (clientPrincipalHeader) {
+                try {
+                    const decoded = Buffer.from(clientPrincipalHeader, 'base64').toString('utf8');
+                    clientPrincipal = JSON.parse(decoded);
+                } catch (e) {
+                    context.log('[Security] Could not decode client principal');
+                }
+            }
+            
+            // Get forwarded headers for client info
+            const forwardedFor = request.headers.get('x-forwarded-for') || 
+                                 request.headers.get('x-client-ip') ||
+                                 request.headers.get('x-real-ip') ||
+                                 'unknown';
+            const clientIp = forwardedFor.split(',')[0].trim();
+            
+            const userAgent = request.headers.get('user-agent') || 'unknown';
+            const referer = request.headers.get('referer') || 'unknown';
+            const origin = request.headers.get('origin') || 'unknown';
+            
+            // Parse request body for additional context
+            let body = {};
+            try {
+                body = await request.json();
+            } catch (e) {
+                // Body might be empty
+            }
+            
+            const {
+                attemptedPath,
+                timestamp,
+                screenWidth,
+                screenHeight,
+                language,
+                timezone,
+                connectionType,
+                platform
+            } = body;
+            
+            // Extract user info from client principal
+            const userEmail = clientPrincipal?.userDetails || 'anonymous';
+            const userId = clientPrincipal?.userId || 'unknown';
+            const identityProvider = clientPrincipal?.identityProvider || 'none';
+            const userRoles = clientPrincipal?.userRoles || [];
+            
+            // Build comprehensive event details
+            const eventDetails = {
+                // User Information
+                userId,
+                userEmail,
+                identityProvider,
+                userRoles,
+                
+                // Request Information
+                attemptedPath: attemptedPath || referer,
+                referer,
+                origin,
+                
+                // Client Information
+                clientIp,
+                userAgent,
+                
+                // Device Information
+                device: {
+                    screenWidth,
+                    screenHeight,
+                    language,
+                    timezone,
+                    connectionType,
+                    platform: platform || extractPlatformFromUA(userAgent)
+                },
+                
+                // Geolocation (will be enriched server-side if possible)
+                geoLocation: null,
+                
+                // Timestamps
+                clientTimestamp: timestamp,
+                serverTimestamp: new Date().toISOString(),
+                
+                // Additional context
+                headers: {
+                    acceptLanguage: request.headers.get('accept-language'),
+                    acceptEncoding: request.headers.get('accept-encoding'),
+                    cacheControl: request.headers.get('cache-control'),
+                    secFetchDest: request.headers.get('sec-fetch-dest'),
+                    secFetchMode: request.headers.get('sec-fetch-mode'),
+                    secFetchSite: request.headers.get('sec-fetch-site'),
+                    secChUa: request.headers.get('sec-ch-ua'),
+                    secChUaPlatform: request.headers.get('sec-ch-ua-platform'),
+                    secChUaMobile: request.headers.get('sec-ch-ua-mobile')
+                }
+            };
+            
+            // Try to get geolocation from IP
+            if (clientIp && clientIp !== 'unknown' && !clientIp.startsWith('127.') && !clientIp.startsWith('::1')) {
+                try {
+                    const geoResponse = await fetch(`http://ip-api.com/json/${clientIp}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as`);
+                    if (geoResponse.ok) {
+                        const geoData = await geoResponse.json();
+                        if (geoData.status === 'success') {
+                            eventDetails.geoLocation = {
+                                country: geoData.country,
+                                countryCode: geoData.countryCode,
+                                region: geoData.regionName,
+                                city: geoData.city,
+                                zip: geoData.zip,
+                                lat: geoData.lat,
+                                lon: geoData.lon,
+                                timezone: geoData.timezone,
+                                isp: geoData.isp,
+                                org: geoData.org,
+                                as: geoData.as
+                            };
+                        }
+                    }
+                } catch (geoError) {
+                    context.log('[Security] Could not fetch geolocation:', geoError.message);
+                }
+            }
+            
+            // Log the security event with HIGH severity
+            await logSecurityEvent({
+                eventType: 'UNAUTHORIZED_ADMIN_ACCESS_ATTEMPT',
+                severity: 'high',
+                actorEmail: userEmail,
+                targetUserId: null,
+                details: eventDetails
+            });
+            
+            // Log to console for immediate visibility
+            context.log(`[SECURITY ALERT] Unauthorized admin access attempt:`);
+            context.log(`  User: ${userEmail} (${identityProvider})`);
+            context.log(`  IP: ${clientIp}`);
+            context.log(`  Path: ${attemptedPath || referer}`);
+            context.log(`  Location: ${eventDetails.geoLocation ? `${eventDetails.geoLocation.city}, ${eventDetails.geoLocation.country}` : 'Unknown'}`);
+            context.log(`  User Agent: ${userAgent}`);
+            
+            return successResponse({
+                logged: true,
+                eventId: `security-${Date.now()}`,
+                message: 'Unauthorized access attempt has been logged and will be reviewed'
+            });
+            
+        } catch (error) {
+            context.error('[Security] Error logging unauthorized access:', error);
+            // Still return success to not leak information
+            return successResponse({ logged: true });
+        }
+    }
+});
+
+/**
+ * Helper function to extract platform from User Agent
+ */
+function extractPlatformFromUA(userAgent) {
+    if (!userAgent) return 'unknown';
+    const ua = userAgent.toLowerCase();
+    
+    if (ua.includes('windows')) return 'Windows';
+    if (ua.includes('macintosh') || ua.includes('mac os')) return 'macOS';
+    if (ua.includes('linux')) return 'Linux';
+    if (ua.includes('android')) return 'Android';
+    if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) return 'iOS';
+    if (ua.includes('chromeos')) return 'ChromeOS';
+    
+    return 'unknown';
+}
+
 // Export functions for use in other modules
 export { logSecurityEvent, checkSecurityAnomalies, getSecuritySummary };
