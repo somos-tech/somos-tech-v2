@@ -29,7 +29,7 @@ async function getUserProfile(userId, usersContainer) {
     try {
         const { resources } = await usersContainer.items
             .query({
-                query: 'SELECT c.id, c.email, c.displayName, c.profilePhotoUrl FROM c WHERE c.id = @userId',
+                query: 'SELECT c.id, c.email, c.displayName, c.profilePhotoUrl, c.isAdmin FROM c WHERE c.id = @userId',
                 parameters: [{ name: '@userId', value: userId }]
             })
             .fetchAll();
@@ -213,7 +213,7 @@ app.http('communityMessages', {
                     }
                 } catch (moderationError) {
                     // Log but don't block on moderation errors
-                    context.warn('[CommunityMessages] Moderation check failed, allowing message:', moderationError.message);
+                    console.warn('[CommunityMessages] Moderation check failed, allowing message:', moderationError.message);
                 }
 
                 // Get user profile for display
@@ -265,9 +265,12 @@ app.http('communityMessages', {
                 if (message.userId !== principal.userId) {
                     // Check if user is admin
                     const userProfile = await getUserProfile(principal.userId, usersContainer);
+                    context.log(`[CommunityMessages] Delete check - User: ${principal.userId}, isAdmin: ${userProfile?.isAdmin}, messageOwner: ${message.userId}`);
+                    
                     if (!userProfile?.isAdmin) {
                         return errorResponse(403, 'You can only delete your own messages');
                     }
+                    context.log(`[CommunityMessages] Admin ${principal.userDetails} deleting message from ${message.userName}`);
                 }
 
                 // Soft delete
@@ -363,7 +366,7 @@ app.http('communityActiveUsers', {
                     await usersContainer.item(currentUser.id, currentUser.id).replace(currentUser);
                 }
             } catch (err) {
-                context.warn('[CommunityActiveUsers] Could not update lastActiveAt:', err.message);
+                console.warn('[CommunityActiveUsers] Could not update lastActiveAt:', err.message);
             }
 
             return successResponse({
