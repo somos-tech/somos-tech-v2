@@ -15,6 +15,7 @@ import AdminOptions from './pages/AdminOptions'
 import AdminNotifications from './pages/AdminNotifications'
 import APIHealthDashboard from './pages/APIHealthDashboard'
 import SecurityDashboard from './pages/SecurityDashboard'
+import ErrorPage from './pages/ErrorPage'
 import GroupsDirectoryRedesigned from './pages/GroupsDirectoryRedesigned'
 import GroupDetail from './pages/GroupDetail'
 import OnlineCommunity from './pages/OnlineCommunity'
@@ -56,6 +57,7 @@ function AppContent() {
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/register" element={<Register />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/error" element={<ErrorPage />} />
           <Route path="/donate" element={<Donate />} />
           <Route 
             path="/online" 
