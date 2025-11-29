@@ -15,22 +15,27 @@ const SECURITY_AUDIT_CONTAINER = 'security-audit';
 
 /**
  * Log a security event
+ * @param {Object} event - Event object with eventType, severity, actorEmail, targetUserId, details
  */
-async function logSecurityEvent(context, eventType, details) {
+async function logSecurityEvent(event) {
+    const { eventType, severity, actorEmail, targetUserId, details } = event;
     try {
         const container = getContainer(SECURITY_AUDIT_CONTAINER);
-        const event = {
+        const eventRecord = {
             id: `security-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             type: eventType,
+            severity: severity || 'info',
+            actorEmail,
+            targetUserId,
             timestamp: new Date().toISOString(),
             ...details
         };
-        await container.items.create(event);
-        context.log(`[Security Audit] Event logged: ${eventType}`, JSON.stringify(details));
+        await container.items.create(eventRecord);
+        console.log(`[Security Audit] Event logged: ${eventType}`, JSON.stringify({ severity, actorEmail, targetUserId }));
     } catch (error) {
         // If security-audit container doesn't exist, log to console only
-        context.log.warn(`[Security Audit] Could not log to database: ${error.message}`);
-        context.log(`[Security Audit] Event: ${eventType}`, JSON.stringify(details));
+        console.warn(`[Security Audit] Could not log to database: ${error.message}`);
+        console.log(`[Security Audit] Event: ${eventType}`, JSON.stringify({ severity, actorEmail, targetUserId, details }));
     }
 }
 
@@ -50,7 +55,7 @@ async function getRecentAdminAccess(context, hours = 24) {
         const { resources: events } = await container.items.query(query).fetchAll();
         return events;
     } catch (error) {
-        context.log.warn(`[Security Audit] Could not fetch events: ${error.message}`);
+        console.warn(`[Security Audit] Could not fetch events: ${error.message}`);
         return [];
     }
 }
@@ -182,7 +187,7 @@ async function checkSecurityAnomalies(context) {
         }
         
     } catch (error) {
-        context.log.error('[Security Audit] Error checking anomalies:', error);
+        console.error('[Security Audit] Error checking anomalies:', error);
         anomalies.push({
             type: 'audit_error',
             severity: 'high',
@@ -231,7 +236,7 @@ async function getSecuritySummary(context) {
             }))
         };
     } catch (error) {
-        context.log.error('[Security Audit] Error getting summary:', error);
+        console.error('[Security Audit] Error getting summary:', error);
         throw error;
     }
 }
@@ -307,9 +312,14 @@ app.http('adminSecurityAudit', {
                     return errorResponse(400, 'eventType is required');
                 }
                 
-                await logSecurityEvent(context, eventType, {
-                    ...details,
-                    loggedBy: authResult.user?.email || 'unknown'
+                await logSecurityEvent({
+                    eventType,
+                    severity: 'info',
+                    actorEmail: authResult.user?.email || 'unknown',
+                    details: {
+                        ...details,
+                        loggedBy: authResult.user?.email || 'unknown'
+                    }
                 });
                 
                 return successResponse({ message: 'Event logged successfully' });
@@ -337,10 +347,15 @@ app.http('adminSecurityAudit', {
                     users[0].roles?.includes('admin');
                 
                 // Log this verification
-                await logSecurityEvent(context, 'admin_verification', {
-                    targetEmail: email,
-                    isAuthorized,
-                    verifiedBy: authResult.user?.email || 'unknown'
+                await logSecurityEvent({
+                    eventType: 'admin_verification',
+                    severity: 'info',
+                    actorEmail: authResult.user?.email || 'unknown',
+                    details: {
+                        targetEmail: email,
+                        isAuthorized,
+                        verifiedBy: authResult.user?.email || 'unknown'
+                    }
                 });
                 
                 return successResponse({
@@ -360,7 +375,7 @@ app.http('adminSecurityAudit', {
             return errorResponse(400, 'Invalid action');
             
         } catch (error) {
-            context.log.error('[Security Audit] ERROR:', error);
+            context.error('[Security Audit] ERROR:', error);
             return errorResponse(500, 'Internal server error', error.message);
         }
     }
