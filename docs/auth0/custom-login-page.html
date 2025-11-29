@@ -5,6 +5,8 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
   <title>Sign In | SOMOS.tech</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+  <link rel="icon" type="image/png" href="https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/shortcircle.png" />
+  <link rel="apple-touch-icon" href="https://stsomostechdev64qb73pzvg.blob.core.windows.net/site-branding/shortcircle.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -51,18 +53,11 @@
     .bg-glow-1 {
       top: -200px;
       right: -200px;
-      animation: float 20s ease-in-out infinite;
     }
 
     .bg-glow-2 {
       bottom: -300px;
       left: -200px;
-      animation: float 25s ease-in-out infinite reverse;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      50% { transform: translate(30px, 20px) scale(1.1); }
     }
 
     /* Stars background */
@@ -77,14 +72,8 @@
       position: absolute;
       width: 2px;
       height: 2px;
-      background: rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.5);
       border-radius: 50%;
-      animation: twinkle 3s ease-in-out infinite;
-    }
-
-    @keyframes twinkle {
-      0%, 100% { opacity: 0.3; }
-      50% { opacity: 1; }
     }
 
     /* Main container */
@@ -117,12 +106,7 @@
       background: radial-gradient(circle, rgba(0, 255, 145, 0.3) 0%, transparent 70%);
       border-radius: 50%;
       filter: blur(15px);
-      animation: pulse 3s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 0.5; transform: scale(1); }
-      50% { opacity: 0.8; transform: scale(1.1); }
+      opacity: 0.6;
     }
 
     .logo {
@@ -148,6 +132,23 @@
       margin-top: 4px;
     }
 
+    .signin-hint {
+      font-size: 11px;
+      color: rgba(131, 148, 167, 0.7);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    .signin-hint a {
+      color: var(--somos-neon-green);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .signin-hint a:hover {
+      text-decoration: underline;
+    }
+
     /* Lock widget container */
     #lock-container {
       width: 100%;
@@ -159,11 +160,11 @@
     }
 
     .auth0-lock.auth0-lock .auth0-lock-widget {
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 
-                  0 0 40px rgba(0, 255, 145, 0.1) !important;
+      box-shadow: none !important;
       border-radius: 20px !important;
-      overflow: hidden !important;
-      border: 1px solid rgba(0, 255, 145, 0.1) !important;
+      overflow: visible !important;
+      border: none !important;
+      background: transparent !important;
     }
 
     .auth0-lock.auth0-lock .auth0-lock-header {
@@ -171,8 +172,17 @@
     }
 
     .auth0-lock.auth0-lock .auth0-lock-content {
-      background: var(--somos-dark-blue) !important;
+      background: transparent !important;
       padding: 32px 28px 24px !important;
+    }
+
+    /* Hide any extra Auth0 Lock elements */
+    .auth0-lock.auth0-lock .auth0-lock-cred-pane {
+      background: transparent !important;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-cred-pane-internal-wrapper {
+      background: transparent !important;
     }
 
     .auth0-lock.auth0-lock .auth0-lock-form {
@@ -183,38 +193,73 @@
       display: none !important;
     }
 
+    /* Social buttons container */
+    .auth0-lock.auth0-lock .auth0-lock-social-buttons-container {
+      width: 100% !important;
+      padding: 0 !important;
+    }
+
     /* Social buttons */
     .auth0-lock.auth0-lock .auth0-lock-social-button {
       border-radius: 12px !important;
       border: 2px solid var(--somos-neon-blue) !important;
       background: var(--somos-white) !important;
       transition: all 0.3s ease !important;
-      padding: 14px 20px !important;
+      padding: 0 !important;
       margin-bottom: 12px !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
+      height: 52px !important;
+      position: relative !important;
+      overflow: hidden !important;
+      display: block !important;
+      width: 100% !important;
     }
 
     .auth0-lock.auth0-lock .auth0-lock-social-button:hover {
-      background: #f0f9ff !important;
+      background: #f8fafc !important;
       border-color: var(--somos-neon-blue) !important;
-      transform: translateY(-2px) !important;
-      box-shadow: 0 8px 20px rgba(2, 219, 255, 0.3) !important;
+      box-shadow: 0 4px 12px rgba(2, 219, 255, 0.25) !important;
     }
 
+    /* Social button icon - proportional sizing */
+    .auth0-lock.auth0-lock .auth0-lock-social-button-icon {
+      width: 52px !important;
+      height: 52px !important;
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      background-size: 22px 22px !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+    }
+
+    /* Google icon - proper colors */
+    .auth0-lock.auth0-lock .auth0-lock-social-button[data-provider="google-oauth2"] .auth0-lock-social-button-icon {
+      background-color: transparent !important;
+    }
+
+    /* LinkedIn icon - blue background with white icon */
+    .auth0-lock.auth0-lock .auth0-lock-social-button[data-provider="linkedin"] .auth0-lock-social-button-icon {
+      background-color: #0A66C2 !important;
+    }
+
+    /* Social button text */
     .auth0-lock.auth0-lock .auth0-lock-social-button-text {
       color: #1a1a1a !important;
       font-family: 'Inter', sans-serif !important;
       font-weight: 500 !important;
-      font-size: 15px !important;
+      font-size: 14px !important;
       text-align: center !important;
-      width: 100% !important;
-    }
-
-    .auth0-lock.auth0-lock .auth0-lock-social-button .auth0-lock-social-button-icon {
-      position: absolute !important;
-      left: 16px !important;
+      display: block !important;
+      line-height: 52px !important;
+      padding-left: 52px !important;
+      padding-right: 16px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
     }
 
     /* Input fields */
@@ -253,7 +298,6 @@
     }
 
     .auth0-lock.auth0-lock .auth0-lock-submit:hover {
-      transform: translateY(-2px) !important;
       box-shadow: 0 8px 30px rgba(0, 255, 145, 0.4) !important;
     }
 
@@ -317,21 +361,105 @@
 
     /* Responsive */
     @media (max-width: 480px) {
+      body {
+        padding: 16px 0 60px 0;
+        min-height: 100vh;
+        overflow-y: auto;
+      }
+
       .login-container {
-        padding: 16px;
+        padding: 12px;
+        max-width: 100%;
+      }
+
+      .logo-section {
+        margin-bottom: 24px;
       }
 
       .logo {
-        width: 64px;
-        height: 64px;
+        width: 60px;
+        height: 60px;
       }
 
       .brand-name {
-        font-size: 24px;
+        font-size: 22px;
+      }
+
+      .tagline {
+        font-size: 13px;
+      }
+
+      .auth0-lock.auth0-lock .auth0-lock-widget {
+        border-radius: 16px !important;
+        border-width: 2px !important;
       }
 
       .auth0-lock.auth0-lock .auth0-lock-content {
-        padding: 24px 20px 20px !important;
+        padding: 20px 16px 16px !important;
+      }
+
+      .auth0-lock.auth0-lock .auth0-lock-social-button {
+        height: 48px !important;
+        border-radius: 10px !important;
+        margin-bottom: 10px !important;
+      }
+
+      .auth0-lock.auth0-lock .auth0-lock-social-button-icon {
+        width: 48px !important;
+        height: 48px !important;
+        background-size: 20px 20px !important;
+      }
+
+      .auth0-lock.auth0-lock .auth0-lock-social-button-text {
+        font-size: 13px !important;
+        line-height: 48px !important;
+        padding-left: 48px !important;
+        padding-right: 12px !important;
+      }
+
+      .terms-section {
+        margin-top: 20px;
+        font-size: 11px;
+        padding: 0 12px;
+      }
+
+      .footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 12px;
+        background: linear-gradient(to top, var(--somos-dark-bg) 60%, transparent);
+        font-size: 11px;
+        z-index: 100;
+      }
+    }
+
+    /* Extra small screens */
+    @media (max-width: 360px) {
+      .logo {
+        width: 50px;
+        height: 50px;
+      }
+
+      .brand-name {
+        font-size: 20px;
+      }
+
+      .auth0-lock.auth0-lock .auth0-lock-social-button {
+        height: 44px !important;
+      }
+
+      .auth0-lock.auth0-lock .auth0-lock-social-button-icon {
+        width: 44px !important;
+        height: 44px !important;
+        background-size: 18px 18px !important;
+      }
+
+      .auth0-lock.auth0-lock .auth0-lock-social-button-text {
+        font-size: 12px !important;
+        line-height: 44px !important;
+        padding-left: 44px !important;
       }
     }
   </style>
@@ -366,18 +494,11 @@
       </div>
       <div class="brand-name">SOMOS.tech</div>
       <p class="tagline">Beyond the cloud ☁️</p>
+      <p class="signin-hint">By signing in, you agree to our <a href="https://somos.tech/termsofuse" target="_blank">Terms of Use</a> and <a href="https://somos.tech/privacy" target="_blank">Privacy Policy</a></p>
     </div>
 
     <!-- Auth0 Lock widget -->
     <div id="lock-container"></div>
-
-    <!-- Terms and Privacy -->
-    <div class="terms-section">
-      By signing in, you agree to our 
-      <a href="https://somos.tech/termsofuse" target="_blank">Terms of Use</a> 
-      and 
-      <a href="https://somos.tech/privacy" target="_blank">Privacy Policy</a>
-    </div>
   </div>
 
   <!-- Footer -->
@@ -397,8 +518,7 @@
         star.className = 'star';
         star.style.left = Math.random() * 100 + '%';
         star.style.top = Math.random() * 100 + '%';
-        star.style.animationDelay = Math.random() * 3 + 's';
-        star.style.animationDuration = (2 + Math.random() * 2) + 's';
+        star.style.opacity = (0.3 + Math.random() * 0.5);
         starsContainer.appendChild(star);
       }
     })();
@@ -456,8 +576,8 @@
         authButtons: {
           'google-oauth2': {
             displayName: 'Google',
-            primaryColor: '#4285F4',
-            foregroundColor: '#FFFFFF'
+            primaryColor: '#FFFFFF',
+            foregroundColor: '#1a1a1a'
           },
           'linkedin': {
             displayName: 'LinkedIn',

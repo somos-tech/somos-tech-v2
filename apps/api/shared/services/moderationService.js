@@ -104,7 +104,28 @@ const DEFAULT_BLOCKLIST = [
     
     // Extreme profanity (context-dependent, admins can adjust)
     'f*ck you', 'go f*ck yourself', 'c*nt', 'cunt', 'wh*re', 'whore',
-    'b*tch', 'stfu', 'gtfo'
+    'b*tch', 'stfu', 'gtfo',
+    
+    // Common curse words and profanity
+    'shit', 'sh*t', 'sh1t', 'shyt', 'bullshit', 'bullsh*t', 'horseshit',
+    'fuck', 'f*ck', 'fuk', 'fuc', 'fucker', 'f*cker', 'fucking', 'f*cking',
+    'motherfucker', 'motherfuck', 'mf', 'mthrfckr',
+    'ass', 'a$$', '@ss', 'arse', 'asshole', 'a**hole', 'assh0le',
+    'bitch', 'b*tch', 'b1tch', 'biatch', 'biotch',
+    'bastard', 'b*stard', 'bstrd',
+    'damn', 'd*mn', 'dammit', 'damnit', 'goddamn', 'goddammit',
+    'dick', 'd*ck', 'd1ck', 'dickhead', 'dckhead',
+    'cock', 'c*ck', 'c0ck', 'cocksucker',
+    'pussy', 'p*ssy', 'puss', 'pu$$y',
+    'piss', 'p*ss', 'pissed', 'piss off',
+    'slut', 'sl*t', 'slutty',
+    'twat', 'tw*t',
+    'wanker', 'w*nker', 'tosser',
+    'jerk', 'jerkoff', 'jackass', 'jack*ss',
+    'dumbass', 'dumb*ss', 'smartass',
+    'dipshit', 'dipsh*t',
+    'wtf', 'wth', 'stfu', 'lmfao', 'lmao',
+    'hell', 'go to hell', 'burn in hell'
 ];
 
 // ============== DEFAULT BLOCKED DOMAINS ==============
