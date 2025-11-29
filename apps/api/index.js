@@ -1,6 +1,7 @@
 import "./functions/events.js";
 import "./functions/agent.js";
 import "./functions/groups.js";
+import "./functions/groupStats.js";
 import "./functions/register.js";
 import "./functions/GetUserRoles.js";
 import "./functions/notifications.js";
