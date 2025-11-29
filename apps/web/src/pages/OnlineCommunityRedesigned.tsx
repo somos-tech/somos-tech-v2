@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMessagePolling, usePresencePolling } from '../hooks/useSmartPolling';
 import {
     MessageCircle,
     ChevronDown,
@@ -980,7 +981,6 @@ export default function OnlineCommunity() {
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
     const hasLoadedOnce = useRef(false);
 
     const currentUser = {
@@ -1065,22 +1065,24 @@ export default function OnlineCommunity() {
         }
     }, []);
 
+    // Use smart polling that adapts based on user activity and tab visibility
+    // - Messages: 8s when active, 30s when idle, stops when tab hidden
+    // - Users: 30s when active, 2min when idle, stops when tab hidden
+    // Note: Polling state (isVisible, isActive, currentInterval) available from these hooks if needed for UI
+    useMessagePolling(fetchMessages, {
+        fastInterval: 8000,   // 8 seconds when user is active
+        slowInterval: 30000,  // 30 seconds when user is idle
+    });
+
+    usePresencePolling(fetchActiveUsers, {
+        fastInterval: 30000,  // 30 seconds when active
+        slowInterval: 120000, // 2 minutes when idle
+    });
+
+    // Initial fetch on mount
     useEffect(() => {
         fetchMessages();
         fetchActiveUsers();
-        
-        pollInterval.current = setInterval(() => {
-            fetchMessages();
-        }, 5000);
-        
-        const usersPoll = setInterval(() => {
-            fetchActiveUsers();
-        }, 30000);
-        
-        return () => {
-            if (pollInterval.current) clearInterval(pollInterval.current);
-            clearInterval(usersPoll);
-        };
     }, [fetchMessages, fetchActiveUsers]);
 
     useEffect(() => {
