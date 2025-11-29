@@ -392,6 +392,14 @@ function getDefaultConfig() {
                 tier1: false,
                 tier2: false,
                 tier3: false
+            },
+            profile: {
+                enabled: true,
+                name: 'User Profiles',
+                description: 'User profile fields (display name, bio, website)',
+                tier1: true,
+                tier2: true,
+                tier3: true
             }
         },
         

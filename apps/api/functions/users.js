@@ -3,6 +3,7 @@ import * as userService from '../shared/services/userService.js';
 import * as graphService from '../shared/services/graphService.js';
 import { successResponse, errorResponse } from '../shared/httpResponse.js';
 import { requireAuth, getCurrentUser } from '../shared/authMiddleware.js';
+import { moderateContent } from '../shared/services/moderationService.js';
 
 /**
  * GET /api/users/me - Get current user profile
@@ -127,6 +128,63 @@ app.http('updateUserProfile', {
           new URL(updates.website);
         } catch {
           return errorResponse('Invalid website URL', 400);
+        }
+      }
+
+      // ========== CONTENT MODERATION ==========
+      // Moderate text fields (displayName, bio, website) before saving
+      const textFieldsToModerate = [];
+      
+      if (updates.displayName) {
+        textFieldsToModerate.push(updates.displayName);
+      }
+      if (updates.bio) {
+        textFieldsToModerate.push(updates.bio);
+      }
+      if (updates.website) {
+        textFieldsToModerate.push(updates.website);
+      }
+
+      // Only run moderation if there are text fields to check
+      if (textFieldsToModerate.length > 0) {
+        const combinedText = textFieldsToModerate.join(' ');
+        
+        try {
+          const moderationResult = await moderateContent({
+            type: 'profile',
+            text: combinedText,
+            userId: currentUser.userId,
+            userEmail: currentUser.userDetails,
+            contentId: `profile-${currentUser.userId}`,
+            workflow: 'profile'
+          });
+
+          context.log('[Profile Moderation] Result:', {
+            allowed: moderationResult.allowed,
+            action: moderationResult.action,
+            reason: moderationResult.reason,
+            tierFlow: moderationResult.tierFlow?.map(t => ({ tier: t.tier, action: t.action }))
+          });
+
+          // Block the update if moderation failed
+          if (!moderationResult.allowed) {
+            const blockReason = moderationResult.tier1Result?.matches?.length > 0
+              ? 'Your profile contains inappropriate content that violates our community guidelines.'
+              : moderationResult.tier2Result?.issues?.length > 0
+                ? 'Your profile contains a link that has been flagged as potentially harmful.'
+                : 'Your profile content has been flagged for review. Please revise and try again.';
+            
+            return errorResponse(blockReason, 400);
+          }
+
+          // If content needs review, allow but flag
+          if (moderationResult.needsReview) {
+            context.log('[Profile Moderation] Content allowed but flagged for review');
+          }
+        } catch (moderationError) {
+          // Log but don't block on moderation service errors
+          context.error('[Profile Moderation] Error during moderation:', moderationError);
+          // Continue with update if moderation fails (fail open for profile updates)
         }
       }
 
