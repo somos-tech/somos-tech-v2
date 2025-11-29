@@ -202,6 +202,8 @@ app.http('communityMessages', {
 
                 // Content moderation check - ALL users including admins must pass moderation
                 try {
+                    context.log(`[CommunityMessages] Running moderation on content: "${content.trim().substring(0, 50)}..."`);
+                    
                     const moderationResult = await moderateContent({
                         type: 'message',
                         text: content.trim(),
@@ -211,8 +213,14 @@ app.http('communityMessages', {
                         workflow: 'community' // Specify community workflow for tier configuration
                     });
 
+                    context.log(`[CommunityMessages] Moderation result: allowed=${moderationResult.allowed}, reason=${moderationResult.reason}`);
+                    
                     if (!moderationResult.allowed) {
-                        context.log(`[CommunityMessages] Content blocked for user ${principal.userDetails} (admin: ${userProfile?.isAdmin}):`, moderationResult.reason);
+                        // Log full moderation details for debugging
+                        context.log(`[CommunityMessages] Content BLOCKED for user ${principal.userDetails} (admin: ${userProfile?.isAdmin})`);
+                        context.log(`[CommunityMessages] Reason: ${moderationResult.reason}`);
+                        context.log(`[CommunityMessages] Tier1 matches:`, JSON.stringify(moderationResult.tier1Result?.matches || []));
+                        context.log(`[CommunityMessages] TierFlow:`, JSON.stringify(moderationResult.tierFlow));
                         
                         // Provide specific error message based on tier
                         let errorMessage = 'Your message contains content that violates our community guidelines.';
