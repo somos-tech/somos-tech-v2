@@ -50,6 +50,7 @@ export interface UserProfile {
   profilePicture: string | null;
   bio?: string | null;
   location?: string | null;
+  showLocation?: boolean;
   website?: string | null;
   authProvider: AuthProvider;
   status: UserStatus;
@@ -92,6 +93,7 @@ export interface UserProfileUpdate {
   profilePicture?: string | null;
   bio?: string | null;
   location?: string | null;
+  showLocation?: boolean;
   website?: string | null;
 }
 

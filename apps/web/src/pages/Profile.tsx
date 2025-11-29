@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { 
     User, Mail, Shield, LogOut, MapPin, Globe, FileText,
-    Edit2, Save, X, Loader2, Check, Trash2, AlertTriangle
+    Edit2, Save, X, Loader2, Check, Trash2, AlertTriangle, Eye, EyeOff
 } from 'lucide-react';
 import { performLogout } from '@/utils/logout';
 import ProfilePhotoUpload from '@/components/ProfilePhotoUpload';
@@ -47,7 +47,8 @@ export default function Profile() {
         displayName: '',
         bio: '',
         location: '',
-        website: ''
+        website: '',
+        showLocation: true
     });
 
     // Account deletion state
@@ -62,7 +63,8 @@ export default function Profile() {
                 displayName: profile.displayName || '',
                 bio: profile.bio || '',
                 location: profile.location || '',
-                website: profile.website || ''
+                website: profile.website || '',
+                showLocation: profile.showLocation !== false // Default to true if not set
             });
         }
     }, [profile]);
@@ -76,7 +78,8 @@ export default function Profile() {
                 displayName: editForm.displayName.trim() || undefined,
                 bio: editForm.bio.trim() || null,
                 location: editForm.location.trim() || null,
-                website: editForm.website.trim() || null
+                website: editForm.website.trim() || null,
+                showLocation: editForm.showLocation
             });
             
             setIsEditing(false);
@@ -108,7 +111,8 @@ export default function Profile() {
             displayName: profile?.displayName || '',
             bio: profile?.bio || '',
             location: profile?.location || '',
-            website: profile?.website || ''
+            website: profile?.website || '',
+            showLocation: profile?.showLocation !== false
         });
     };
 
@@ -307,7 +311,47 @@ export default function Profile() {
                             <div className="flex items-start gap-3">
                                 <MapPin className="w-5 h-5 mt-2" style={{ color: '#00FF91' }} />
                                 <div className="flex-1">
-                                    <div className="text-sm mb-1" style={{ color: '#8394A7' }}>Location</div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-sm" style={{ color: '#8394A7' }}>Location</span>
+                                        {isEditing && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditForm(prev => ({ ...prev, showLocation: !prev.showLocation }))}
+                                                className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all"
+                                                style={{
+                                                    backgroundColor: editForm.showLocation ? 'rgba(0, 255, 145, 0.15)' : 'rgba(131, 148, 167, 0.15)',
+                                                    color: editForm.showLocation ? '#00FF91' : '#8394A7'
+                                                }}
+                                            >
+                                                {editForm.showLocation ? (
+                                                    <>
+                                                        <Eye className="w-3.5 h-3.5" />
+                                                        Visible
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <EyeOff className="w-3.5 h-3.5" />
+                                                        Hidden
+                                                    </>
+                                                )}
+                                            </button>
+                                        )}
+                                        {!isEditing && profile?.location && (
+                                            <span 
+                                                className="flex items-center gap-1 text-xs px-2 py-0.5 rounded"
+                                                style={{ 
+                                                    color: profile?.showLocation !== false ? '#00FF91' : '#8394A7',
+                                                    backgroundColor: profile?.showLocation !== false ? 'rgba(0, 255, 145, 0.1)' : 'rgba(131, 148, 167, 0.1)'
+                                                }}
+                                            >
+                                                {profile?.showLocation !== false ? (
+                                                    <><Eye className="w-3 h-3" /> Public</>
+                                                ) : (
+                                                    <><EyeOff className="w-3 h-3" /> Private</>
+                                                )}
+                                            </span>
+                                        )}
+                                    </div>
                                     {isEditing ? (
                                         <Input
                                             value={editForm.location}

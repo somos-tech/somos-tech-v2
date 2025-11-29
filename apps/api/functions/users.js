@@ -72,11 +72,16 @@ app.http('updateUserProfile', {
       const updates = await request.json();
 
       // Validate updates
-      const allowedFields = ['displayName', 'profilePicture', 'bio', 'location', 'website'];
+      const allowedFields = ['displayName', 'profilePicture', 'bio', 'location', 'website', 'showLocation'];
       const invalidFields = Object.keys(updates).filter(key => !allowedFields.includes(key));
       
       if (invalidFields.length > 0) {
         return errorResponse(`Invalid fields: ${invalidFields.join(', ')}`, 400);
+      }
+
+      // Validate showLocation
+      if (updates.showLocation !== undefined && typeof updates.showLocation !== 'boolean') {
+        return errorResponse('showLocation must be a boolean', 400);
       }
 
       // Validate displayName
@@ -163,13 +168,16 @@ app.http('getUserById', {
       }
 
       // Return only public fields
+      // Respect showLocation privacy setting (default to true if not set)
+      const showLocation = user.showLocation !== false;
+      
       const publicUser = {
         id: user.id,
         displayName: user.displayName,
         profilePicture: user.profilePicture,
         bio: user.bio || null,
-        location: user.location || null,
-        lastLoginLocation: user.lastLoginLocation || null,
+        location: showLocation ? (user.location || null) : null,
+        lastLoginLocation: showLocation ? (user.lastLoginLocation || null) : null,
         website: user.website || null,
         createdAt: user.createdAt
       };
