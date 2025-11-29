@@ -80,16 +80,39 @@ function getBlobServiceClient() {
 }
 
 /**
- * Ensure container exists
+ * Ensure container exists with correct access level
  */
 async function ensureContainer(containerName) {
     const blobServiceClient = getBlobServiceClient();
     const containerClient = blobServiceClient.getContainerClient(containerName);
     
+    // Containers that need public blob access for direct URL access
+    const publicContainers = [
+        CONTAINERS.SITE_ASSETS,
+        CONTAINERS.PROFILE_PHOTOS,
+        CONTAINERS.GROUP_IMAGES,
+        CONTAINERS.EVENT_IMAGES
+    ];
+    
+    const shouldBePublic = publicContainers.includes(containerName);
+    
     try {
-        await containerClient.createIfNotExists({
-            access: containerName === CONTAINERS.SITE_ASSETS ? 'blob' : undefined // Public read for site assets
+        // Create container if it doesn't exist
+        const createResponse = await containerClient.createIfNotExists({
+            access: shouldBePublic ? 'blob' : undefined
         });
+        
+        // If container already existed, ensure access level is correct for public containers
+        if (!createResponse.succeeded && shouldBePublic) {
+            try {
+                await containerClient.setAccessPolicy('blob');
+                console.log(`Updated container ${containerName} to public blob access`);
+            } catch (accessError) {
+                // Log but don't fail - might not have permission to change access
+                console.warn(`Could not update access policy for ${containerName}:`, accessError.message);
+            }
+        }
+        
         return containerClient;
     } catch (error) {
         console.error(`Error creating container ${containerName}:`, error);
