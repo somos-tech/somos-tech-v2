@@ -1,5 +1,5 @@
 import { app } from '@azure/functions';
-import { getContainer, getDatabaseId } from '../shared/db.js';
+import { getContainer } from '../shared/db.js';
 import { requireAdmin } from '../shared/authMiddleware.js';
 import { successResponse, errorResponse } from '../shared/httpResponse.js';
 

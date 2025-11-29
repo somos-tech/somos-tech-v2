@@ -59,7 +59,7 @@ app.http('adminUsers', {
                 };
 
                 context.log(`[Admin Check] Executing query:`, JSON.stringify(querySpec));
-                context.log(`[Admin Check] Container: ${containerId}, Database: ${databaseId}`);
+                context.log(`[Admin Check] Container: ${containerId}`);
 
                 try {
                     const { resources: users } = await container.items
