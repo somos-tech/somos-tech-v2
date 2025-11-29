@@ -9,6 +9,7 @@
  * @created 2025-11-26
  */
 
+import { useState } from 'react';
 import { User } from 'lucide-react';
 
 interface DefaultAvatarProps {
@@ -149,34 +150,33 @@ export function UserAvatar({
     showBorder = true,
     alt
 }: UserAvatarProps) {
+    const [imageError, setImageError] = useState(false);
     const config = sizeConfig[size];
     
     const borderStyle = showBorder 
         ? { border: '2px solid #00FF91', boxShadow: '0 0 10px rgba(0, 255, 145, 0.2)' }
         : {};
 
-    if (photoUrl) {
+    // Show default avatar if no photoUrl or if image failed to load
+    if (!photoUrl || imageError) {
         return (
-            <img
-                src={photoUrl}
-                alt={alt || name || 'User avatar'}
-                className={`${config.container} rounded-full object-cover ${className}`}
-                style={borderStyle}
-                onError={(e) => {
-                    // If image fails to load, hide it and show default avatar
-                    (e.target as HTMLImageElement).style.display = 'none';
-                }}
+            <DefaultAvatar
+                name={name}
+                email={email}
+                size={size}
+                className={className}
+                showBorder={showBorder}
             />
         );
     }
 
     return (
-        <DefaultAvatar
-            name={name}
-            email={email}
-            size={size}
-            className={className}
-            showBorder={showBorder}
+        <img
+            src={photoUrl}
+            alt={alt || name || 'User avatar'}
+            className={`${config.container} rounded-full object-cover ${className}`}
+            style={borderStyle}
+            onError={() => setImageError(true)}
         />
     );
 }
