@@ -264,61 +264,143 @@ function ChannelSidebar({
 }
 
 /**
- * Hyperlink Preview Component
+ * Hyperlink Preview Component - Rich previews with Open Graph metadata
  */
 function LinkPreview({ url }: { url: string }) {
-    const [preview, setPreview] = useState<{ title?: string; description?: string; image?: string; loading: boolean; error: boolean }>({
+    const [preview, setPreview] = useState<{ 
+        title?: string; 
+        description?: string; 
+        image?: string; 
+        siteName?: string;
+        loading: boolean; 
+        error: boolean 
+    }>({
         loading: true,
         error: false
     });
 
     useEffect(() => {
-        // Simple link preview - show domain and favicon
-        try {
-            const urlObj = new URL(url);
-            const domain = urlObj.hostname.replace('www.', '');
-            setPreview({
-                title: domain,
-                description: url,
-                loading: false,
-                error: false
-            });
-        } catch {
-            setPreview({ loading: false, error: true });
-        }
+        let isMounted = true;
+        
+        const fetchPreview = async () => {
+            try {
+                const response = await fetch('/api/link-preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                
+                if (!response.ok) throw new Error('Failed to fetch');
+                
+                const json = await response.json();
+                const data = json.data || json;
+                
+                if (isMounted) {
+                    setPreview({
+                        title: data.title,
+                        description: data.description,
+                        image: data.image,
+                        siteName: data.siteName,
+                        loading: false,
+                        error: false
+                    });
+                }
+            } catch {
+                // Fallback to basic preview
+                try {
+                    const urlObj = new URL(url);
+                    const domain = urlObj.hostname.replace('www.', '');
+                    if (isMounted) {
+                        setPreview({
+                            title: domain,
+                            description: url,
+                            siteName: domain,
+                            loading: false,
+                            error: false
+                        });
+                    }
+                } catch {
+                    if (isMounted) {
+                        setPreview({ loading: false, error: true });
+                    }
+                }
+            }
+        };
+        
+        fetchPreview();
+        
+        return () => { isMounted = false; };
     }, [url]);
 
     if (preview.loading) {
         return (
-            <div className="mt-2 p-3 rounded-lg border animate-pulse" style={{ backgroundColor: 'rgba(10, 22, 40, 0.6)', borderColor: 'rgba(255,255,255,0.08)' }}>
-                <div className="h-4 bg-white/10 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-white/5 rounded w-full"></div>
+            <div className="mt-3 rounded-xl border overflow-hidden animate-pulse" style={{ backgroundColor: 'rgba(10, 22, 40, 0.8)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                <div className="h-32 bg-white/5"></div>
+                <div className="p-3">
+                    <div className="h-3 bg-white/10 rounded w-1/4 mb-2"></div>
+                    <div className="h-4 bg-white/10 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-white/5 rounded w-full"></div>
+                </div>
             </div>
         );
     }
 
     if (preview.error) return null;
 
+    // Check if we have an image for rich preview
+    const hasImage = preview.image && !preview.image.includes('undefined');
+
     return (
         <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-2 p-3 rounded-lg border flex items-start gap-3 hover:bg-white/5 transition-colors group"
-            style={{ backgroundColor: 'rgba(10, 22, 40, 0.6)', borderColor: 'rgba(0, 255, 145, 0.15)' }}
+            className="mt-3 block rounded-xl border overflow-hidden hover:border-[#00FF91]/30 transition-all duration-200 group"
+            style={{ backgroundColor: 'rgba(10, 22, 40, 0.8)', borderColor: 'rgba(255,255,255,0.1)' }}
         >
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#00FF91]/20 to-[#02dbff]/20 flex items-center justify-center flex-shrink-0">
-                <ExternalLink className="w-5 h-5 text-[#02dbff]" />
-            </div>
-            <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-white group-hover:text-[#00FF91] transition-colors truncate">
-                    {preview.title}
+            {/* Image Preview */}
+            {hasImage && (
+                <div className="relative h-40 overflow-hidden bg-gray-900">
+                    <img 
+                        src={preview.image}
+                        alt={preview.title || 'Link preview'}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                            // Hide broken images
+                            (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                    />
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#051323] via-transparent to-transparent opacity-60" />
                 </div>
-                <div className="text-xs text-gray-500 truncate mt-0.5">
-                    {preview.description}
+            )}
+            
+            {/* Content */}
+            <div className="p-3">
+                {/* Site name / domain */}
+                <div className="flex items-center gap-2 mb-1.5">
+                    <div className="w-4 h-4 rounded bg-gradient-to-br from-[#00FF91]/20 to-[#02dbff]/20 flex items-center justify-center flex-shrink-0">
+                        <ExternalLink className="w-2.5 h-2.5 text-[#02dbff]" />
+                    </div>
+                    <span className="text-xs text-gray-500 font-medium truncate">
+                        {preview.siteName || new URL(url).hostname.replace('www.', '')}
+                    </span>
                 </div>
+                
+                {/* Title */}
+                {preview.title && (
+                    <h4 className="text-sm font-semibold text-white group-hover:text-[#00FF91] transition-colors line-clamp-2 mb-1">
+                        {preview.title}
+                    </h4>
+                )}
+                
+                {/* Description */}
+                {preview.description && preview.description !== url && (
+                    <p className="text-xs text-gray-400 line-clamp-2">
+                        {preview.description}
+                    </p>
+                )}
             </div>
-            <ExternalLink className="w-4 h-4 text-gray-600 group-hover:text-[#00FF91] transition-colors flex-shrink-0 mt-1" />
         </a>
     );
 }
