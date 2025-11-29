@@ -520,19 +520,24 @@ export default function AdminModeration() {
     }, [fetchData]);
 
     // Save config
-    const saveConfig = async () => {
-        if (!config) return;
+    const saveConfig = async (configToSave?: ModerationConfig) => {
+        const configData = configToSave || config;
+        if (!configData) return;
         setSaving(true);
         try {
+            console.log('[Moderation] Saving config...');
             const res = await fetch('/api/moderation/config', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify(config)
+                body: JSON.stringify(configData)
             });
             if (res.ok) {
                 const result = await res.json();
+                console.log('[Moderation] Config saved successfully');
                 setConfig(result.data || result);
+            } else {
+                console.error('[Moderation] Save failed:', res.status, await res.text());
             }
         } catch (error) {
             console.error('Error saving config:', error);
@@ -541,47 +546,85 @@ export default function AdminModeration() {
         }
     };
 
-    // Add blocklist item (Tier 1)
-    const addBlocklistItem = () => {
+    // Handler for save button click
+    const handleSaveClick = () => saveConfig();
+
+    // Add blocklist item (Tier 1) - auto-saves
+    const addBlocklistItem = async () => {
         if (!newBlocklistItem.trim() || !config) return;
-        const newList = [...(config.tier1?.blocklist || []), newBlocklistItem.trim().toLowerCase()];
-        setConfig({
+        const term = newBlocklistItem.trim().toLowerCase();
+        const currentList = config.tier1?.blocklist || [];
+        
+        // Check for duplicates
+        if (currentList.includes(term)) {
+            console.log('[Moderation] Term already exists in blocklist:', term);
+            setNewBlocklistItem('');
+            return;
+        }
+        
+        console.log('[Moderation] Adding term to blocklist:', term);
+        const newList = [...currentList, term];
+        const updatedConfig = {
             ...config,
             tier1: { ...config.tier1, blocklist: newList }
-        });
+        };
+        setConfig(updatedConfig);
         setNewBlocklistItem('');
+        // Auto-save
+        await saveConfig(updatedConfig);
     };
 
-    // Remove blocklist item
-    const removeBlocklistItem = (term: string) => {
+    // Remove blocklist item - auto-saves
+    const removeBlocklistItem = async (term: string) => {
         if (!config) return;
+        console.log('[Moderation] Removing term from blocklist:', term);
         const newList = (config.tier1?.blocklist || []).filter(t => t !== term);
-        setConfig({
+        const updatedConfig = {
             ...config,
             tier1: { ...config.tier1, blocklist: newList }
-        });
+        };
+        setConfig(updatedConfig);
+        // Auto-save
+        await saveConfig(updatedConfig);
     };
 
-    // Add blocked domain (Tier 1)
-    const addBlockedDomain = () => {
+    // Add blocked domain (Tier 1) - auto-saves
+    const addBlockedDomain = async () => {
         if (!newBlockedDomain.trim() || !config) return;
         const domain = newBlockedDomain.trim().toLowerCase();
-        const newList = [...(config.tier1?.blockedDomains || []), domain];
-        setConfig({
+        const currentList = config.tier1?.blockedDomains || [];
+        
+        // Check for duplicates
+        if (currentList.includes(domain)) {
+            console.log('[Moderation] Domain already exists in blocklist:', domain);
+            setNewBlockedDomain('');
+            return;
+        }
+        
+        console.log('[Moderation] Adding domain to blocklist:', domain);
+        const newList = [...currentList, domain];
+        const updatedConfig = {
             ...config,
             tier1: { ...config.tier1, blockedDomains: newList }
-        });
+        };
+        setConfig(updatedConfig);
         setNewBlockedDomain('');
+        // Auto-save
+        await saveConfig(updatedConfig);
     };
 
-    // Remove blocked domain
-    const removeBlockedDomain = (domain: string) => {
+    // Remove blocked domain - auto-saves
+    const removeBlockedDomain = async (domain: string) => {
         if (!config) return;
+        console.log('[Moderation] Removing domain from blocklist:', domain);
         const newList = (config.tier1?.blockedDomains || []).filter(d => d !== domain);
-        setConfig({
+        const updatedConfig = {
             ...config,
             tier1: { ...config.tier1, blockedDomains: newList }
-        });
+        };
+        setConfig(updatedConfig);
+        // Auto-save
+        await saveConfig(updatedConfig);
     };
 
     // Add safe domain (Tier 2)
@@ -1699,7 +1742,7 @@ export default function AdminModeration() {
 
                         {/* Save Button */}
                         <div className="flex justify-end">
-                            <Button onClick={saveConfig} disabled={saving} className="rounded-lg px-6" style={{ backgroundColor: '#00FF91', color: '#051323' }}>
+                            <Button onClick={handleSaveClick} disabled={saving} className="rounded-lg px-6" style={{ backgroundColor: '#00FF91', color: '#051323' }}>
                                 {saving ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                                 Save Settings
                             </Button>
@@ -1808,7 +1851,7 @@ export default function AdminModeration() {
 
                         {/* Save Button */}
                         <div className="flex justify-end">
-                            <Button onClick={saveConfig} disabled={saving} className="rounded-lg px-6" style={{ backgroundColor: '#00FF91', color: '#051323' }}>
+                            <Button onClick={handleSaveClick} disabled={saving} className="rounded-lg px-6" style={{ backgroundColor: '#00FF91', color: '#051323' }}>
                                 {saving ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                                 Save Settings
                             </Button>
@@ -1954,7 +1997,7 @@ export default function AdminModeration() {
 
                         {/* Save Button */}
                         <div className="flex justify-end">
-                            <Button onClick={saveConfig} disabled={saving} className="rounded-lg px-6" style={{ backgroundColor: '#00FF91', color: '#051323' }}>
+                            <Button onClick={handleSaveClick} disabled={saving} className="rounded-lg px-6" style={{ backgroundColor: '#00FF91', color: '#051323' }}>
                                 {saving ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                                 Save All Changes
                             </Button>
