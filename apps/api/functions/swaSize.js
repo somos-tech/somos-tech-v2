@@ -64,8 +64,9 @@ function getSizeBreakdown(totalSize) {
  */
 function getCurrentTier() {
     // Check if we're on standard tier (could be set via environment variable)
-    const tier = process.env.SWA_TIER || process.env.AZURE_SWA_TIER || 'free';
-    return tier.toLowerCase() === 'standard' ? 'standard' : 'free';
+    // Default to 'standard' since SOMOS.tech uses Standard tier
+    const tier = process.env.SWA_TIER || process.env.AZURE_SWA_TIER || 'standard';
+    return tier.toLowerCase() === 'free' ? 'free' : 'standard';
 }
 
 /**
