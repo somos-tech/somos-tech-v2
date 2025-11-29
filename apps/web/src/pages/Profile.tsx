@@ -126,20 +126,17 @@ export default function Profile() {
             setIsDeleting(true);
             setError(null);
             
-            const result = await deleteOwnAuth0Account();
+            await deleteOwnAuth0Account();
             
             // Close dialog and show success
             setShowDeleteDialog(false);
-            setSuccessMessage('Your account has been deleted. You will be logged out shortly.');
+            setSuccessMessage('Your account has been deleted. Redirecting...');
             
-            // Redirect to logout after a short delay
+            // Redirect to home page after a short delay, then logout
             setTimeout(() => {
-                if (result.redirect) {
-                    window.location.href = result.redirect;
-                } else {
-                    performLogout(authUser?.identityProvider);
-                }
-            }, 2000);
+                // Perform logout which will clear session and redirect to home
+                window.location.href = '/.auth/logout?post_logout_redirect_uri=/';
+            }, 1500);
         } catch (err) {
             console.error('Error deleting account:', err);
             setError(err instanceof Error ? err.message : 'Failed to delete account');
