@@ -264,6 +264,7 @@ export async function getModerationConfig() {
 
         if (resources.length > 0) {
             const existingConfig = resources[0];
+            let needsSave = false;
             
             // If blocklist has fewer than 10 items, merge with defaults
             // This ensures the default blocklist is populated even if a few items were manually added
@@ -276,7 +277,25 @@ export async function getModerationConfig() {
                     ...existingConfig.tier1,
                     blocklist: mergedBlocklist
                 };
-                // Save the updated config
+                needsSave = true;
+            }
+            
+            // If blockedDomains is empty or missing, merge with defaults
+            // This ensures the default blocked domains list is always populated
+            const currentBlockedDomains = existingConfig.tier1?.blockedDomains || [];
+            if (currentBlockedDomains.length < 10) {
+                console.log('[ModerationService] BlockedDomains has fewer than 10 items, merging with defaults');
+                // Merge existing with defaults, avoiding duplicates
+                const mergedBlockedDomains = [...new Set([...DEFAULT_BLOCKED_DOMAINS, ...currentBlockedDomains])];
+                existingConfig.tier1 = {
+                    ...existingConfig.tier1,
+                    blockedDomains: mergedBlockedDomains
+                };
+                needsSave = true;
+            }
+            
+            // Save if any merges occurred
+            if (needsSave) {
                 await saveModerationConfig(existingConfig);
             }
             
