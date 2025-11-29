@@ -6,7 +6,8 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { 
     User, Mail, Shield, LogOut, MapPin, Globe, FileText,
-    Edit2, Save, X, Loader2, Check, Trash2, AlertTriangle, Eye, EyeOff
+    Edit2, Save, X, Loader2, Check, Trash2, AlertTriangle, Eye, EyeOff,
+    Bell, Calendar, Newspaper, Megaphone
 } from 'lucide-react';
 import { performLogout } from '@/utils/logout';
 import ProfilePhotoUpload from '@/components/ProfilePhotoUpload';
@@ -56,6 +57,15 @@ export default function Profile() {
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
 
+    // Email subscription state
+    const [emailPrefs, setEmailPrefs] = useState({
+        newsletters: true,
+        events: true,
+        announcements: true
+    });
+    const [emailPrefsLoading, setEmailPrefsLoading] = useState(false);
+    const [emailPrefsSaving, setEmailPrefsSaving] = useState(false);
+
     // Initialize edit form when profile loads
     useEffect(() => {
         if (profile) {
@@ -68,6 +78,58 @@ export default function Profile() {
             });
         }
     }, [profile]);
+
+    // Load email preferences
+    useEffect(() => {
+        const loadEmailPrefs = async () => {
+            try {
+                setEmailPrefsLoading(true);
+                const response = await fetch('/api/email/preferences', {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.subscriptions) {
+                        setEmailPrefs({
+                            newsletters: data.subscriptions.newsletters !== false,
+                            events: data.subscriptions.events !== false,
+                            announcements: data.subscriptions.announcements !== false
+                        });
+                    }
+                }
+            } catch (err) {
+                console.log('Email preferences not available:', err);
+            } finally {
+                setEmailPrefsLoading(false);
+            }
+        };
+        if (isAuthenticated && email) {
+            loadEmailPrefs();
+        }
+    }, [isAuthenticated, email]);
+
+    // Save email preferences
+    const handleSaveEmailPrefs = async (newPrefs: typeof emailPrefs) => {
+        try {
+            setEmailPrefsSaving(true);
+            const response = await fetch('/api/email/preferences', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subscriptions: newPrefs })
+            });
+            if (response.ok) {
+                setEmailPrefs(newPrefs);
+                setSuccessMessage('Email preferences updated!');
+                setTimeout(() => setSuccessMessage(null), 3000);
+            } else {
+                throw new Error('Failed to update preferences');
+            }
+        } catch (err) {
+            setError('Failed to update email preferences');
+        } finally {
+            setEmailPrefsSaving(false);
+        }
+    };
 
     const handleSaveProfile = async () => {
         try {
@@ -482,6 +544,95 @@ export default function Profile() {
                             </Button>
                         </Card>
                     )}
+
+                    {/* Email Preferences Card */}
+                    <Card className="p-6 rounded-xl" style={{ backgroundColor: '#0a1f35', border: '1px solid rgba(0, 255, 145, 0.2)' }}>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-semibold flex items-center gap-2" style={{ color: '#FFFFFF' }}>
+                                <Mail className="w-5 h-5" style={{ color: '#00FF91' }} />
+                                Email Preferences
+                            </h2>
+                            {emailPrefsLoading && <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#00FF91' }} />}
+                        </div>
+                        <p className="mb-4 text-sm" style={{ color: '#8394A7' }}>
+                            Choose which types of emails you'd like to receive from SOMOS.tech
+                        </p>
+                        
+                        <div className="space-y-3">
+                            {/* Newsletters */}
+                            <label className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                                <div className="relative">
+                                    <input
+                                        type="checkbox"
+                                        checked={emailPrefs.newsletters}
+                                        onChange={(e) => {
+                                            const newPrefs = { ...emailPrefs, newsletters: e.target.checked };
+                                            setEmailPrefs(newPrefs);
+                                            handleSaveEmailPrefs(newPrefs);
+                                        }}
+                                        disabled={emailPrefsSaving}
+                                        className="w-5 h-5 rounded accent-[#00FF91]"
+                                    />
+                                </div>
+                                <Newspaper className="w-5 h-5" style={{ color: '#FF6B9D' }} />
+                                <div className="flex-1">
+                                    <div style={{ color: '#FFFFFF' }}>Newsletters</div>
+                                    <div className="text-xs" style={{ color: '#8394A7' }}>Monthly updates, community news, and featured content</div>
+                                </div>
+                            </label>
+
+                            {/* Events */}
+                            <label className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                                <div className="relative">
+                                    <input
+                                        type="checkbox"
+                                        checked={emailPrefs.events}
+                                        onChange={(e) => {
+                                            const newPrefs = { ...emailPrefs, events: e.target.checked };
+                                            setEmailPrefs(newPrefs);
+                                            handleSaveEmailPrefs(newPrefs);
+                                        }}
+                                        disabled={emailPrefsSaving}
+                                        className="w-5 h-5 rounded accent-[#00FF91]"
+                                    />
+                                </div>
+                                <Calendar className="w-5 h-5" style={{ color: '#00D4FF' }} />
+                                <div className="flex-1">
+                                    <div style={{ color: '#FFFFFF' }}>Event Notifications</div>
+                                    <div className="text-xs" style={{ color: '#8394A7' }}>Upcoming events, meetups, and workshop reminders</div>
+                                </div>
+                            </label>
+
+                            {/* Announcements */}
+                            <label className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                                <div className="relative">
+                                    <input
+                                        type="checkbox"
+                                        checked={emailPrefs.announcements}
+                                        onChange={(e) => {
+                                            const newPrefs = { ...emailPrefs, announcements: e.target.checked };
+                                            setEmailPrefs(newPrefs);
+                                            handleSaveEmailPrefs(newPrefs);
+                                        }}
+                                        disabled={emailPrefsSaving}
+                                        className="w-5 h-5 rounded accent-[#00FF91]"
+                                    />
+                                </div>
+                                <Megaphone className="w-5 h-5" style={{ color: '#FFC107' }} />
+                                <div className="flex-1">
+                                    <div style={{ color: '#FFFFFF' }}>Announcements</div>
+                                    <div className="text-xs" style={{ color: '#8394A7' }}>Important updates and organizational announcements</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        {emailPrefsSaving && (
+                            <div className="mt-4 flex items-center gap-2 text-sm" style={{ color: '#00FF91' }}>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Saving preferences...
+                            </div>
+                        )}
+                    </Card>
 
                     {/* Actions */}
                     <div className="flex gap-4">

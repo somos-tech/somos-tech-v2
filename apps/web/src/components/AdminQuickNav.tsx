@@ -18,7 +18,8 @@ import {
     MessageSquare,
     Flag,
     ChevronRight,
-    Zap
+    Zap,
+    Mail
 } from 'lucide-react';
 
 interface NavItem {
@@ -64,6 +65,13 @@ const NAV_ITEMS: NavItem[] = [
         path: '/admin/notifications', 
         icon: Bell,
         description: 'Push notifications'
+    },
+    { 
+        id: 'announcements', 
+        label: 'Email', 
+        path: '/admin/announcements', 
+        icon: Mail,
+        description: 'Newsletters & email'
     },
     { 
         id: 'media', 

@@ -13,6 +13,7 @@ import AdminSecurity from './pages/AdminSecurity'
 import AdminModeration from './pages/AdminModerationNew'
 import AdminOptions from './pages/AdminOptions'
 import AdminNotifications from './pages/AdminNotifications'
+import AdminAnnouncements from './pages/AdminAnnouncements'
 import APIHealthDashboard from './pages/APIHealthDashboard'
 import SecurityDashboard from './pages/SecurityDashboard'
 import ErrorPage from './pages/ErrorPage'
@@ -27,6 +28,7 @@ import Register from './pages/Register'
 import Profile from './pages/Profile'
 import MemberDashboard from './pages/MemberDashboard'
 import Unauthorized from './pages/Unauthorized'
+import Unsubscribe from './pages/Unsubscribe'
 import Donate from './pages/Donate'
 import Navigation from './components/Navigation'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -58,6 +60,7 @@ function AppContent() {
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/register" element={<Register />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/unsubscribe/:token" element={<Unsubscribe />} />
           <Route path="/error" element={<ErrorPage />} />
           <Route path="/donate" element={<Donate />} />
           <Route 
@@ -199,6 +202,14 @@ function AppContent() {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <AdminNotifications />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/announcements" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminAnnouncements />
               </ProtectedRoute>
             } 
           />
