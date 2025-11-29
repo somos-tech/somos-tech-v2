@@ -14,7 +14,8 @@ export enum AuthProvider {
   EXTERNAL_ID = 'external-id',
   AZURE_AD = 'azure-ad',
   MICROSOFT = 'microsoft',
-  GOOGLE = 'google'
+  GOOGLE = 'google',
+  AUTH0 = 'auth0'
 }
 
 /**

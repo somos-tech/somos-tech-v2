@@ -25,13 +25,13 @@ import { AdminNav } from '@/components/AdminNav';
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
 import { UserAvatar } from '@/components/DefaultAvatar';
 import type { AdminUser } from '@/shared/types';
-import type { UserProfile } from '@/types/user';
+import type { UserProfile, LoginHistoryEntry } from '@/types/user';
+import { AuthProvider } from '@/types/user';
 import { adminUsersService } from '@/api/adminUsersService';
 import { listUsers, getUserStats, updateUserStatus } from '@/api/userService';
 import { blockAuth0User, unblockAuth0User, deleteAuth0User } from '@/api/auth0Service';
 import { uploadProfilePhoto, validateFile, ALLOWED_EXTENSIONS } from '@/api/mediaService';
 import { useAuth } from '@/hooks/useAuth';
-import type { LoginHistoryEntry } from '@/types/user';
 
 export default function AdminUsers() {
     const { user } = useAuth();
@@ -226,7 +226,7 @@ export default function AdminUsers() {
             const newStatus = statusAction === 'block' ? 'blocked' : 'active';
             
             // If user is from Auth0, also update in Auth0
-            if (selectedUserForStatus.authProvider === 'auth0') {
+            if (selectedUserForStatus.authProvider === AuthProvider.AUTH0) {
                 try {
                     if (statusAction === 'block') {
                         await blockAuth0User(selectedUserForStatus.id, statusReason || 'Blocked by admin');
