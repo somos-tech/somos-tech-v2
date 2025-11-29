@@ -197,52 +197,48 @@ app.http('communityMessages', {
                     return errorResponse(400, 'Message content is required');
                 }
 
-                // Get user profile first to check admin status
+                // Get user profile for display
                 const userProfile = await getUserProfile(principal.userId, principal.userDetails, usersContainer);
-                const isAdmin = userProfile?.isAdmin === true;
 
-                // Content moderation check (admins bypass moderation)
-                if (!isAdmin) {
-                    try {
-                        const moderationResult = await moderateContent({
-                            type: 'message',
-                            text: content.trim(),
-                            userId: principal.userId,
-                            userEmail: principal.userDetails,
-                            channelId: channelId,
-                            workflow: 'community' // Specify community workflow for tier configuration
-                        });
+                // Content moderation check - ALL users including admins must pass moderation
+                try {
+                    const moderationResult = await moderateContent({
+                        type: 'message',
+                        text: content.trim(),
+                        userId: principal.userId,
+                        userEmail: principal.userDetails,
+                        channelId: channelId,
+                        workflow: 'community' // Specify community workflow for tier configuration
+                    });
 
-                        if (!moderationResult.allowed) {
-                            context.log(`[CommunityMessages] Content blocked for user ${principal.userDetails}:`, moderationResult.reason);
-                            
-                            // Provide specific error message based on tier
-                            let errorMessage = 'Your message contains content that violates our community guidelines.';
-                            if (moderationResult.reason === 'tier1_keyword_match') {
-                                errorMessage = 'Your message contains prohibited words or phrases.';
-                            } else if (moderationResult.reason === 'tier2_malicious_link') {
-                                errorMessage = 'Your message contains a potentially harmful link.';
-                            } else if (moderationResult.reason === 'tier3_ai_violation') {
-                                errorMessage = 'Your message was flagged for potentially harmful content.';
-                            }
-                            
-                            return errorResponse(400, errorMessage, {
-                                reason: moderationResult.reason,
-                                action: moderationResult.action,
-                                tierFlow: moderationResult.tierFlow
-                            });
+                    if (!moderationResult.allowed) {
+                        context.log(`[CommunityMessages] Content blocked for user ${principal.userDetails} (admin: ${userProfile?.isAdmin}):`, moderationResult.reason);
+                        
+                        // Provide specific error message based on tier
+                        let errorMessage = 'Your message contains content that violates our community guidelines.';
+                        if (moderationResult.reason === 'tier1_keyword_match') {
+                            errorMessage = 'Your message contains prohibited words or phrases.';
+                        } else if (moderationResult.reason === 'tier2_malicious_link') {
+                            errorMessage = 'Your message contains a potentially harmful link.';
+                        } else if (moderationResult.reason === 'tier3_ai_violation') {
+                            errorMessage = 'Your message was flagged for potentially harmful content.';
                         }
                         
-                        // Log if content is pending review
-                        if (moderationResult.action === 'pending') {
-                            context.log(`[CommunityMessages] Content pending review for ${principal.userDetails}`);
-                        }
-                    } catch (moderationError) {
-                        // Log but don't block on moderation errors
-                        console.warn('[CommunityMessages] Moderation check failed, allowing message:', moderationError.message);
+                        return errorResponse(400, errorMessage, {
+                            reason: moderationResult.reason,
+                            action: moderationResult.action,
+                            tierFlow: moderationResult.tierFlow
+                        });
                     }
-                } else {
-                    context.log(`[CommunityMessages] Admin ${principal.userDetails} bypassing content moderation`);
+                    
+                    // Log if content is pending review
+                    if (moderationResult.action === 'pending') {
+                        context.log(`[CommunityMessages] Content pending review for ${principal.userDetails}`);
+                    }
+                } catch (moderationError) {
+                    // Log moderation error but don't block - fail open to avoid breaking the service
+                    console.error('[CommunityMessages] Moderation service error:', moderationError.message);
+                    context.log(`[CommunityMessages] Moderation failed for ${principal.userDetails}, allowing message due to service error`);
                 }
 
                 const newMessage = {
