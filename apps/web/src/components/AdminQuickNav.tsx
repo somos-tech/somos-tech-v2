@@ -164,7 +164,7 @@ export default function AdminQuickNav({ className = '', variant = 'full' }: Admi
         );
     }
 
-    // Full variant (default)
+    // Full variant (default) - Single row horizontal layout
     return (
         <div className={`${className}`}>
             <div 
@@ -174,51 +174,45 @@ export default function AdminQuickNav({ className = '', variant = 'full' }: Admi
                     borderColor: 'rgba(0, 255, 145, 0.1)'
                 }}
             >
-                <div className="p-3">
-                    <div className="flex items-center gap-2 mb-3 px-1">
-                        <Zap className="w-4 h-4" style={{ color: '#00FF91' }} />
-                        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#8394A7' }}>
-                            Quick Access
-                        </span>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-9 gap-2">
-                        {NAV_ITEMS.map((item) => {
-                            const Icon = item.icon;
-                            const active = isActive(item.path);
-                            return (
-                                <button
-                                    key={item.id}
-                                    onClick={() => navigate(item.path)}
-                                    className={`group flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-200 ${
-                                        active 
-                                            ? 'bg-[#00FF91]/15 border-[#00FF91]/30' 
-                                            : 'hover:bg-white/5 border-transparent'
-                                    } border`}
-                                    title={item.description}
-                                >
-                                    <div 
-                                        className={`p-2 rounded-lg transition-all duration-200 ${
+                <div className="px-4 py-3">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 shrink-0">
+                            <Zap className="w-4 h-4" style={{ color: '#00FF91' }} />
+                            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#8394A7' }}>
+                                Quick Access
+                            </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 overflow-x-auto">
+                            {NAV_ITEMS.map((item) => {
+                                const Icon = item.icon;
+                                const active = isActive(item.path);
+                                return (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => navigate(item.path)}
+                                        className={`group flex items-center gap-2 px-3 py-2 rounded-lg whitespace-nowrap transition-all duration-200 ${
                                             active 
-                                                ? 'bg-[#00FF91]/20' 
-                                                : 'bg-white/5 group-hover:bg-white/10'
-                                        }`}
+                                                ? 'bg-[#00FF91]/15 border-[#00FF91]/30' 
+                                                : 'hover:bg-white/5 border-transparent'
+                                        } border`}
+                                        title={item.description}
                                     >
                                         <Icon 
-                                            className="w-4 h-4" 
+                                            className="w-4 h-4 shrink-0" 
                                             style={{ color: active ? '#00FF91' : '#8394A7' }} 
                                         />
-                                    </div>
-                                    <span 
-                                        className={`text-xs font-medium transition-colors ${
-                                            active ? 'text-[#00FF91]' : 'text-gray-400 group-hover:text-white'
-                                        }`}
-                                    >
-                                        {item.label}
-                                    </span>
-                                </button>
-                            );
-                        })}
+                                        <span 
+                                            className={`text-sm font-medium transition-colors ${
+                                                active ? 'text-[#00FF91]' : 'text-gray-400 group-hover:text-white'
+                                            }`}
+                                        >
+                                            {item.label}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             </div>
