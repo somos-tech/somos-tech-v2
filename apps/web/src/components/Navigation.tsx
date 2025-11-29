@@ -32,6 +32,7 @@ export default function Navigation() {
             path: '/online',
             submenu: [
                 { label: 'Online Community', path: '/online' },
+                { label: 'Chapters', path: '/chapters' },
                 { label: 'Find Events', path: '/events' },
             ]
         },

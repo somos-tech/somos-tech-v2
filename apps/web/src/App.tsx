@@ -19,6 +19,7 @@ import ErrorPage from './pages/ErrorPage'
 import GroupsDirectoryRedesigned from './pages/GroupsDirectoryRedesigned'
 import GroupDetail from './pages/GroupDetail'
 import OnlineCommunity from './pages/OnlineCommunityRedesigned'
+import Chapters from './pages/Chapters'
 import ProgramsPageRedesigned from './pages/ProgramsPageRedesigned'
 import Login from './pages/Login'
 import AdminLogin from './pages/AdminLogin'
@@ -71,6 +72,14 @@ function AppContent() {
             path="/groups" 
             element={
               <GroupsDirectoryRedesigned />
+            } 
+          />
+          <Route 
+            path="/chapters" 
+            element={
+              <ProtectedRoute>
+                <Chapters />
+              </ProtectedRoute>
             } 
           />
           <Route 

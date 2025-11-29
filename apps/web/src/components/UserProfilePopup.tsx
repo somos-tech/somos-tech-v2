@@ -15,6 +15,11 @@ interface UserProfile {
     email?: string;
     photoUrl?: string;
     location?: string;
+    lastLoginLocation?: {
+        city?: string;
+        region?: string;
+        country?: string;
+    };
     bio?: string;
     website?: string;
     isAdmin?: boolean;
@@ -51,11 +56,26 @@ export default function UserProfilePopup({
             setIsLoading(true);
             setError(null);
             try {
-                const response = await fetch(`/api/users/${userId}/profile`);
+                // Call the correct API endpoint (without /profile suffix)
+                const response = await fetch(`/api/users/${userId}`);
                 if (response.ok) {
                     const json = await response.json();
                     const data = json.data || json;
-                    setProfile(data.profile || data);
+                    const profileData = data.profile || data;
+                    
+                    // Map API response to our profile interface
+                    setProfile({
+                        id: profileData.id || userId,
+                        name: profileData.displayName || profileData.name || userName,
+                        email: profileData.email,
+                        photoUrl: profileData.profilePicture || profileData.photoUrl,
+                        location: profileData.location,
+                        lastLoginLocation: profileData.lastLoginLocation,
+                        bio: profileData.bio,
+                        website: profileData.website,
+                        isAdmin: profileData.isAdmin,
+                        joinedAt: profileData.createdAt || profileData.joinedAt
+                    });
                 } else {
                     // Use fallback data if API fails
                     setProfile({
@@ -194,12 +214,20 @@ export default function UserProfilePopup({
 
                             {/* Info Items */}
                             <div className="mt-4 space-y-2.5">
-                                {displayProfile.location && (
+                                {/* Show user-set location, or fall back to auto-detected location */}
+                                {(displayProfile.location || displayProfile.lastLoginLocation) && (
                                     <div className="flex items-center gap-3 text-sm">
                                         <div className="p-1.5 rounded-lg bg-[#00FF91]/10">
                                             <MapPin className="w-4 h-4 text-[#00FF91]" />
                                         </div>
-                                        <span className="text-gray-300">{displayProfile.location}</span>
+                                        <span className="text-gray-300">
+                                            {displayProfile.location || 
+                                             (displayProfile.lastLoginLocation && 
+                                              [displayProfile.lastLoginLocation.city, displayProfile.lastLoginLocation.region]
+                                                .filter(Boolean).join(', ')
+                                             )
+                                            }
+                                        </span>
                                     </div>
                                 )}
                                 

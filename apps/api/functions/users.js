@@ -169,6 +169,7 @@ app.http('getUserById', {
         profilePicture: user.profilePicture,
         bio: user.bio || null,
         location: user.location || null,
+        lastLoginLocation: user.lastLoginLocation || null,
         website: user.website || null,
         createdAt: user.createdAt
       };

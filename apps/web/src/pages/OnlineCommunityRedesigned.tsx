@@ -91,26 +91,33 @@ const CHANNEL_CATEGORIES = [
             { id: 'introductions', name: 'introductions', icon: Users, description: 'Introduce yourself!' },
             { id: 'general', name: 'general', icon: MessageCircle, description: 'General discussion' },
             { id: 'opportunities', name: 'opportunities', icon: Briefcase, description: 'Job & opportunities' },
+            { id: 'events', name: 'events', icon: Calendar, description: 'Community events' },
         ]
     },
     {
-        name: 'Community',
+        name: 'Official Chapters',
+        icon: '⭐',
+        channels: [
+            // 6 Official SOMOS Chapters
+            { id: 'group-seattle', name: 'Seattle, WA', icon: MapPin, description: 'Seattle chapter - Official', isOfficial: true },
+            { id: 'group-chicago', name: 'Chicago, IL', icon: MapPin, description: 'Chicago chapter - Official', isOfficial: true },
+            { id: 'group-newyork', name: 'New York, NY', icon: MapPin, description: 'New York chapter - Official', isOfficial: true },
+            { id: 'group-losangeles', name: 'Los Angeles, CA', icon: MapPin, description: 'Los Angeles chapter - Official', isOfficial: true },
+            { id: 'group-sanfrancisco', name: 'San Francisco, CA', icon: MapPin, description: 'San Francisco chapter - Official', isOfficial: true },
+            { id: 'group-miami', name: 'Miami, FL', icon: MapPin, description: 'Miami chapter - Official', isOfficial: true },
+        ]
+    },
+    {
+        name: 'Groups',
         icon: '🌟',
         channels: [
-            { id: 'events', name: 'events', icon: Calendar, description: 'Community events' },
-            // City Chapters
-            { id: 'group-seattle', name: 'Seattle, WA', icon: MapPin, description: 'Seattle tech community' },
-            { id: 'group-newyork', name: 'New York, NY', icon: MapPin, description: 'New York tech community' },
+            // Other community groups
             { id: 'group-boston', name: 'Boston, MA', icon: MapPin, description: 'Boston tech community' },
             { id: 'group-denver', name: 'Denver, CO', icon: MapPin, description: 'Denver tech community' },
             { id: 'group-washingtondc', name: 'Washington DC', icon: MapPin, description: 'Washington DC tech community' },
             { id: 'group-atlanta', name: 'Atlanta, GA', icon: MapPin, description: 'Atlanta tech community' },
-            { id: 'group-sanfrancisco', name: 'San Francisco, CA', icon: MapPin, description: 'San Francisco tech community' },
-            { id: 'group-chicago', name: 'Chicago, IL', icon: MapPin, description: 'Chicago tech community' },
             { id: 'group-austin', name: 'Austin, TX', icon: MapPin, description: 'Austin tech community' },
             { id: 'group-houston', name: 'Houston, TX', icon: MapPin, description: 'Houston tech community' },
-            { id: 'group-losangeles', name: 'Los Angeles, CA', icon: MapPin, description: 'Los Angeles tech community' },
-            { id: 'group-miami', name: 'Miami, FL', icon: MapPin, description: 'Miami tech community' },
             { id: 'group-dallas', name: 'Dallas, TX', icon: MapPin, description: 'Dallas tech community' },
             { id: 'group-phoenix', name: 'Phoenix, AZ', icon: MapPin, description: 'Phoenix tech community' },
             { id: 'group-sandiego', name: 'San Diego, CA', icon: MapPin, description: 'San Diego tech community' },
