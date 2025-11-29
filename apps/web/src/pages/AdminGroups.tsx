@@ -6,25 +6,50 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit2, Trash2, MapPin, Eye } from 'lucide-react';
+import { Plus, Edit2, Trash2, MapPin, Eye, Users, Map, LayoutGrid, Table } from 'lucide-react';
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
+import USHeatMap from '@/components/USHeatMap';
 
 interface Group {
     id: string;
     name: string;
     city: string;
     state: string;
+    stateAbbr?: string;
     visibility: 'Public' | 'Hidden';
     imageUrl: string;
     description?: string;
+    memberCount?: number;
     createdAt: string;
+}
+
+interface StateStats {
+    state: string;
+    stateName: string;
+    lat: number;
+    lon: number;
+    groups: Array<{ id: string; name: string; city: string; memberCount: number }>;
+    totalMembers: number;
+}
+
+interface GroupStats {
+    groups: Group[];
+    stateStats: StateStats[];
+    summary: {
+        totalGroups: number;
+        totalMembers: number;
+        statesWithMembers: number;
+    };
 }
 
 export default function AdminGroups() {
     const [groups, setGroups] = useState<Group[]>([]);
+    const [stateStats, setStateStats] = useState<StateStats[]>([]);
+    const [summary, setSummary] = useState({ totalGroups: 0, totalMembers: 0, statesWithMembers: 0 });
     const [isLoading, setIsLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
     // Form state
     const [formData, setFormData] = useState({
@@ -42,10 +67,20 @@ export default function AdminGroups() {
 
     const fetchGroups = async () => {
         try {
-            const response = await fetch('/api/groups');
-            if (response.ok) {
-                const data = await response.json();
-                setGroups(data);
+            // Try to fetch from the stats endpoint first (includes member counts)
+            const statsResponse = await fetch('/api/group-stats');
+            if (statsResponse.ok) {
+                const data: GroupStats = await statsResponse.json();
+                setGroups(data.groups);
+                setStateStats(data.stateStats);
+                setSummary(data.summary);
+            } else {
+                // Fallback to regular groups endpoint
+                const response = await fetch('/api/groups');
+                if (response.ok) {
+                    const data = await response.json();
+                    setGroups(data);
+                }
             }
         } catch (error) {
             console.error('Error fetching groups:', error);
@@ -139,20 +174,37 @@ export default function AdminGroups() {
                             Groups Management
                         </h1>
                         <p style={{ color: '#8394A7' }}>
-                            Manage city chapters and event groups
+                            Manage location-based community chapters • {summary.totalGroups} groups • {summary.totalMembers} members
                         </p>
                     </div>
                     
-                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button
-                                className="flex items-center gap-2"
-                                style={{ backgroundColor: '#00FF91', color: '#051323' }}
+                    <div className="flex items-center gap-3">
+                        {/* View Toggle */}
+                        <div className="flex rounded-lg overflow-hidden" style={{ backgroundColor: '#051323' }}>
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`p-2 transition-colors ${viewMode === 'grid' ? 'bg-[#00FF91] text-[#051323]' : 'text-[#8394A7] hover:text-white'}`}
                             >
-                                <Plus className="h-4 w-4" />
-                                Add Group
-                            </Button>
-                        </DialogTrigger>
+                                <LayoutGrid className="h-4 w-4" />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('table')}
+                                className={`p-2 transition-colors ${viewMode === 'table' ? 'bg-[#00FF91] text-[#051323]' : 'text-[#8394A7] hover:text-white'}`}
+                            >
+                                <Table className="h-4 w-4" />
+                            </button>
+                        </div>
+                        
+                        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button
+                                    className="flex items-center gap-2"
+                                    style={{ backgroundColor: '#00FF91', color: '#051323' }}
+                                >
+                                    <Plus className="h-4 w-4" />
+                                    Add Group
+                                </Button>
+                            </DialogTrigger>
                         <DialogContent style={{ backgroundColor: '#051323', borderColor: '#00FF91' }}>
                             <DialogHeader>
                                 <DialogTitle style={{ color: '#FFFFFF' }}>
@@ -257,72 +309,221 @@ export default function AdminGroups() {
                             </form>
                         </DialogContent>
                     </Dialog>
+                    </div>
                 </div>
 
-                {/* Groups Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {groups.map((group) => (
-                        <Card
-                            key={group.id}
-                            className="overflow-hidden"
-                            style={{ backgroundColor: '#051323', borderColor: '#00FF91' }}
-                        >
-                            <div className="relative h-32">
-                                <img
-                                    src={group.imageUrl}
-                                    alt={group.name || `${group.city}, ${group.state}`}
-                                    className="w-full h-full object-cover"
-                                />
-                                <div className="absolute top-2 right-2">
-                                    <Badge
-                                        style={{
-                                            backgroundColor: group.visibility === 'Public' ? '#00FF91' : '#8394A7',
-                                            color: '#051323'
-                                        }}
-                                    >
-                                        {group.visibility}
-                                    </Badge>
-                                </div>
+                {/* Heat Map Section */}
+                {stateStats.length > 0 && (
+                    <Card className="mb-8" style={{ backgroundColor: '#051323', borderColor: 'rgba(0, 255, 145, 0.3)' }}>
+                        <CardHeader>
+                            <div className="flex items-center gap-2">
+                                <Map className="h-5 w-5" style={{ color: '#00FF91' }} />
+                                <CardTitle style={{ color: '#FFFFFF' }}>US Member Heat Map</CardTitle>
                             </div>
-                            
-                            <CardHeader className="pb-3">
-                                <CardTitle className="text-lg" style={{ color: '#FFFFFF' }}>
-                                    {group.name || `${group.city}, ${group.state}`}
-                                </CardTitle>
-                                <CardDescription className="flex items-center gap-1" style={{ color: '#8394A7' }}>
-                                    <MapPin className="h-3 w-3" />
-                                    {group.city}, {group.state}
-                                </CardDescription>
-                            </CardHeader>
-                            
-                            <CardContent className="flex gap-2">
-                                <Button
-                                    size="sm"
-                                    onClick={() => handleEdit(group)}
-                                    className="flex-1"
-                                    style={{ backgroundColor: '#00D4FF', color: '#051323' }}
-                                >
-                                    <Edit2 className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    onClick={() => handleDelete(group.id)}
-                                    className="flex-1"
-                                    style={{ backgroundColor: '#FF4444', color: '#FFFFFF' }}
-                                >
-                                    <Trash2 className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    className="flex-1"
-                                    style={{ backgroundColor: '#02dbff', color: '#051323' }}
-                                >
-                                    <Eye className="h-3 w-3" />
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    ))}
+                            <CardDescription style={{ color: '#8394A7' }}>
+                                Geographic distribution of community members across the United States
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <USHeatMap stateStats={stateStats} />
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Stats Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <Card style={{ backgroundColor: '#051323', borderColor: 'rgba(0, 255, 145, 0.3)' }}>
+                        <CardContent className="pt-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm" style={{ color: '#8394A7' }}>Total Groups</p>
+                                    <p className="text-3xl font-bold" style={{ color: '#00FF91' }}>{summary.totalGroups}</p>
+                                </div>
+                                <MapPin className="h-10 w-10" style={{ color: 'rgba(0, 255, 145, 0.3)' }} />
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card style={{ backgroundColor: '#051323', borderColor: 'rgba(0, 255, 145, 0.3)' }}>
+                        <CardContent className="pt-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm" style={{ color: '#8394A7' }}>Total Members</p>
+                                    <p className="text-3xl font-bold" style={{ color: '#00FF91' }}>{summary.totalMembers}</p>
+                                </div>
+                                <Users className="h-10 w-10" style={{ color: 'rgba(0, 255, 145, 0.3)' }} />
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card style={{ backgroundColor: '#051323', borderColor: 'rgba(0, 255, 145, 0.3)' }}>
+                        <CardContent className="pt-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm" style={{ color: '#8394A7' }}>States Covered</p>
+                                    <p className="text-3xl font-bold" style={{ color: '#00FF91' }}>{summary.statesWithMembers}</p>
+                                </div>
+                                <Map className="h-10 w-10" style={{ color: 'rgba(0, 255, 145, 0.3)' }} />
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
+
+                {/* Table View */}
+                {viewMode === 'table' && (
+                    <Card style={{ backgroundColor: '#051323', borderColor: 'rgba(0, 255, 145, 0.3)' }}>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b" style={{ borderColor: 'rgba(0, 255, 145, 0.2)' }}>
+                                            <th className="text-left p-4 text-sm font-medium" style={{ color: '#8394A7' }}>Group</th>
+                                            <th className="text-left p-4 text-sm font-medium" style={{ color: '#8394A7' }}>Location</th>
+                                            <th className="text-center p-4 text-sm font-medium" style={{ color: '#8394A7' }}>Members</th>
+                                            <th className="text-center p-4 text-sm font-medium" style={{ color: '#8394A7' }}>Status</th>
+                                            <th className="text-right p-4 text-sm font-medium" style={{ color: '#8394A7' }}>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {groups.map((group) => (
+                                            <tr 
+                                                key={group.id}
+                                                className="border-b hover:bg-white/5 transition-colors"
+                                                style={{ borderColor: 'rgba(0, 255, 145, 0.1)' }}
+                                            >
+                                                <td className="p-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <img
+                                                            src={group.imageUrl}
+                                                            alt={group.name}
+                                                            className="w-10 h-10 rounded-lg object-cover"
+                                                        />
+                                                        <span className="font-medium text-white">
+                                                            {group.name || `${group.city}, ${group.state}`}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="flex items-center gap-1" style={{ color: '#8394A7' }}>
+                                                        <MapPin className="h-3 w-3" />
+                                                        {group.city}, {group.state}
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 text-center">
+                                                    <Badge style={{ backgroundColor: 'rgba(0, 255, 145, 0.15)', color: '#00FF91' }}>
+                                                        <Users className="h-3 w-3 mr-1" />
+                                                        {group.memberCount || 0}
+                                                    </Badge>
+                                                </td>
+                                                <td className="p-4 text-center">
+                                                    <Badge
+                                                        style={{
+                                                            backgroundColor: group.visibility === 'Public' ? 'rgba(0, 255, 145, 0.15)' : 'rgba(131, 148, 167, 0.15)',
+                                                            color: group.visibility === 'Public' ? '#00FF91' : '#8394A7'
+                                                        }}
+                                                    >
+                                                        {group.visibility}
+                                                    </Badge>
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => handleEdit(group)}
+                                                            className="h-8 w-8 p-0"
+                                                            style={{ color: '#02dbff' }}
+                                                        >
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => handleDelete(group.id)}
+                                                            className="h-8 w-8 p-0"
+                                                            style={{ color: '#FF4444' }}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Grid View */}
+                {viewMode === 'grid' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {groups.map((group) => (
+                            <Card
+                                key={group.id}
+                                className="overflow-hidden"
+                                style={{ backgroundColor: '#051323', borderColor: 'rgba(0, 255, 145, 0.3)' }}
+                            >
+                                <div className="relative h-32">
+                                    <img
+                                        src={group.imageUrl}
+                                        alt={group.name || `${group.city}, ${group.state}`}
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute top-2 right-2 flex gap-1">
+                                        <Badge
+                                            style={{
+                                                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                                                color: '#00FF91'
+                                            }}
+                                        >
+                                            <Users className="h-3 w-3 mr-1" />
+                                            {group.memberCount || 0}
+                                        </Badge>
+                                        <Badge
+                                            style={{
+                                                backgroundColor: group.visibility === 'Public' ? '#00FF91' : '#8394A7',
+                                                color: '#051323'
+                                            }}
+                                        >
+                                            {group.visibility}
+                                        </Badge>
+                                    </div>
+                                </div>
+                                
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-lg" style={{ color: '#FFFFFF' }}>
+                                        {group.name || `${group.city}, ${group.state}`}
+                                    </CardTitle>
+                                    <CardDescription className="flex items-center gap-1" style={{ color: '#8394A7' }}>
+                                        <MapPin className="h-3 w-3" />
+                                        {group.city}, {group.state}
+                                    </CardDescription>
+                                </CardHeader>
+                                
+                                <CardContent className="flex gap-2">
+                                    <Button
+                                        size="sm"
+                                        onClick={() => handleEdit(group)}
+                                        className="flex-1"
+                                        style={{ backgroundColor: '#02dbff', color: '#051323' }}
+                                    >
+                                        <Edit2 className="h-3 w-3 mr-1" />
+                                        Edit
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        onClick={() => handleDelete(group.id)}
+                                        className="flex-1"
+                                        style={{ backgroundColor: '#FF4444', color: '#FFFFFF' }}
+                                    >
+                                        <Trash2 className="h-3 w-3 mr-1" />
+                                        Delete
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                )}
 
                 {groups.length === 0 && (
                     <div className="text-center py-12">

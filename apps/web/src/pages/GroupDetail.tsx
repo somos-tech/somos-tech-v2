@@ -405,8 +405,8 @@ export default function GroupDetail() {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center" style={{ backgroundColor: '#051323' }}>
                 <p className="text-white mb-4">{error || 'Group not found'}</p>
-                <Button onClick={() => navigate('/groups')} style={{ backgroundColor: '#00FF91', color: '#051323' }}>
-                    Back to Groups
+                <Button onClick={() => navigate('/online')} style={{ backgroundColor: '#00FF91', color: '#051323' }}>
+                    Back to Community
                 </Button>
             </div>
         );
@@ -431,7 +431,7 @@ export default function GroupDetail() {
                     variant="ghost"
                     size="icon"
                     className="absolute top-4 left-4 rounded-full bg-black/30 hover:bg-black/50"
-                    onClick={() => navigate('/groups')}
+                    onClick={() => navigate('/online')}
                 >
                     <ArrowLeft className="w-5 h-5 text-white" />
                 </Button>

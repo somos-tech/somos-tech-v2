@@ -55,14 +55,14 @@ export default function HomeRedesigned() {
                                     <ArrowRight className="w-5 h-5" />
                                 </button>
                                 <button
-                                    onClick={() => navigate('/groups')}
+                                    onClick={() => navigate('/online')}
                                     className="px-8 py-3 rounded-lg font-bold border-2 transition-all hover:bg-white/5"
                                     style={{
                                         borderColor: '#00FF91',
                                         color: '#00FF91',
                                     }}
                                 >
-                                    Explore Groups
+                                    Join the Chat
                                 </button>
                             </div>
 
@@ -188,7 +188,7 @@ export default function HomeRedesigned() {
                             </div>
 
                             <button
-                                onClick={() => navigate('/groups')}
+                                onClick={() => navigate('/online')}
                                 className="px-8 py-3 rounded-lg font-bold flex items-center gap-2 transition-all hover:scale-105 w-fit"
                                 style={{
                                     backgroundColor: 'rgba(0, 255, 145, 0.1)',
