@@ -22,9 +22,12 @@ app.http('notifications', {
             const method = request.method;
 
             // All notifications endpoints require authentication
-            const authError = requireAuth(request);
-            if (authError) {
-                return authError;
+            const authResult = await requireAuth(request);
+            if (!authResult.authenticated) {
+                return authResult.error || {
+                    status: 401,
+                    jsonBody: { error: 'Authentication required' }
+                };
             }
 
             const userEmail = getUserEmail(request);

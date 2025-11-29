@@ -208,9 +208,9 @@ app.http('GetSocialMediaPosts', {
     handler: async (request, context) => {
         try {
             // Require authentication
-            const authError = requireAuth(request);
-            if (authError) {
-                return authError;
+            const authResult = await requireAuth(request);
+            if (!authResult.authenticated) {
+                return authResult.error || errorResponse('Authentication required');
             }
 
             const id = request.params.id;

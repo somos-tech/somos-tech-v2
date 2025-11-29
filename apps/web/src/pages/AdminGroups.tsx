@@ -6,9 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit2, Trash2, MapPin, Eye, Users, Map, LayoutGrid, Table } from 'lucide-react';
+import { Plus, Edit2, Trash2, MapPin, Users, LayoutGrid, Table } from 'lucide-react';
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
-import USHeatMap from '@/components/USHeatMap';
+import GroupMemberStats from '@/components/GroupMemberStats';
 
 interface Group {
     id: string;
@@ -312,60 +312,18 @@ export default function AdminGroups() {
                     </div>
                 </div>
 
-                {/* Heat Map Section */}
+                {/* Member Distribution Stats - Interactive List View */}
                 {stateStats.length > 0 && (
-                    <Card className="mb-8" style={{ backgroundColor: '#051323', borderColor: 'rgba(0, 255, 145, 0.3)' }}>
-                        <CardHeader>
-                            <div className="flex items-center gap-2">
-                                <Map className="h-5 w-5" style={{ color: '#00FF91' }} />
-                                <CardTitle style={{ color: '#FFFFFF' }}>US Member Heat Map</CardTitle>
-                            </div>
-                            <CardDescription style={{ color: '#8394A7' }}>
-                                Geographic distribution of community members across the United States
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <USHeatMap stateStats={stateStats} />
-                        </CardContent>
-                    </Card>
+                    <div className="mb-8">
+                        <GroupMemberStats 
+                            stateStats={stateStats} 
+                            onGroupClick={(groupId) => {
+                                const group = groups.find(g => g.id === groupId);
+                                if (group) handleEdit(group);
+                            }}
+                        />
+                    </div>
                 )}
-
-                {/* Stats Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <Card style={{ backgroundColor: '#051323', borderColor: 'rgba(0, 255, 145, 0.3)' }}>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm" style={{ color: '#8394A7' }}>Total Groups</p>
-                                    <p className="text-3xl font-bold" style={{ color: '#00FF91' }}>{summary.totalGroups}</p>
-                                </div>
-                                <MapPin className="h-10 w-10" style={{ color: 'rgba(0, 255, 145, 0.3)' }} />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card style={{ backgroundColor: '#051323', borderColor: 'rgba(0, 255, 145, 0.3)' }}>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm" style={{ color: '#8394A7' }}>Total Members</p>
-                                    <p className="text-3xl font-bold" style={{ color: '#00FF91' }}>{summary.totalMembers}</p>
-                                </div>
-                                <Users className="h-10 w-10" style={{ color: 'rgba(0, 255, 145, 0.3)' }} />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card style={{ backgroundColor: '#051323', borderColor: 'rgba(0, 255, 145, 0.3)' }}>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm" style={{ color: '#8394A7' }}>States Covered</p>
-                                    <p className="text-3xl font-bold" style={{ color: '#00FF91' }}>{summary.statesWithMembers}</p>
-                                </div>
-                                <Map className="h-10 w-10" style={{ color: 'rgba(0, 255, 145, 0.3)' }} />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
 
                 {/* Table View */}
                 {viewMode === 'table' && (

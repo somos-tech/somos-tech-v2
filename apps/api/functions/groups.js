@@ -25,18 +25,24 @@ app.http('groups', {
             // Check authentication for all operations
             // GET requires authentication, POST/PUT/DELETE require admin
             if (method === 'GET') {
-                const authError = requireAuth(request);
-                if (authError) {
+                const authResult = await requireAuth(request);
+                if (!authResult.authenticated) {
                     logAuthEvent(context, request, 'GET_GROUPS', `groups/${groupId || 'all'}`, false);
-                    return authError;
+                    return authResult.error || {
+                        status: 401,
+                        jsonBody: { error: 'Authentication required' }
+                    };
                 }
                 logAuthEvent(context, request, 'GET_GROUPS', `groups/${groupId || 'all'}`, true);
             } else {
                 // POST, PUT, DELETE require admin
-                const authError = requireAdmin(request);
-                if (authError) {
+                const authResult = await requireAdmin(request);
+                if (!authResult.authenticated || !authResult.isAdmin) {
                     logAuthEvent(context, request, `${method}_GROUP`, `groups/${groupId || ''}`, false);
-                    return authError;
+                    return authResult.error || {
+                        status: 403,
+                        jsonBody: { error: 'Admin access required' }
+                    };
                 }
                 logAuthEvent(context, request, `${method}_GROUP`, `groups/${groupId || ''}`, true);
             }

@@ -74,10 +74,13 @@ app.http('groupStats', {
     handler: async (request, context) => {
         try {
             // Require admin access
-            const authError = requireAdmin(request);
-            if (authError) {
+            const authResult = await requireAdmin(request);
+            if (!authResult.authenticated || !authResult.isAdmin) {
                 logAuthEvent(context, request, 'GET_GROUP_STATS', 'group-stats', false);
-                return authError;
+                return authResult.error || {
+                    status: 403,
+                    jsonBody: { error: 'Admin access required' }
+                };
             }
             logAuthEvent(context, request, 'GET_GROUP_STATS', 'group-stats', true);
 
