@@ -136,8 +136,8 @@ const DEFAULT_NOTIFICATIONS = {
     events: true
 };
 
-// Quick emoji reactions
-const QUICK_EMOJIS = ['❤️', '👍', '🔥', '😂', '🎉', '👀', '🚀', '💯'];
+// Quick emoji reactions - includes flags
+const QUICK_EMOJIS = ['❤️', '👍', '🔥', '😂', '🎉', '👀', '🚀', '💯', '🇺🇸', '🇲🇽', '🇵🇷', '🇧🇷', '🇨🇴', '🇦🇷'];
 
 /**
  * Modern Channel Sidebar Component with Favorites
@@ -663,14 +663,16 @@ function ChatMessageItem({
                                 <Smile className="w-3.5 h-3.5" />
                             </button>
                             
-                            {/* Emoji Picker Dropdown */}
+                            {/* Emoji Picker Dropdown - positioned to the right to avoid overflow clipping */}
                             {showEmojiPicker && (
                                 <div 
-                                    className="absolute bottom-full left-0 mb-2 p-2 rounded-xl shadow-2xl flex flex-wrap gap-1 z-50 w-44"
+                                    className="absolute left-0 top-full mt-2 p-2 rounded-xl shadow-2xl grid grid-cols-7 gap-1 z-[100]"
                                     style={{ 
                                         backgroundColor: 'rgba(8, 20, 35, 0.98)',
-                                        border: '1px solid rgba(0, 255, 145, 0.15)'
+                                        border: '1px solid rgba(0, 255, 145, 0.15)',
+                                        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)'
                                     }}
+                                    onClick={(e) => e.stopPropagation()}
                                 >
                                     {QUICK_EMOJIS.map(emoji => (
                                         <button
@@ -1280,7 +1282,7 @@ export default function OnlineCommunity() {
                 </div>
 
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto py-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                <div className="flex-1 overflow-y-auto overflow-x-visible py-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
                     {/* Empty State */}
                     {messages.length === 0 && !isInitialLoading && (
                         <div className="flex flex-col items-center justify-center h-full text-center px-4">
