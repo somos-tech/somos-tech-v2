@@ -154,7 +154,7 @@ export default function MemberDashboard() {
                             backgroundColor: '#0a1f35', 
                             border: '1px solid rgba(0, 255, 145, 0.2)' 
                         }}
-                        onClick={() => navigate('/')}
+                        onClick={() => navigate('/online')}
                     >
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
@@ -166,10 +166,10 @@ export default function MemberDashboard() {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold" style={{ color: '#FFFFFF' }}>
-                                        Our Groups
+                                        Online Community
                                     </h3>
                                     <p className="text-sm" style={{ color: '#8394A7' }}>
-                                        Connect with communities
+                                        Chat with the community
                                     </p>
                                 </div>
                             </div>

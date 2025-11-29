@@ -29,10 +29,9 @@ export default function Navigation() {
         },
         { 
             label: 'Community', 
-            path: '/groups',
+            path: '/online',
             submenu: [
                 { label: 'Online Community', path: '/online' },
-                { label: 'Local Groups', path: '/groups' },
                 { label: 'Find Events', path: '/events' },
             ]
         },
