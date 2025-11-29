@@ -264,11 +264,81 @@ function ChannelSidebar({
 }
 
 /**
+ * Hyperlink Preview Component
+ */
+function LinkPreview({ url }: { url: string }) {
+    const [preview, setPreview] = useState<{ title?: string; description?: string; image?: string; loading: boolean; error: boolean }>({
+        loading: true,
+        error: false
+    });
+
+    useEffect(() => {
+        // Simple link preview - show domain and favicon
+        try {
+            const urlObj = new URL(url);
+            const domain = urlObj.hostname.replace('www.', '');
+            setPreview({
+                title: domain,
+                description: url,
+                loading: false,
+                error: false
+            });
+        } catch {
+            setPreview({ loading: false, error: true });
+        }
+    }, [url]);
+
+    if (preview.loading) {
+        return (
+            <div className="mt-2 p-3 rounded-lg border animate-pulse" style={{ backgroundColor: 'rgba(10, 22, 40, 0.6)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                <div className="h-4 bg-white/10 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-white/5 rounded w-full"></div>
+            </div>
+        );
+    }
+
+    if (preview.error) return null;
+
+    return (
+        <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 p-3 rounded-lg border flex items-start gap-3 hover:bg-white/5 transition-colors group"
+            style={{ backgroundColor: 'rgba(10, 22, 40, 0.6)', borderColor: 'rgba(0, 255, 145, 0.15)' }}
+        >
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#00FF91]/20 to-[#02dbff]/20 flex items-center justify-center flex-shrink-0">
+                <ExternalLink className="w-5 h-5 text-[#02dbff]" />
+            </div>
+            <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-white group-hover:text-[#00FF91] transition-colors truncate">
+                    {preview.title}
+                </div>
+                <div className="text-xs text-gray-500 truncate mt-0.5">
+                    {preview.description}
+                </div>
+            </div>
+            <ExternalLink className="w-4 h-4 text-gray-600 group-hover:text-[#00FF91] transition-colors flex-shrink-0 mt-1" />
+        </a>
+    );
+}
+
+/**
+ * Parse message content and extract URLs
+ */
+function parseMessageContent(content: string): { text: string; urls: string[] } {
+    const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
+    const urls = content.match(urlRegex) || [];
+    return { text: content, urls: [...new Set(urls)] }; // Remove duplicates
+}
+
+/**
  * Modern Chat Message Component with reactions below
  */
 function ChatMessageItem({ 
     message, 
     currentUserId,
+    isAdmin,
     onDelete,
     onReact,
     onReply,
@@ -276,14 +346,19 @@ function ChatMessageItem({
 }: { 
     message: Message;
     currentUserId: string;
+    isAdmin: boolean;
     onDelete: (messageId: string) => void;
     onReact: (messageId: string, emoji: string) => void;
     onReply: (message: Message) => void;
     onUserClick: (userId: string, userName: string, userPhoto: string | null, event: React.MouseEvent) => void;
 }) {
     const isOwn = message.userId === currentUserId;
+    const canDelete = isOwn || isAdmin; // Allow delete if own message OR admin
     const [showActions, setShowActions] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    
+    // Parse message for URLs
+    const { urls } = parseMessageContent(message.content);
     
     const formatTime = (dateString: string) => {
         const date = new Date(dateString);
@@ -359,6 +434,15 @@ function ChatMessageItem({
                     <p className="text-gray-200 whitespace-pre-wrap break-words leading-relaxed text-[15px]">
                         {message.content}
                     </p>
+
+                    {/* Link Previews */}
+                    {urls.length > 0 && (
+                        <div className="space-y-2">
+                            {urls.slice(0, 3).map((url, idx) => (
+                                <LinkPreview key={idx} url={url} />
+                            ))}
+                        </div>
+                    )}
 
                     {/* Reactions - Below message, left-aligned */}
                     {message.reactions && message.reactions.length > 0 && (
@@ -446,11 +530,11 @@ function ChatMessageItem({
                     <Reply className="w-4 h-4 text-gray-400 hover:text-[#00FF91]" />
                 </button>
                 
-                {isOwn && (
+                {canDelete && (
                     <button 
                         onClick={() => onDelete(message.id)}
                         className="p-2 rounded-lg hover:bg-red-500/20 transition-colors"
-                        title="Delete"
+                        title={isOwn ? "Delete" : "Delete (Admin)"}
                     >
                         <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-400" />
                     </button>
@@ -578,7 +662,7 @@ function MemberSidebar({
  * Main Online Community Page
  */
 export default function OnlineCommunity() {
-    const { authUser, displayName, profilePicture } = useUserContext();
+    const { authUser, displayName, profilePicture, isAdmin } = useUserContext();
     const navigate = useNavigate();
     
     const [selectedChannel, setSelectedChannel] = useState('general');
@@ -982,6 +1066,7 @@ export default function OnlineCommunity() {
                                 key={message.id} 
                                 message={message}
                                 currentUserId={currentUser.id}
+                                isAdmin={isAdmin}
                                 onDelete={handleDeleteMessage}
                                 onReact={handleReaction}
                                 onReply={handleReply}
