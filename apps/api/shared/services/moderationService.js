@@ -490,14 +490,15 @@ function fuzzyMatch(text, term, matchWholeWord = false) {
     }
     
     // Check for common letter substitutions (leetspeak)
+    // Note: Special regex chars must be escaped (| and + especially)
     const leetMap = {
         'a': '[a@4]',
         'e': '[e3]',
-        'i': '[i1!|]',
+        'i': '[i1!\\|]',  // Escaped | character
         'o': '[o0]',
         's': '[s$5]',
-        't': '[t7+]',
-        'l': '[l1|]',
+        't': '[t7\\+]',   // Escaped + character
+        'l': '[l1\\|]',   // Escaped | character
         'b': '[b8]',
         'g': '[g9]'
     };

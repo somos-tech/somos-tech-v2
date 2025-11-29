@@ -350,8 +350,29 @@ app.http('communityActiveUsers', {
 
             // Get users who have been active in the last 15 minutes
             const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+            const now = new Date().toISOString();
             
-            // Get all users (we'll track activity separately, for now just get registered users)
+            // Update current user's lastActiveAt FIRST (before fetching users)
+            try {
+                const { resources: [currentUser] } = await usersContainer.items
+                    .query({
+                        query: 'SELECT * FROM c WHERE c.id = @userId',
+                        parameters: [{ name: '@userId', value: principal.userId }]
+                    })
+                    .fetchAll();
+
+                if (currentUser) {
+                    currentUser.lastActiveAt = now;
+                    await usersContainer.item(currentUser.id, currentUser.id).replace(currentUser);
+                    context.log(`[CommunityActiveUsers] Updated lastActiveAt for ${principal.userDetails}`);
+                } else {
+                    context.log(`[CommunityActiveUsers] User not found: ${principal.userId}`);
+                }
+            } catch (err) {
+                context.warn(`[CommunityActiveUsers] Could not update lastActiveAt: ${err.message}`);
+            }
+            
+            // Get all users (after updating current user's timestamp)
             const { resources: users } = await usersContainer.items
                 .query({
                     query: `SELECT c.id, c.email, c.displayName, c.profilePicture, c.lastActiveAt, c.isAdmin, c.createdAt 
@@ -375,29 +396,13 @@ app.http('communityActiveUsers', {
                     isCurrentUser: user.id === principal.userId
                 };
 
-                if (user.lastActiveAt && user.lastActiveAt > fifteenMinutesAgo) {
+                // Current user is always online (they just called this endpoint)
+                if (user.id === principal.userId || (user.lastActiveAt && user.lastActiveAt > fifteenMinutesAgo)) {
                     online.push({ ...userInfo, status: 'online' });
                 } else {
                     offline.push({ ...userInfo, status: 'offline' });
                 }
             });
-
-            // Update current user's lastActiveAt
-            try {
-                const { resources: [currentUser] } = await usersContainer.items
-                    .query({
-                        query: 'SELECT * FROM c WHERE c.id = @userId',
-                        parameters: [{ name: '@userId', value: principal.userId }]
-                    })
-                    .fetchAll();
-
-                if (currentUser) {
-                    currentUser.lastActiveAt = new Date().toISOString();
-                    await usersContainer.item(currentUser.id, currentUser.id).replace(currentUser);
-                }
-            } catch (err) {
-                console.warn('[CommunityActiveUsers] Could not update lastActiveAt:', err.message);
-            }
 
             return successResponse({
                 online,
