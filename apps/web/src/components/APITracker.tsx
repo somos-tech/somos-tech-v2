@@ -30,7 +30,8 @@ import {
     Info,
     Loader2,
     Activity,
-    TrendingUp
+    TrendingUp,
+    HeartPulse
 } from 'lucide-react';
 
 interface APIStatus {
@@ -133,6 +134,8 @@ export default function APITracker() {
     const [error, setError] = useState<string | null>(null);
     const [data, setData] = useState<APIStatusResponse | null>(null);
     const [usageData, setUsageData] = useState<APIUsageResponse | null>(null);
+    const [healthCheckLoading, setHealthCheckLoading] = useState(false);
+    const [healthCheckResult, setHealthCheckResult] = useState<any>(null);
     const [expandedAPIs, setExpandedAPIs] = useState<Set<string>>(new Set());
     const [showRecommendations, setShowRecommendations] = useState(true);
     const [showUsageStats, setShowUsageStats] = useState(true);
@@ -180,6 +183,24 @@ export default function APITracker() {
             }
             return next;
         });
+    };
+
+    const runHealthCheck = async () => {
+        try {
+            setHealthCheckLoading(true);
+            const response = await fetch('/api/api-health-check', { 
+                method: 'POST',
+                credentials: 'include' 
+            });
+            if (response.ok) {
+                const result = await response.json();
+                setHealthCheckResult(result.data || result);
+            }
+        } catch (err) {
+            console.error('Health check failed:', err);
+        } finally {
+            setHealthCheckLoading(false);
+        }
     };
 
     const getPriorityColor = (priority: string) => {
@@ -248,20 +269,82 @@ export default function APITracker() {
                             <p className="text-sm text-gray-400">3rd Party Integration Status</p>
                         </div>
                     </div>
-                    <button 
-                        onClick={fetchStatus}
-                        className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-                        title="Refresh"
-                    >
-                        <RefreshCw className="w-4 h-4 text-gray-400 hover:text-white" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={runHealthCheck}
+                            disabled={healthCheckLoading}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors"
+                            style={{ 
+                                backgroundColor: 'rgba(0, 212, 255, 0.15)',
+                                color: '#00D4FF'
+                            }}
+                            title="Run connectivity health check"
+                        >
+                            {healthCheckLoading ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <HeartPulse className="w-4 h-4" />
+                            )}
+                            <span className="text-sm hidden sm:inline">Health Check</span>
+                        </button>
+                        <button 
+                            onClick={fetchStatus}
+                            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                            title="Refresh"
+                        >
+                            <RefreshCw className="w-4 h-4 text-gray-400 hover:text-white" />
+                        </button>
+                    </div>
                 </div>
+
+                {/* Health Check Result */}
+                {healthCheckResult && (
+                    <div 
+                        className="mb-4 p-4 rounded-xl"
+                        style={{ 
+                            backgroundColor: healthCheckResult.overallHealth === 'healthy' 
+                                ? 'rgba(0, 255, 145, 0.1)' 
+                                : healthCheckResult.overallHealth === 'critical'
+                                    ? 'rgba(239, 68, 68, 0.1)'
+                                    : 'rgba(255, 184, 0, 0.1)'
+                        }}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <HeartPulse 
+                                    className="w-5 h-5" 
+                                    style={{ 
+                                        color: healthCheckResult.overallHealth === 'healthy' 
+                                            ? '#00FF91' 
+                                            : healthCheckResult.overallHealth === 'critical'
+                                                ? '#EF4444'
+                                                : '#FFB800'
+                                    }}
+                                />
+                                <span className="font-medium text-white">
+                                    Live Health: {healthCheckResult.overallHealth.toUpperCase()}
+                                </span>
+                                <span className="text-sm text-gray-400">
+                                    ({healthCheckResult.healthScore}% APIs responding)
+                                </span>
+                            </div>
+                            <span className="text-xs text-gray-500">
+                                {new Date(healthCheckResult.timestamp).toLocaleTimeString()}
+                            </span>
+                        </div>
+                        {healthCheckResult.criticalIssues > 0 && (
+                            <div className="mt-2 text-sm text-red-400">
+                                ⚠️ {healthCheckResult.criticalIssues} critical API(s) not responding
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Health Score */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(0, 255, 145, 0.1)' }}>
                         <div className="text-2xl font-bold text-white">{data.summary.healthScore}%</div>
-                        <div className="text-xs text-gray-400">Health Score</div>
+                        <div className="text-xs text-gray-400">Config Score</div>
                     </div>
                     <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(0, 255, 145, 0.1)' }}>
                         <div className="text-2xl font-bold" style={{ color: '#00FF91' }}>{data.summary.configured}</div>

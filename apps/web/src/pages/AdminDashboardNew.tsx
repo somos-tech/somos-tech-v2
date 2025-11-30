@@ -14,7 +14,10 @@ import {
     TrendingUp,
     AlertTriangle,
     Loader2,
-    Shield
+    Shield,
+    Bell,
+    X,
+    CheckCircle
 } from 'lucide-react';
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
 import SystemHealthAlert from '@/components/SystemHealthAlert';
@@ -44,6 +47,17 @@ interface DashboardStats {
     moderationPending: number;
 }
 
+interface AdminAlert {
+    id: string;
+    type: 'api-health' | 'security' | 'system';
+    severity: 'critical' | 'warning' | 'info';
+    title: string;
+    message: string;
+    timestamp: string;
+    acknowledged: boolean;
+    failedServices?: string[];
+}
+
 export default function AdminDashboard() {
     const navigate = useNavigate();
     const [stats, setStats] = useState<DashboardStats>({
@@ -57,10 +71,45 @@ export default function AdminDashboard() {
         moderationPending: 0
     });
     const [loading, setLoading] = useState(true);
+    const [adminAlerts, setAdminAlerts] = useState<AdminAlert[]>([]);
+    const [alertsLoading, setAlertsLoading] = useState(true);
+    const [dismissingAlert, setDismissingAlert] = useState<string | null>(null);
 
     useEffect(() => {
         loadDashboardStats();
+        loadAdminAlerts();
     }, []);
+
+    const loadAdminAlerts = async () => {
+        try {
+            setAlertsLoading(true);
+            const response = await fetch('/api/admin-alerts?unacknowledged=true');
+            if (response.ok) {
+                const data = await response.json();
+                setAdminAlerts(data.alerts || []);
+            }
+        } catch (error) {
+            console.error('Failed to load admin alerts:', error);
+        } finally {
+            setAlertsLoading(false);
+        }
+    };
+
+    const acknowledgeAlert = async (alertId: string) => {
+        try {
+            setDismissingAlert(alertId);
+            const response = await fetch(`/api/admin-alerts/${alertId}/acknowledge`, {
+                method: 'POST'
+            });
+            if (response.ok) {
+                setAdminAlerts(prev => prev.filter(a => a.id !== alertId));
+            }
+        } catch (error) {
+            console.error('Failed to acknowledge alert:', error);
+        } finally {
+            setDismissingAlert(null);
+        }
+    };
 
     const loadDashboardStats = async () => {
         try {
@@ -305,6 +354,110 @@ export default function AdminDashboard() {
 
                 {/* System Health Alerts */}
                 <SystemHealthAlert />
+
+                {/* Admin Alerts Section */}
+                {!alertsLoading && adminAlerts.length > 0 && (
+                    <div className="mb-6">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Bell className="h-5 w-5" style={{ color: '#FFB800' }} />
+                            <h2 className="text-lg font-semibold" style={{ color: '#FFFFFF' }}>
+                                System Alerts ({adminAlerts.length})
+                            </h2>
+                        </div>
+                        <div className="space-y-3">
+                            {adminAlerts.map((alert) => (
+                                <div
+                                    key={alert.id}
+                                    className="rounded-xl p-4 transition-all duration-200"
+                                    style={{
+                                        backgroundColor: alert.severity === 'critical' ? 'rgba(239, 68, 68, 0.15)' : 
+                                                        alert.severity === 'warning' ? 'rgba(255, 184, 0, 0.15)' : 
+                                                        'rgba(0, 212, 255, 0.15)',
+                                        border: `1px solid ${
+                                            alert.severity === 'critical' ? 'rgba(239, 68, 68, 0.3)' :
+                                            alert.severity === 'warning' ? 'rgba(255, 184, 0, 0.3)' :
+                                            'rgba(0, 212, 255, 0.3)'
+                                        }`
+                                    }}
+                                >
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex items-start gap-3 flex-1">
+                                            <AlertTriangle 
+                                                className="h-5 w-5 mt-0.5 flex-shrink-0"
+                                                style={{ 
+                                                    color: alert.severity === 'critical' ? '#ef4444' :
+                                                           alert.severity === 'warning' ? '#FFB800' : '#00D4FF'
+                                                }}
+                                            />
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <h3 className="font-semibold" style={{ color: '#FFFFFF' }}>
+                                                        {alert.title}
+                                                    </h3>
+                                                    <span 
+                                                        className="text-xs px-2 py-0.5 rounded-full uppercase font-medium"
+                                                        style={{
+                                                            backgroundColor: alert.severity === 'critical' ? 'rgba(239, 68, 68, 0.3)' :
+                                                                           alert.severity === 'warning' ? 'rgba(255, 184, 0, 0.3)' :
+                                                                           'rgba(0, 212, 255, 0.3)',
+                                                            color: alert.severity === 'critical' ? '#ef4444' :
+                                                                   alert.severity === 'warning' ? '#FFB800' : '#00D4FF'
+                                                        }}
+                                                    >
+                                                        {alert.severity}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm mb-2" style={{ color: '#8394A7' }}>
+                                                    {alert.message}
+                                                </p>
+                                                {alert.failedServices && alert.failedServices.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1.5 mb-2">
+                                                        {alert.failedServices.map((service) => (
+                                                            <span 
+                                                                key={service}
+                                                                className="text-xs px-2 py-1 rounded-md"
+                                                                style={{
+                                                                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                                                                    color: '#ef4444'
+                                                                }}
+                                                            >
+                                                                {service}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center gap-4">
+                                                    <span className="text-xs" style={{ color: '#8394A7' }}>
+                                                        {new Date(alert.timestamp).toLocaleString()}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => navigate('/admin/health')}
+                                                        className="text-xs font-medium hover:underline"
+                                                        style={{ color: '#00D4FF' }}
+                                                    >
+                                                        View Details →
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => acknowledgeAlert(alert.id)}
+                                            disabled={dismissingAlert === alert.id}
+                                            className="p-1.5 rounded-lg transition-colors hover:bg-white/10"
+                                            title="Dismiss alert"
+                                        >
+                                            {dismissingAlert === alert.id ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#8394A7' }} />
+                                            ) : (
+                                                <X className="h-4 w-4" style={{ color: '#8394A7' }} />
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Header */}
                 <div className="mb-8">
