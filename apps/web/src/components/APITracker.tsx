@@ -31,7 +31,8 @@ import {
     Loader2,
     Activity,
     TrendingUp,
-    HeartPulse
+    HeartPulse,
+    ShieldAlert
 } from 'lucide-react';
 
 interface APIStatus {
@@ -114,6 +115,8 @@ interface APIStatusResponse {
 
 const API_ICONS: Record<string, any> = {
     virustotal: Link2,
+    googleSafeBrowsing: ShieldAlert,
+    'google-safe-browsing': ShieldAlert,
     contentSafety: Shield,
     azureOpenAI: Bot,
     auth0: Lock,
@@ -545,6 +548,61 @@ export default function APITracker() {
                                     {usageData.usage.virustotal.lastCall && (
                                         <div className="mt-2 text-xs text-gray-500">
                                             Last call: {new Date(usageData.usage.virustotal.lastCall).toLocaleString()}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Google Safe Browsing Usage */}
+                            {usageData.usage?.['google-safe-browsing'] && (
+                                <div 
+                                    className="p-4 rounded-xl"
+                                    style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+                                >
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div 
+                                            className="p-2 rounded-lg"
+                                            style={{ backgroundColor: 'rgba(0, 212, 255, 0.15)' }}
+                                        >
+                                            <ShieldAlert className="w-5 h-5" style={{ color: '#00D4FF' }} />
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-white">Google Safe Browsing</div>
+                                            <div className="text-xs text-gray-400">Malware & Phishing Detection</div>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(0, 212, 255, 0.1)' }}>
+                                            <div className="text-xl font-bold text-white">
+                                                {usageData.usage['google-safe-browsing'].today?.totalCalls || 0}
+                                            </div>
+                                            <div className="text-xs text-gray-400">Today</div>
+                                            <div className="text-xs" style={{ color: '#00D4FF' }}>
+                                                / {usageData.limits?.['google-safe-browsing']?.dailyLimit || 10000} limit
+                                            </div>
+                                        </div>
+                                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(0, 212, 255, 0.1)' }}>
+                                            <div className="text-xl font-bold text-white">
+                                                {usageData.usage['google-safe-browsing'].last30Days?.totalCalls || 0}
+                                            </div>
+                                            <div className="text-xs text-gray-400">Last 30 Days</div>
+                                        </div>
+                                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(0, 255, 145, 0.1)' }}>
+                                            <div className="text-xl font-bold" style={{ color: '#00FF91' }}>
+                                                {usageData.usage['google-safe-browsing'].today?.successCalls || 0}
+                                            </div>
+                                            <div className="text-xs text-gray-400">Successful</div>
+                                        </div>
+                                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
+                                            <div className="text-xl font-bold text-red-400">
+                                                {usageData.usage['google-safe-browsing'].today?.failedCalls || 0}
+                                            </div>
+                                            <div className="text-xs text-gray-400">Failed</div>
+                                        </div>
+                                    </div>
+                                    {usageData.usage['google-safe-browsing'].lastCall && (
+                                        <div className="mt-2 text-xs text-gray-500">
+                                            Last call: {new Date(usageData.usage['google-safe-browsing'].lastCall).toLocaleString()}
                                         </div>
                                     )}
                                 </div>

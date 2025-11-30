@@ -13,10 +13,12 @@ import {
     XCircle,
     Loader2,
     Wifi,
-    WifiOff
+    WifiOff,
+    PlugZap
 } from 'lucide-react';
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs';
 import AdminQuickNav from '@/components/AdminQuickNav';
+import APITracker from '@/components/APITracker';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { 
@@ -291,6 +293,33 @@ export default function APIHealthDashboard() {
                                 );
                             })}
                         </div>
+
+                        {/* 3rd Party API Integrations - Primary Card */}
+                        <Card 
+                            className="mb-8 p-6"
+                            style={{ 
+                                backgroundColor: '#051323',
+                                border: '2px solid rgba(0, 212, 255, 0.3)'
+                            }}
+                        >
+                            <div className="flex items-center gap-3 mb-6">
+                                <div 
+                                    className="p-3 rounded-xl"
+                                    style={{ backgroundColor: 'rgba(0, 212, 255, 0.15)' }}
+                                >
+                                    <PlugZap className="h-6 w-6" style={{ color: '#00D4FF' }} />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold" style={{ color: '#FFFFFF' }}>
+                                        3rd Party API Integrations
+                                    </h2>
+                                    <p className="text-sm" style={{ color: '#8394A7' }}>
+                                        External API dependencies, usage statistics, and configuration status
+                                    </p>
+                                </div>
+                            </div>
+                            <APITracker />
+                        </Card>
 
                         {/* Service Groups */}
                         <div className="space-y-6">

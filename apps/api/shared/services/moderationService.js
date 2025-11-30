@@ -38,7 +38,7 @@ import {
     defangTextUrls
 } from './linkSafetyService.js';
 import { createNotification } from './notificationService.js';
-import { trackVirusTotalCall, trackContentSafetyCall } from './apiTrackingService.js';
+import { trackVirusTotalCall, trackContentSafetyCall, trackGoogleSafeBrowsingCall } from './apiTrackingService.js';
 
 // ============== CONFIGURATION ==============
 
@@ -49,6 +49,10 @@ const CONTENT_SAFETY_KEY = process.env.CONTENT_SAFETY_KEY;
 // VirusTotal configuration
 const VIRUSTOTAL_API_KEY = process.env.VIRUSTOTAL_API_KEY;
 const VIRUSTOTAL_API_URL = 'https://www.virustotal.com/api/v3';
+
+// Google Safe Browsing configuration
+const GOOGLE_SAFE_BROWSING_API_KEY = process.env.GOOGLE_SAFE_BROWSING_API_KEY;
+const GOOGLE_SAFE_BROWSING_API_URL = 'https://safebrowsing.googleapis.com/v4/threatMatches:find';
 
 // Default moderation thresholds for Tier 3 (0=Safe, 2=Low, 4=Medium, 6=High)
 const DEFAULT_THRESHOLDS = {
@@ -1076,7 +1080,88 @@ function runSecurityCheck(text) {
     return result;
 }
 
-// ============== TIER 2: LINK SAFETY (VIRUSTOTAL) ==============
+// ============== TIER 2: LINK SAFETY (VIRUSTOTAL + GOOGLE SAFE BROWSING) ==============
+
+/**
+ * Check URL with Google Safe Browsing API
+ * @param {string} url - URL to check
+ * @returns {Promise<Object>} Google Safe Browsing result
+ */
+async function checkGoogleSafeBrowsing(url) {
+    if (!GOOGLE_SAFE_BROWSING_API_KEY) {
+        return {
+            checked: false,
+            error: 'Google Safe Browsing API key not configured',
+            malicious: false,
+            threatTypes: []
+        };
+    }
+
+    try {
+        const requestBody = {
+            client: {
+                clientId: 'somos-tech',
+                clientVersion: '1.0.0'
+            },
+            threatInfo: {
+                threatTypes: [
+                    'MALWARE',
+                    'SOCIAL_ENGINEERING',
+                    'UNWANTED_SOFTWARE',
+                    'POTENTIALLY_HARMFUL_APPLICATION'
+                ],
+                platformTypes: ['ANY_PLATFORM'],
+                threatEntryTypes: ['URL'],
+                threatEntries: [{ url }]
+            }
+        };
+
+        const response = await fetch(`${GOOGLE_SAFE_BROWSING_API_URL}?key=${GOOGLE_SAFE_BROWSING_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        // Track the API call
+        trackGoogleSafeBrowsingCall('url_check', response.ok).catch(() => {});
+
+        if (!response.ok) {
+            throw new Error(`Google Safe Browsing API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // If matches is empty or undefined, URL is safe
+        if (!data.matches || data.matches.length === 0) {
+            return {
+                checked: true,
+                malicious: false,
+                threatTypes: [],
+                message: 'No threats detected'
+            };
+        }
+
+        // URL has threats
+        const threatTypes = [...new Set(data.matches.map(m => m.threatType))];
+        return {
+            checked: true,
+            malicious: true,
+            threatTypes,
+            message: `Threats detected: ${threatTypes.join(', ')}`,
+            details: data.matches
+        };
+
+    } catch (error) {
+        console.error('[ModerationService] Google Safe Browsing error:', error);
+        trackGoogleSafeBrowsingCall('url_check', false).catch(() => {});
+        return {
+            checked: false,
+            error: error.message,
+            malicious: false,
+            threatTypes: []
+        };
+    }
+}
 
 /**
  * Check URL with VirusTotal API
@@ -1306,6 +1391,45 @@ async function runTier2LinkSafety(text, tier2Config) {
                     passed: true,
                     url: urlResult.defangedUrl,
                     message: `VirusTotal: ${vtResult.error || 'Not checked'}`
+                });
+            }
+        }
+
+        // Run Google Safe Browsing check if enabled
+        if (tier2Config.useGoogleSafeBrowsing !== false) {
+            const gsbResult = await checkGoogleSafeBrowsing(url);
+            urlResult.googleSafeBrowsing = gsbResult;
+            
+            if (gsbResult.checked) {
+                if (gsbResult.malicious) {
+                    urlResult.safe = false;
+                    urlResult.riskLevel = 'critical';
+                    urlResult.threats.push({
+                        type: 'google_safe_browsing',
+                        severity: 'critical',
+                        message: gsbResult.message,
+                        threatTypes: gsbResult.threatTypes
+                    });
+                    result.checks.push({
+                        name: 'google_safe_browsing',
+                        passed: false,
+                        url: urlResult.defangedUrl,
+                        message: `THREAT DETECTED: ${gsbResult.message}`
+                    });
+                } else {
+                    result.checks.push({
+                        name: 'google_safe_browsing',
+                        passed: true,
+                        url: urlResult.defangedUrl,
+                        message: 'Google Safe Browsing: No threats detected'
+                    });
+                }
+            } else {
+                result.checks.push({
+                    name: 'google_safe_browsing',
+                    passed: true,
+                    url: urlResult.defangedUrl,
+                    message: `Google Safe Browsing: ${gsbResult.error || 'Not checked'}`
                 });
             }
         }

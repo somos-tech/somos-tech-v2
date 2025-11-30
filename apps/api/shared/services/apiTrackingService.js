@@ -210,7 +210,7 @@ async function getApiStats(apiName, days = 30) {
  * Get all tracked API stats
  */
 async function getAllApiStats() {
-    const apis = ['virustotal', 'auth0', 'content-safety'];
+    const apis = ['virustotal', 'auth0', 'content-safety', 'google-safe-browsing'];
     const results = {};
 
     for (const api of apis) {
@@ -247,11 +247,21 @@ async function trackContentSafetyCall(operation, success = true) {
     return trackApiCall('content-safety', operation, success);
 }
 
+/**
+ * Track Google Safe Browsing API call
+ * @param {string} operation - e.g., 'url_check'
+ * @param {boolean} success - Whether the call succeeded
+ */
+async function trackGoogleSafeBrowsingCall(operation, success = true) {
+    return trackApiCall('google-safe-browsing', operation, success);
+}
+
 export {
     trackApiCall,
     trackVirusTotalCall,
     trackAuth0Call,
     trackContentSafetyCall,
+    trackGoogleSafeBrowsingCall,
     getApiStats,
     getAllApiStats
 };

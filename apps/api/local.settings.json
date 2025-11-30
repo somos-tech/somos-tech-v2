@@ -17,7 +17,8 @@
         "ALLOWED_ADMIN_DOMAIN": "somos.tech",
         "AUTH0_DOMAIN": "dev-0tp5bbdn7af0lfpv.us.auth0.com",
         "AUTH0_MANAGEMENT_CLIENT_ID": "08aK1L6WykfRr1h10gsd4K24Ywy4xcpX",
-        "AUTH0_MANAGEMENT_CLIENT_SECRET": ""
+        "AUTH0_MANAGEMENT_CLIENT_SECRET": "",
+        "GOOGLE_SAFE_BROWSING_API_KEY": "AIzaSyAF8q7N5Uzwmev9PxWw6NoDViSval0op4w"
     },
     "Host": {
         "CORS": "*"

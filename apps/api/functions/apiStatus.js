@@ -41,6 +41,15 @@ const API_LIMITS = {
         keyExpiry: null, // API keys don't expire but can be revoked
         criticalFor: ['Link Safety', 'Tier 2 Moderation']
     },
+    googleSafeBrowsing: {
+        name: 'Google Safe Browsing',
+        description: 'Malware, phishing, and unwanted software detection via Google',
+        freeLimit: '10,000 requests/day (Lookup API)',
+        premiumLimit: 'Update API for high-volume usage',
+        documentation: 'https://developers.google.com/safe-browsing/v4',
+        keyExpiry: null,
+        criticalFor: ['Link Safety', 'Tier 2 Moderation', 'Malware Detection']
+    },
     contentSafety: {
         name: 'Azure Content Safety',
         description: 'AI-powered content moderation for hate, violence, sexual, self-harm',
@@ -143,6 +152,17 @@ async function getAPIStatuses() {
             : null
     };
 
+    // Google Safe Browsing
+    statuses.googleSafeBrowsing = {
+        ...API_LIMITS.googleSafeBrowsing,
+        configured: isConfigured('GOOGLE_SAFE_BROWSING_API_KEY'),
+        status: isConfigured('GOOGLE_SAFE_BROWSING_API_KEY') ? 'active' : 'not_configured',
+        envVar: 'GOOGLE_SAFE_BROWSING_API_KEY',
+        keyPreview: isConfigured('GOOGLE_SAFE_BROWSING_API_KEY') 
+            ? `${process.env.GOOGLE_SAFE_BROWSING_API_KEY.substring(0, 4)}...${process.env.GOOGLE_SAFE_BROWSING_API_KEY.slice(-4)}`
+            : null
+    };
+
     // Azure Content Safety
     statuses.contentSafety = {
         ...API_LIMITS.contentSafety,
@@ -237,6 +257,7 @@ function getSummary(statuses) {
     if (!statuses.cosmosDB.configured) criticalMissing.push('Cosmos DB (Database)');
     if (!statuses.auth0.configured) criticalMissing.push('Auth0 (User Authentication)');
     if (!statuses.virustotal.configured) criticalMissing.push('VirusTotal (Link Safety)');
+    if (!statuses.googleSafeBrowsing.configured) criticalMissing.push('Google Safe Browsing (Malware Detection)');
     if (!statuses.contentSafety.configured) criticalMissing.push('Content Safety (AI Moderation)');
 
     return {
@@ -296,6 +317,15 @@ function getRecommendations(statuses) {
             api: 'VirusTotal',
             message: 'Configure VirusTotal API key to enable link safety scanning. Free tier allows 500 requests/day.',
             action: 'Add VIRUSTOTAL_API_KEY environment variable'
+        });
+    }
+
+    if (!statuses.googleSafeBrowsing.configured) {
+        recommendations.push({
+            priority: 'high',
+            api: 'Google Safe Browsing',
+            message: 'Configure Google Safe Browsing API for malware and phishing detection. Free tier allows 10,000 requests/day.',
+            action: 'Add GOOGLE_SAFE_BROWSING_API_KEY environment variable'
         });
     }
 
@@ -366,6 +396,12 @@ app.http('apiUsageStats', {
                     tier: 'free',
                     resetTime: 'Daily at midnight UTC'
                 },
+                'google-safe-browsing': {
+                    dailyLimit: 10000,
+                    tier: 'free',
+                    limitType: 'Lookup API requests',
+                    resetTime: 'Daily at midnight UTC'
+                },
                 auth0: {
                     monthlyLimit: 1000,
                     tier: 'free',
@@ -419,6 +455,29 @@ function generateUsageWarnings(usage, limits) {
                 api: 'VirusTotal',
                 severity: 'warning',
                 message: `High daily usage: ${vtUsage}/${vtLimit} (${vtPercent.toFixed(1)}%)`,
+                recommendation: 'Monitor usage to avoid hitting rate limits'
+            });
+        }
+    }
+
+    // Check Google Safe Browsing daily limit
+    if (usage['google-safe-browsing']?.today?.totalCalls > 0) {
+        const gsbUsage = usage['google-safe-browsing'].today.totalCalls;
+        const gsbLimit = limits['google-safe-browsing']?.dailyLimit || 10000;
+        const gsbPercent = (gsbUsage / gsbLimit) * 100;
+
+        if (gsbPercent >= 90) {
+            warnings.push({
+                api: 'Google Safe Browsing',
+                severity: 'critical',
+                message: `Daily limit almost reached: ${gsbUsage}/${gsbLimit} (${gsbPercent.toFixed(1)}%)`,
+                recommendation: 'Consider using the Update API for higher volume'
+            });
+        } else if (gsbPercent >= 70) {
+            warnings.push({
+                api: 'Google Safe Browsing',
+                severity: 'warning',
+                message: `High daily usage: ${gsbUsage}/${gsbLimit} (${gsbPercent.toFixed(1)}%)`,
                 recommendation: 'Monitor usage to avoid hitting rate limits'
             });
         }

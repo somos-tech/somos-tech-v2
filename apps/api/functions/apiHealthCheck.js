@@ -31,6 +31,11 @@ const API_CHECKS = {
         testEndpoint: 'https://www.virustotal.com/api/v3/urls',
         critical: true
     },
+    googleSafeBrowsing: {
+        name: 'Google Safe Browsing',
+        envVars: ['GOOGLE_SAFE_BROWSING_API_KEY'],
+        critical: true
+    },
     contentSafety: {
         name: 'Azure Content Safety',
         envVars: ['CONTENT_SAFETY_ENDPOINT', 'CONTENT_SAFETY_KEY'],
@@ -87,6 +92,45 @@ async function testVirusTotal() {
         }
         if (response.status === 429) {
             return { success: true, warning: 'Rate limited - but API is responding' };
+        }
+        
+        return { success: response.ok, status: response.status };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Test Google Safe Browsing API connectivity
+ */
+async function testGoogleSafeBrowsing() {
+    const apiKey = process.env.GOOGLE_SAFE_BROWSING_API_KEY;
+    if (!apiKey) return { success: false, error: 'API key not configured' };
+
+    try {
+        // Test with a safe URL to verify API is working
+        const response = await fetch(`https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                client: {
+                    clientId: 'somos-tech-health-check',
+                    clientVersion: '1.0.0'
+                },
+                threatInfo: {
+                    threatTypes: ['MALWARE'],
+                    platformTypes: ['ANY_PLATFORM'],
+                    threatEntryTypes: ['URL'],
+                    threatEntries: [{ url: 'https://www.google.com' }]
+                }
+            })
+        });
+        
+        if (response.status === 400) {
+            return { success: false, error: 'Invalid API key' };
+        }
+        if (response.status === 403) {
+            return { success: false, error: 'API key unauthorized or quota exceeded' };
         }
         
         return { success: response.ok, status: response.status };
@@ -195,6 +239,9 @@ async function runHealthChecks() {
         switch (key) {
             case 'virustotal':
                 testResult = await testVirusTotal();
+                break;
+            case 'googleSafeBrowsing':
+                testResult = await testGoogleSafeBrowsing();
                 break;
             case 'contentSafety':
                 testResult = await testContentSafety();

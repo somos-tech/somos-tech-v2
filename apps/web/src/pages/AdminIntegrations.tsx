@@ -1,57 +1,32 @@
 /**
  * Admin API Integrations Page
  * 
- * Shows all 3rd party API dependencies with:
- * - Configuration status
- * - Rate limits
- * - Health indicators
- * - Recommendations
+ * Redirects to the unified API Health Dashboard which now includes
+ * all 3rd party API integrations monitoring.
+ * 
+ * This page is kept for backward compatibility with existing bookmarks.
  */
 
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Key, Zap } from 'lucide-react';
-import AdminQuickNav from '@/components/AdminQuickNav';
-import APITracker from '@/components/APITracker';
+import { Loader2 } from 'lucide-react';
 
 export default function AdminIntegrations() {
     const navigate = useNavigate();
 
-    return (
-        <div style={{ backgroundColor: '#051323', minHeight: '100vh' }}>
-            {/* Quick Navigation */}
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4">
-                <AdminQuickNav />
-            </div>
-            
-            {/* Header */}
-            <div 
-                className="border-b sticky top-16 z-40"
-                style={{ backgroundColor: 'rgba(5, 19, 35, 0.95)', borderColor: 'rgba(0, 255, 145, 0.1)' }}
-            >
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => navigate('/admin/settings')}
-                            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-                        >
-                            <ArrowLeft className="w-5 h-5 text-white" />
-                        </button>
-                        <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
-                                <Key className="w-8 h-8" style={{ color: '#00FF91' }} />
-                                API & Integrations
-                            </h1>
-                            <p style={{ color: '#8394A7' }} className="text-sm mt-1">
-                                Monitor 3rd party API dependencies, rate limits, and configuration status
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    useEffect(() => {
+        // Redirect to the unified API Health Dashboard
+        navigate('/admin/health', { replace: true });
+    }, [navigate]);
 
-            {/* Main Content */}
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-                <APITracker />
+    return (
+        <div 
+            style={{ backgroundColor: '#051323', minHeight: '100vh' }}
+            className="flex items-center justify-center"
+        >
+            <div className="text-center">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" style={{ color: '#00FF91' }} />
+                <p style={{ color: '#8394A7' }}>Redirecting to API Health Dashboard...</p>
             </div>
         </div>
     );
