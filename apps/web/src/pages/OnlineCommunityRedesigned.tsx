@@ -11,7 +11,7 @@
  * @author SOMOS.tech
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMessagePolling, usePresencePolling } from '../hooks/useSmartPolling';
 import {
@@ -37,7 +37,10 @@ import {
     Calendar,
     Star,
     Bell,
-    BellOff
+    BellOff,
+    Menu,
+    ChevronLeft,
+    Volume2
 } from 'lucide-react';
 import { UserAvatar } from '@/components/DefaultAvatar';
 import UserProfilePopup from '@/components/UserProfilePopup';
@@ -76,13 +79,30 @@ interface CommunityUser {
     isCurrentUser?: boolean;
 }
 
+// Channel type
+interface Channel {
+    id: string;
+    name: string;
+    icon: React.ForwardRefExoticComponent<React.SVGProps<SVGSVGElement> & React.RefAttributes<SVGSVGElement>>;
+    description: string;
+    isAdminOnly?: boolean;
+    isOfficial?: boolean;
+}
+
+// Category type
+interface ChannelCategory {
+    name: string;
+    icon: string;
+    channels: Channel[];
+}
+
 // Channel categories and channels with modern icons
-const CHANNEL_CATEGORIES = [
+const CHANNEL_CATEGORIES: ChannelCategory[] = [
     {
         name: 'Information',
         icon: '📢',
         channels: [
-            { id: 'announcements', name: 'announcements', icon: Megaphone, description: 'Important announcements' },
+            { id: 'announcements', name: 'announcements', icon: Volume2, description: 'Important announcements', isAdminOnly: true },
         ]
     },
     {
@@ -158,7 +178,9 @@ function ChannelSidebar({
     currentUser,
     onNavigateToProfile,
     favorites,
-    onToggleFavorite
+    onToggleFavorite,
+    isMobile,
+    onClose
 }: {
     selectedChannel: string;
     onSelectChannel: (id: string) => void;
@@ -168,15 +190,24 @@ function ChannelSidebar({
     onNavigateToProfile: () => void;
     favorites: Set<string>;
     onToggleFavorite: (channelId: string) => void;
+    isMobile?: boolean;
+    onClose?: () => void;
 }) {
     const navigate = useNavigate();
     
     // Get favorite channels
     const favoriteChannels = ALL_CHANNELS.filter(ch => favorites.has(ch.id));
+
+    const handleChannelSelect = (channelId: string) => {
+        onSelectChannel(channelId);
+        if (isMobile && onClose) {
+            onClose();
+        }
+    };
     
     return (
         <div 
-            className="w-72 flex-shrink-0 flex flex-col h-full"
+            className={`flex-shrink-0 flex flex-col h-full ${isMobile ? 'w-full' : 'w-72'}`}
             style={{ 
                 backgroundColor: '#0a1520',
                 borderRight: '1px solid rgba(0, 255, 145, 0.06)'
@@ -207,8 +238,16 @@ function ChannelSidebar({
                         background: 'linear-gradient(270deg, transparent 0%, rgba(10, 21, 32, 0.3) 40%, rgba(10, 21, 32, 0.8) 100%)'
                     }}
                 />
-                <div className="relative z-10">
+                <div className="relative z-10 flex items-center justify-between w-full">
                     <span className="font-bold text-white text-xl tracking-tight">Community</span>
+                    {isMobile && onClose && (
+                        <button 
+                            onClick={onClose}
+                            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                        >
+                            <X className="w-5 h-5 text-gray-400" />
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -236,7 +275,7 @@ function ChannelSidebar({
                                 {favoriteChannels.map(channel => (
                                     <div key={channel.id} className="group/item relative">
                                         <button
-                                            onClick={() => onSelectChannel(channel.id)}
+                                            onClick={() => handleChannelSelect(channel.id)}
                                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group ${
                                                 selectedChannel === channel.id 
                                                     ? 'text-white' 
@@ -290,7 +329,7 @@ function ChannelSidebar({
                                 {category.channels.map(channel => (
                                     <div key={channel.id} className="group/item relative">
                                         <button
-                                            onClick={() => onSelectChannel(channel.id)}
+                                            onClick={() => handleChannelSelect(channel.id)}
                                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group ${
                                                 selectedChannel === channel.id 
                                                     ? 'text-white' 
@@ -916,6 +955,10 @@ export default function OnlineCommunity() {
     const [moderationWarning, setModerationWarning] = useState<string | null>(null);
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     
+    // Mobile sidebar state
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+    const [isMobileMembersOpen, setIsMobileMembersOpen] = useState(false);
+    
     // Favorites state - loaded from localStorage
     const [favorites, setFavorites] = useState<Set<string>>(() => {
         try {
@@ -1221,9 +1264,29 @@ export default function OnlineCommunity() {
     const getCurrentChannelName = () => getCurrentChannel().name;
     const getCurrentChannelDescription = () => getCurrentChannel().description;
     const CurrentChannelIcon = getCurrentChannel().icon;
+    const isCurrentChannelAdminOnly = () => getCurrentChannel().isAdminOnly === true;
+    
+    // Check if user can post in current channel (admin-only check)
+    const canPostInChannel = isAdmin || !isCurrentChannelAdminOnly();
 
     return (
-        <div className="h-[calc(100vh-80px)] flex" style={{ backgroundColor: '#050d15' }}>
+        <div className="h-[calc(100vh-80px)] flex relative" style={{ backgroundColor: '#050d15' }}>
+            {/* Mobile Sidebar Overlay */}
+            {isMobileSidebarOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+                    onClick={() => setIsMobileSidebarOpen(false)}
+                />
+            )}
+            
+            {/* Mobile Members Overlay */}
+            {isMobileMembersOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+                    onClick={() => setIsMobileMembersOpen(false)}
+                />
+            )}
+
             {/* User Profile Popup */}
             <UserProfilePopup
                 userId={profilePopup.userId}
@@ -1234,17 +1297,40 @@ export default function OnlineCommunity() {
                 anchorPosition={profilePopup.position}
             />
 
-            {/* Channel Sidebar */}
-            <ChannelSidebar
-                selectedChannel={selectedChannel}
-                onSelectChannel={setSelectedChannel}
-                collapsedCategories={collapsedCategories}
-                toggleCategory={toggleCategory}
-                currentUser={currentUser}
-                onNavigateToProfile={() => navigate('/profile')}
-                favorites={favorites}
-                onToggleFavorite={toggleFavorite}
-            />
+            {/* Channel Sidebar - Desktop */}
+            <div className="hidden lg:flex">
+                <ChannelSidebar
+                    selectedChannel={selectedChannel}
+                    onSelectChannel={setSelectedChannel}
+                    collapsedCategories={collapsedCategories}
+                    toggleCategory={toggleCategory}
+                    currentUser={currentUser}
+                    onNavigateToProfile={() => navigate('/profile')}
+                    favorites={favorites}
+                    onToggleFavorite={toggleFavorite}
+                />
+            </div>
+            
+            {/* Channel Sidebar - Mobile (Slide-in) */}
+            <div 
+                className={`fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] transform transition-transform duration-300 ease-in-out lg:hidden ${
+                    isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
+                style={{ backgroundColor: '#0a1520' }}
+            >
+                <ChannelSidebar
+                    selectedChannel={selectedChannel}
+                    onSelectChannel={setSelectedChannel}
+                    collapsedCategories={collapsedCategories}
+                    toggleCategory={toggleCategory}
+                    currentUser={currentUser}
+                    onNavigateToProfile={() => navigate('/profile')}
+                    favorites={favorites}
+                    onToggleFavorite={toggleFavorite}
+                    isMobile={true}
+                    onClose={() => setIsMobileSidebarOpen(false)}
+                />
+            </div>
 
             {/* Main Chat Area */}
             <div 
@@ -1256,31 +1342,39 @@ export default function OnlineCommunity() {
             >
                 {/* Channel Header */}
                 <div 
-                    className="h-16 px-6 flex items-center justify-between flex-shrink-0"
+                    className="h-14 lg:h-16 px-3 lg:px-6 flex items-center justify-between flex-shrink-0"
                     style={{ 
                         borderBottom: '1px solid rgba(0, 255, 145, 0.06)',
                         background: 'linear-gradient(180deg, rgba(0, 255, 145, 0.02) 0%, transparent 100%)'
                     }}
                 >
-                    <div className="flex items-center gap-4">
-                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#00FF91]/15 to-[#00FF91]/5">
-                            <CurrentChannelIcon className="w-5 h-5 text-[#00FF91]" />
+                    <div className="flex items-center gap-2 lg:gap-4">
+                        {/* Mobile Menu Button */}
+                        <button
+                            onClick={() => setIsMobileSidebarOpen(true)}
+                            className="lg:hidden p-2 rounded-xl hover:bg-white/5 transition-all duration-200"
+                        >
+                            <Menu className="w-5 h-5 text-gray-400" />
+                        </button>
+                        <div className="p-2 lg:p-2.5 rounded-xl bg-gradient-to-br from-[#00FF91]/15 to-[#00FF91]/5">
+                            <CurrentChannelIcon className="w-4 h-4 lg:w-5 lg:h-5 text-[#00FF91]" />
                         </div>
                         <div>
-                            <h2 className="font-bold text-white text-lg">{getCurrentChannelName()}</h2>
-                            <p className="text-xs text-gray-500">{getCurrentChannelDescription()}</p>
+                            <h2 className="font-bold text-white text-base lg:text-lg">{getCurrentChannelName()}</h2>
+                            <p className="text-xs text-gray-500 hidden sm:block">{getCurrentChannelDescription()}</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 lg:gap-2">
                         <button 
                             onClick={handleManualRefresh}
-                            className="p-2.5 rounded-xl hover:bg-white/5 transition-all duration-200"
+                            className="p-2 lg:p-2.5 rounded-xl hover:bg-white/5 transition-all duration-200"
                             title="Refresh messages"
                             disabled={isRefreshing}
                         >
                             <RefreshCw className={`w-4 h-4 text-gray-500 hover:text-[#00FF91] ${isRefreshing ? 'animate-spin text-[#00FF91]' : ''}`} />
                         </button>
-                        <div className="relative">
+                        {/* Search - Hidden on mobile */}
+                        <div className="relative hidden md:block">
                             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
                             <input
                                 type="text"
@@ -1289,8 +1383,37 @@ export default function OnlineCommunity() {
                                 style={{ backgroundColor: 'rgba(5, 13, 21, 0.8)', border: '1px solid rgba(255,255,255,0.06)', color: 'white' }}
                             />
                         </div>
+                        {/* Mobile Members Button */}
+                        <button
+                            onClick={() => setIsMobileMembersOpen(true)}
+                            className="lg:hidden p-2 rounded-xl hover:bg-white/5 transition-all duration-200"
+                        >
+                            <Users className="w-5 h-5 text-gray-400" />
+                        </button>
                     </div>
                 </div>
+
+                {/* Announcements Banner - Only show on announcements channel */}
+                {selectedChannel === 'announcements' && (
+                    <div 
+                        className="mx-3 lg:mx-5 mt-3 px-4 py-3 rounded-xl flex items-center gap-3"
+                        style={{ 
+                            backgroundColor: 'rgba(0, 255, 145, 0.05)', 
+                            border: '1px solid rgba(0, 255, 145, 0.1)' 
+                        }}
+                    >
+                        <Volume2 className="w-5 h-5 text-[#00FF91] flex-shrink-0" />
+                        <div className="flex-1">
+                            <p className="text-sm text-gray-300">
+                                <span className="font-semibold text-[#00FF91]">Community Announcements</span>
+                                {' '}— Important updates and news will be posted here.
+                            </p>
+                            {!isAdmin && (
+                                <p className="text-xs text-gray-500 mt-1">Only admins can post in this channel.</p>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Messages Area */}
                 <div className="flex-1 overflow-y-auto overflow-x-visible py-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
@@ -1299,11 +1422,11 @@ export default function OnlineCommunity() {
                         <div className="flex flex-col items-center justify-center h-full text-center px-4">
                             <div className="relative mb-6">
                                 <div className="absolute inset-0 rounded-full bg-[#00FF91]/20 blur-2xl animate-pulse" />
-                                <div className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-[#00FF91]/20 to-[#00FF91]/5 flex items-center justify-center border border-[#00FF91]/15">
-                                    <MessageSquare className="w-12 h-12 text-[#00FF91]" />
+                                <div className="relative w-20 h-20 lg:w-24 lg:h-24 rounded-2xl bg-gradient-to-br from-[#00FF91]/20 to-[#00FF91]/5 flex items-center justify-center border border-[#00FF91]/15">
+                                    <MessageSquare className="w-10 h-10 lg:w-12 lg:h-12 text-[#00FF91]" />
                                 </div>
                             </div>
-                            <h3 className="text-2xl font-bold text-white mb-2">
+                            <h3 className="text-xl lg:text-2xl font-bold text-white mb-2">
                                 Welcome to <span className="text-[#00FF91]">#{getCurrentChannelName()}</span>
                             </h3>
                             <p className="text-gray-500 max-w-sm text-sm">
@@ -1326,7 +1449,7 @@ export default function OnlineCommunity() {
                     {/* Error State */}
                     {error && (
                         <div 
-                            className="mx-5 mb-4 p-4 rounded-xl flex items-center gap-3"
+                            className="mx-3 lg:mx-5 mb-4 p-4 rounded-xl flex items-center gap-3"
                             style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.15)' }}
                         >
                             <MessageSquare className="w-4 h-4 text-red-400" />
@@ -1361,11 +1484,24 @@ export default function OnlineCommunity() {
                 </div>
 
                 {/* Message Input */}
-                <div className="p-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(0, 255, 145, 0.06)' }}>
-                    {/* Reply Preview */}
-                    {replyingTo && (
+                <div className="p-3 lg:p-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(0, 255, 145, 0.06)' }}>
+                    {/* Admin-only channel notice */}
+                    {!canPostInChannel && (
                         <div 
-                            className="mb-3 px-4 py-2.5 rounded-xl flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-200"
+                            className="mb-3 px-4 py-3 rounded-xl flex items-center gap-3"
+                            style={{ backgroundColor: 'rgba(255, 215, 0, 0.05)', border: '1px solid rgba(255, 215, 0, 0.1)' }}
+                        >
+                            <Volume2 className="w-4 h-4 text-[#FFD700] flex-shrink-0" />
+                            <p className="text-sm text-gray-400">
+                                This is a read-only channel. Only admins can post announcements.
+                            </p>
+                        </div>
+                    )}
+                    
+                    {/* Reply Preview */}
+                    {replyingTo && canPostInChannel && (
+                        <div 
+                            className="mb-3 px-3 lg:px-4 py-2.5 rounded-xl flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-200"
                             style={{ backgroundColor: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)' }}
                         >
                             <Reply className="w-4 h-4 text-[#00FF91] flex-shrink-0" />
@@ -1382,50 +1518,52 @@ export default function OnlineCommunity() {
                         </div>
                     )}
                     
-                    <div 
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 focus-within:ring-1 focus-within:ring-[#00FF91]/30"
-                        style={{ 
-                            backgroundColor: 'rgba(10, 22, 40, 0.8)', 
-                            border: moderationWarning ? '1px solid rgba(255, 68, 68, 0.3)' : '1px solid rgba(255,255,255,0.06)' 
-                        }}
-                    >
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={messageInput}
-                            onChange={(e) => {
-                                setMessageInput(e.target.value);
-                                if (moderationWarning) setModerationWarning(null);
+                    {canPostInChannel && (
+                        <div 
+                            className="flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl transition-all duration-200 focus-within:ring-1 focus-within:ring-[#00FF91]/30"
+                            style={{ 
+                                backgroundColor: 'rgba(10, 22, 40, 0.8)', 
+                                border: moderationWarning ? '1px solid rgba(255, 68, 68, 0.3)' : '1px solid rgba(255,255,255,0.06)' 
                             }}
-                            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                            placeholder={replyingTo ? `Reply to ${replyingTo.userName}...` : `Message #${getCurrentChannelName()}`}
-                            className="flex-1 bg-transparent border-none outline-none text-white placeholder-gray-500 text-[15px]"
-                            disabled={isSending}
-                        />
-                        <button 
-                            onClick={handleSendMessage}
-                            disabled={!messageInput.trim() || isSending}
-                            className="p-2.5 rounded-xl bg-[#00FF91] hover:bg-[#00FF91]/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
-                            style={{ boxShadow: messageInput.trim() ? '0 0 20px rgba(0, 255, 145, 0.2)' : 'none' }}
                         >
-                            {isSending ? (
-                                <Loader2 className="w-5 h-5 text-[#051323] animate-spin" />
-                            ) : (
-                                <Send className="w-5 h-5 text-[#051323]" />
-                            )}
-                        </button>
-                    </div>
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                value={messageInput}
+                                onChange={(e) => {
+                                    setMessageInput(e.target.value);
+                                    if (moderationWarning) setModerationWarning(null);
+                                }}
+                                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                                placeholder={replyingTo ? `Reply to ${replyingTo.userName}...` : `Message #${getCurrentChannelName()}`}
+                                className="flex-1 bg-transparent border-none outline-none text-white placeholder-gray-500 text-sm lg:text-[15px]"
+                                disabled={isSending}
+                            />
+                            <button 
+                                onClick={handleSendMessage}
+                                disabled={!messageInput.trim() || isSending}
+                                className="p-2 lg:p-2.5 rounded-xl bg-[#00FF91] hover:bg-[#00FF91]/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+                                style={{ boxShadow: messageInput.trim() ? '0 0 20px rgba(0, 255, 145, 0.2)' : 'none' }}
+                            >
+                                {isSending ? (
+                                    <Loader2 className="w-5 h-5 text-[#051323] animate-spin" />
+                                ) : (
+                                    <Send className="w-5 h-5 text-[#051323]" />
+                                )}
+                            </button>
+                        </div>
+                    )}
                     
                     {/* Moderation Warning */}
                     {moderationWarning && (
                         <div 
-                            className="mt-2 px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+                            className="mt-2 px-3 lg:px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
                             style={{ backgroundColor: 'rgba(255, 68, 68, 0.1)', border: '1px solid rgba(255, 68, 68, 0.2)' }}
                         >
                             <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
-                            <span className="text-red-400">{moderationWarning}</span>
+                            <span className="text-red-400 text-xs lg:text-sm">{moderationWarning}</span>
                             <button 
                                 onClick={() => setModerationWarning(null)}
                                 className="ml-auto text-red-400 hover:text-red-300"
@@ -1437,16 +1575,54 @@ export default function OnlineCommunity() {
                 </div>
             </div>
 
-            {/* Member Sidebar */}
-            <MemberSidebar 
-                onlineUsers={onlineUsers}
-                offlineUsers={offlineUsers}
-                totalUsers={onlineUsers.length + offlineUsers.length}
-                isLoading={isLoadingUsers}
-                onUserClick={(id, name, photo, e) => handleUserClick(id, name, photo || null, e)}
-                notifications={notifications}
-                onToggleNotification={toggleNotification}
-            />
+            {/* Member Sidebar - Desktop */}
+            <div className="hidden lg:block">
+                <MemberSidebar 
+                    onlineUsers={onlineUsers}
+                    offlineUsers={offlineUsers}
+                    totalUsers={onlineUsers.length + offlineUsers.length}
+                    isLoading={isLoadingUsers}
+                    onUserClick={(id, name, photo, e) => handleUserClick(id, name, photo || null, e)}
+                    notifications={notifications}
+                    onToggleNotification={toggleNotification}
+                />
+            </div>
+            
+            {/* Member Sidebar - Mobile (Slide-in) */}
+            <div 
+                className={`fixed inset-y-0 right-0 z-50 w-80 max-w-[85vw] transform transition-transform duration-300 ease-in-out lg:hidden ${
+                    isMobileMembersOpen ? 'translate-x-0' : 'translate-x-full'
+                }`}
+                style={{ backgroundColor: '#0a1520' }}
+            >
+                <div className="h-full flex flex-col">
+                    {/* Mobile Members Header */}
+                    <div 
+                        className="h-14 px-4 flex items-center justify-between flex-shrink-0"
+                        style={{ borderBottom: '1px solid rgba(0, 255, 145, 0.08)' }}
+                    >
+                        <span className="font-bold text-white">Members</span>
+                        <button 
+                            onClick={() => setIsMobileMembersOpen(false)}
+                            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                        >
+                            <X className="w-5 h-5 text-gray-400" />
+                        </button>
+                    </div>
+                    <MemberSidebar 
+                        onlineUsers={onlineUsers}
+                        offlineUsers={offlineUsers}
+                        totalUsers={onlineUsers.length + offlineUsers.length}
+                        isLoading={isLoadingUsers}
+                        onUserClick={(id, name, photo, e) => {
+                            handleUserClick(id, name, photo || null, e);
+                            setIsMobileMembersOpen(false);
+                        }}
+                        notifications={notifications}
+                        onToggleNotification={toggleNotification}
+                    />
+                </div>
+            </div>
         </div>
     );
 }

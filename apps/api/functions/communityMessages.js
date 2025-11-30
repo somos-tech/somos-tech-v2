@@ -22,6 +22,9 @@ const CONTAINERS = {
     USERS: 'users'
 };
 
+// Admin-only channels - only admins can post here
+const ADMIN_ONLY_CHANNELS = ['announcements'];
+
 /**
  * Get user profile data - looks up by userId first, then by email as fallback
  */
@@ -199,6 +202,17 @@ app.http('communityMessages', {
 
                 // Get user profile for display
                 const userProfile = await getUserProfile(principal.userId, principal.userDetails, usersContainer);
+
+                // Check if this is an admin-only channel
+                if (ADMIN_ONLY_CHANNELS.includes(channelId)) {
+                    if (!userProfile?.isAdmin) {
+                        context.log(`[CommunityMessages] Non-admin user ${principal.userDetails} attempted to post in admin-only channel: ${channelId}`);
+                        return errorResponse(403, 'Only admins can post in the announcements channel', {
+                            reason: 'admin_only_channel',
+                            channelId
+                        });
+                    }
+                }
 
                 // Content moderation check - ALL users including admins must pass moderation
                 try {
