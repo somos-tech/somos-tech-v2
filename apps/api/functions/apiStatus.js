@@ -371,6 +371,13 @@ app.http('apiUsageStats', {
                     tier: 'free',
                     limitType: 'Machine-to-Machine tokens',
                     resetTime: 'Monthly billing cycle'
+                },
+                'content-safety': {
+                    monthlyLimit: 5000,
+                    tier: 'F0 (Free)',
+                    limitType: 'Transactions per month',
+                    resetTime: 'Monthly billing cycle',
+                    region: 'eastus2'
                 }
             };
 
@@ -436,6 +443,29 @@ function generateUsageWarnings(usage, limits) {
                 severity: 'warning',
                 message: `High monthly M2M token usage: ${auth0Usage}/${auth0Limit} (${auth0Percent.toFixed(1)}%)`,
                 recommendation: 'Review token usage patterns'
+            });
+        }
+    }
+
+    // Check Content Safety monthly usage
+    if (usage['content-safety']?.last30Days?.totalCalls > 0) {
+        const csUsage = usage['content-safety'].last30Days.totalCalls;
+        const csLimit = limits['content-safety']?.monthlyLimit || 5000;
+        const csPercent = (csUsage / csLimit) * 100;
+
+        if (csPercent >= 90) {
+            warnings.push({
+                api: 'Azure Content Safety',
+                severity: 'critical',
+                message: `Monthly limit almost reached: ${csUsage}/${csLimit} (${csPercent.toFixed(1)}%)`,
+                recommendation: 'Consider upgrading from F0 free tier to S0 standard tier'
+            });
+        } else if (csPercent >= 70) {
+            warnings.push({
+                api: 'Azure Content Safety',
+                severity: 'warning',
+                message: `High monthly usage: ${csUsage}/${csLimit} (${csPercent.toFixed(1)}%)`,
+                recommendation: 'Monitor usage to avoid hitting free tier limits'
             });
         }
     }

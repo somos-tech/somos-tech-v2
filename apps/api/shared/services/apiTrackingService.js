@@ -210,7 +210,7 @@ async function getApiStats(apiName, days = 30) {
  * Get all tracked API stats
  */
 async function getAllApiStats() {
-    const apis = ['virustotal', 'auth0'];
+    const apis = ['virustotal', 'auth0', 'content-safety'];
     const results = {};
 
     for (const api of apis) {
@@ -238,10 +238,20 @@ async function trackAuth0Call(operation, success = true) {
     return trackApiCall('auth0', operation, success);
 }
 
+/**
+ * Track Azure Content Safety API call
+ * @param {string} operation - e.g., 'text_analyze', 'image_analyze'
+ * @param {boolean} success - Whether the call succeeded
+ */
+async function trackContentSafetyCall(operation, success = true) {
+    return trackApiCall('content-safety', operation, success);
+}
+
 export {
     trackApiCall,
     trackVirusTotalCall,
     trackAuth0Call,
+    trackContentSafetyCall,
     getApiStats,
     getAllApiStats
 };

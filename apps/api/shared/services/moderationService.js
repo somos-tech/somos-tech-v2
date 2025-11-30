@@ -38,7 +38,7 @@ import {
     defangTextUrls
 } from './linkSafetyService.js';
 import { createNotification } from './notificationService.js';
-import { trackVirusTotalCall } from './apiTrackingService.js';
+import { trackVirusTotalCall, trackContentSafetyCall } from './apiTrackingService.js';
 
 // ============== CONFIGURATION ==============
 
@@ -1412,6 +1412,9 @@ async function runTier3AzureAI(text, tier3Config) {
 
         const response = await client.path('/text:analyze').post({ body: analyzeTextOption });
 
+        // Track the API call
+        await trackContentSafetyCall('text_analyze', !isUnexpected(response));
+
         if (isUnexpected(response)) {
             console.error('[ModerationService] Unexpected API response:', response);
             throw new Error('Content Safety API error');
@@ -1503,6 +1506,9 @@ export async function analyzeImage(base64Image, tier3Config = {}) {
         const response = await client.path('/image:analyze').post({
             body: { image: { content: base64Image } }
         });
+
+        // Track the API call
+        await trackContentSafetyCall('image_analyze', !isUnexpected(response));
 
         if (isUnexpected(response)) {
             throw new Error('Image analysis API error');
